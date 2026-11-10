@@ -1,0 +1,7 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\XuanYu.Core\XuanYu.Core.csproj" />
+    <ProjectReference Include="..\XuanYu.World\XuanYu.World.csproj" />
+    <ProjectReference Include="..\XuanYu.Platform\XuanYu.Platform.csproj" />
+  </ItemGroup>
+</Project>
