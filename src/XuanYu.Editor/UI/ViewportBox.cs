@@ -1,49 +1,49 @@
+
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Layout;
-using Avalonia.Media;
 
 namespace XuanYu.Editor.UI;
 
-/// <summary>
-/// 中央常驻 Vulkan 1.3 视口容器。
-/// </summary>
 public sealed class ViewportBox : Border
 {
-    private readonly TextBlock _pageLabel = new()
+    private readonly Win32ViewportHost _host = new();
+    private string _statusNote;
+
+    public nint ViewportHwnd => _host.Hwnd;
+    public (uint Width, uint Height) PixelSize => _host.GetPixelSize();
+
+    public event Action<nint>? HwndCreated
     {
-        Foreground = EditorTheme.TextSub,
-        HorizontalAlignment = HorizontalAlignment.Center,
-        FontSize = 13
-    };
+        add => _host.HwndCreated += value;
+        remove => _host.HwndCreated -= value;
+    }
+
+    public event Action? HwndDestroying
+    {
+        add => _host.HwndDestroying += value;
+        remove => _host.HwndDestroying -= value;
+    }
 
     public ViewportBox(string statusNote)
     {
+        _statusNote = statusNote;
         Background = EditorTheme.ViewportBg;
         BorderBrush = EditorTheme.Border;
         BorderThickness = new Thickness(1);
         Margin = new Thickness(6, 0);
+        Child = _host;
+    }
 
-        var title = new TextBlock
-        {
-            Text = statusNote,
-            Foreground = EditorTheme.TextMain,
-            FontWeight = FontWeight.Bold,
-            FontSize = 15,
-            HorizontalAlignment = HorizontalAlignment.Center
-        };
-
-        Child = new StackPanel
-        {
-            VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Spacing = 8,
-            Children = { title, _pageLabel }
-        };
+    public void UpdateOverlay(string statusNote, string activePageTitle)
+    {
+        _statusNote = statusNote;
+        UpdateOverlay(activePageTitle);
     }
 
     public void UpdateOverlay(string activePageTitle)
     {
-        _pageLabel.Text = $"当前工作区上下文: {activePageTitle} | 视口实例保持常驻";
+        _host.SetPageTitle(activePageTitle);
+        ToolTip.SetTip(
+            this, $"{_statusNote} | 当前：{activePageTitle}");
     }
 }

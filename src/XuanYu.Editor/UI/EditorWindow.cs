@@ -1,56 +1,74 @@
+
 using Avalonia;
 using Avalonia.Controls;
 using XuanYu.Editor.Pages;
+using XuanYu.Render.Vulkan;
 
 namespace XuanYu.Editor.UI;
 
-/// <summary>
-/// 玄域引擎主工作台窗口。
-/// </summary>
 public sealed class EditorWindow : Window
 {
     private readonly Workbench _wb;
     private readonly TopBar _topBar;
-    private readonly SideCard _leftPanel = new("LEFT PANEL / 模块面板");
+    private readonly SideCard _leftPanel = new("LEFT / 模块面板");
     private readonly SideCard _rightPanel = new("INSPECTOR / 属性检查器");
     private readonly ViewportBox _viewport;
 
-    public EditorWindow(Workbench wb)
+    public EditorWindow(Workbench wb, VkContext? vk = null)
     {
         _wb = wb;
-        Title = "XuanYu Engine Workbench (E0)";
+        Title = "XuanYu Engine · Editor (E0)";
         Width = 1280;
-        Height = 760;
+        Height = 800;
+        MinWidth = 1100;
+        MinHeight = 600;
         Background = EditorTheme.WindowBg;
 
-        _topBar = new TopBar(_wb);
+        _topBar = new TopBar(_wb, this);
         _viewport = new ViewportBox(_wb.ViewportNote);
+
+        if (vk is not null)
+        {
+            _ = new ViewportSwapchainSession(_viewport, vk, _wb);
+            Closing += (_, _) => vk.DetachWin32Surface();
+        }
+
         var logPanel = new LogPanel(_wb.Log);
 
-        var centerGrid = new Grid
+        _leftPanel.Margin = new Thickness(0, 0, 4, 0);
+        _viewport.Margin = new Thickness(0, 0, 4, 4);
+        _rightPanel.Margin = new Thickness(0, 0, 0, 4);
+
+        var workspace = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("260,*,300"),
-            Margin = new Thickness(8)
+            ColumnDefinitions = new ColumnDefinitions("236,*,274"),
+            RowDefinitions = new RowDefinitions("*,132"),
+            Margin = new Thickness(4)
         };
+
         Grid.SetColumn(_leftPanel, 0);
+        Grid.SetRowSpan(_leftPanel, 2);
         Grid.SetColumn(_viewport, 1);
         Grid.SetColumn(_rightPanel, 2);
-        centerGrid.Children.Add(_leftPanel);
-        centerGrid.Children.Add(_viewport);
-        centerGrid.Children.Add(_rightPanel);
+        Grid.SetColumn(logPanel, 1);
+        Grid.SetRow(logPanel, 1);
+        Grid.SetColumnSpan(logPanel, 2);
 
-        var rootGrid = new Grid
+        workspace.Children.Add(_leftPanel);
+        workspace.Children.Add(_viewport);
+        workspace.Children.Add(_rightPanel);
+        workspace.Children.Add(logPanel);
+
+        var root = new Grid
         {
-            RowDefinitions = new RowDefinitions("Auto,*,150")
+            RowDefinitions = new RowDefinitions("74,*")
         };
-        Grid.SetRow(_topBar, 0);
-        Grid.SetRow(centerGrid, 1);
-        Grid.SetRow(logPanel, 2);
-        rootGrid.Children.Add(_topBar);
-        rootGrid.Children.Add(centerGrid);
-        rootGrid.Children.Add(logPanel);
 
-        Content = rootGrid;
+        Grid.SetRow(workspace, 1);
+        root.Children.Add(_topBar);
+        root.Children.Add(workspace);
+
+        Content = root;
         _wb.Changed += SyncUI;
         SyncUI();
     }

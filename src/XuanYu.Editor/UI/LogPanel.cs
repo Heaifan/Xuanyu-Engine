@@ -1,41 +1,92 @@
+
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
 using XuanYu.Editor.Pages;
 
 namespace XuanYu.Editor.UI;
 
-/// <summary>
-/// 底部诊断与日志面板。
-/// </summary>
 public sealed class LogPanel : Border
 {
     private readonly LogBox _log;
-    private readonly ListBox _list = new()
+
+    private readonly SelectableTextBlock _output = new()
     {
-        Background = Brushes.Transparent,
-        Foreground = EditorTheme.TextSub
+        Foreground = EditorTheme.TextSub,
+        FontFamily = new FontFamily("Consolas"),
+        FontSize = 12,
+        TextWrapping = TextWrapping.NoWrap
     };
+
+    private readonly CheckBox _follow = new()
+    {
+        Content = "自动滚动",
+        IsChecked = true,
+        FontSize = 11,
+        VerticalAlignment = VerticalAlignment.Center,
+        Margin = new Thickness(0, 0, 8, 0)
+    };
+
+    private readonly ScrollViewer _scroll;
 
     public LogPanel(LogBox log)
     {
         _log = log;
         Background = EditorTheme.PanelBg;
         BorderBrush = EditorTheme.Border;
-        BorderThickness = new Thickness(0, 1, 0, 0);
-        Padding = new Thickness(10, 6);
-        Child = _list;
+        BorderThickness = new Thickness(1);
 
+        _scroll = new ScrollViewer
+        {
+            Content = _output,
+            Background = EditorTheme.PanelBg,
+            Padding = new Thickness(10, 6)
+        };
+
+        var header = new Grid
+        {
+            Background = EditorTheme.PanelHeaderBg,
+            ColumnDefinitions = new ColumnDefinitions("*,Auto")
+        };
+
+        header.Children.Add(new TextBlock
+        {
+            Text = "输出 / 日志",
+            Foreground = EditorTheme.TextMain,
+            FontWeight = FontWeight.SemiBold,
+            FontSize = 11,
+            Margin = new Thickness(10, 0),
+            VerticalAlignment = VerticalAlignment.Center
+        });
+
+        Grid.SetColumn(_follow, 1);
+        header.Children.Add(_follow);
+
+        var root = new Grid
+        {
+            RowDefinitions = new RowDefinitions("24,*")
+        };
+
+        Grid.SetRow(_scroll, 1);
+        root.Children.Add(header);
+        root.Children.Add(_scroll);
+
+        Child = root;
         _log.Updated += Refresh;
         Refresh();
     }
 
     public void Refresh()
     {
-        _list.ItemsSource = _log.Items.ToArray();
-        if (_log.Items.Count > 0)
+        _output.Text = string.Join(Environment.NewLine, _log.Items);
+
+        if (_follow.IsChecked == true)
         {
-            _list.SelectedIndex = _log.Items.Count - 1;
+            Dispatcher.UIThread.Post(
+                () => _scroll.ScrollToEnd(),
+                DispatcherPriority.Loaded);
         }
     }
 }

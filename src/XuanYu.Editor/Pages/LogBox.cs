@@ -1,3 +1,4 @@
+
 namespace XuanYu.Editor.Pages;
 
 /// <summary>
@@ -15,10 +16,16 @@ public sealed class LogBox
     {
         if (string.IsNullOrWhiteSpace(text))
         {
-            throw new ArgumentException("日志内容不能为空。", nameof(text));
+            throw new ArgumentException(
+                "日志内容不能为空。", nameof(text));
         }
 
-        _items.Add($"[{DateTime.UtcNow:HH:mm:ss}] {text.Trim()}");
+        var beijingTime = DateTimeOffset.UtcNow
+            .ToOffset(TimeSpan.FromHours(8));
+
+        _items.Add(
+            $"[{beijingTime:HH:mm:ss}] {text.Trim()}");
+
         Updated?.Invoke();
     }
 }
