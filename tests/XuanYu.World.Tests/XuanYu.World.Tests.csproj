@@ -11,5 +11,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\XuanYu.Core\XuanYu.Core.csproj" />
     <ProjectReference Include="..\..\src\XuanYu.World\XuanYu.World.csproj" />
+    <ProjectReference Include="..\..\src\XuanYu.Editor\XuanYu.Editor.csproj" />
   </ItemGroup>
 </Project>

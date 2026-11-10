@@ -1,4 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="Tmds.DBus.Protocol" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\XuanYu.Core\XuanYu.Core.csproj" />
     <ProjectReference Include="..\XuanYu.World\XuanYu.World.csproj" />
