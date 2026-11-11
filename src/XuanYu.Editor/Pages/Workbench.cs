@@ -1,6 +1,7 @@
-
 using XuanYu.Editor.Preview;
+using XuanYu.Render;
 using XuanYu.Render.Vulkan;
+using XuanYu.World;
 
 namespace XuanYu.Editor.Pages;
 
@@ -9,7 +10,10 @@ public sealed class Workbench
     public PageId CurrentId { get; private set; }
     public PageInfo Current => PageCatalog.Get(CurrentId);
     public bool KeepViewportAlive => true;
+
     public PreviewScene Scene { get; } = PreviewSeed.Create();
+    public WorldScene World => Scene.World;
+    public IReadOnlyList<RenderDraw> RenderDraws => Scene.Draws;
 
     public string ViewportNote { get; private set; } =
         "Vulkan 1.3 视口常驻容器（待初始化 GPU）";

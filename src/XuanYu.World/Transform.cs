@@ -12,4 +12,9 @@ public readonly record struct Transform(
             Vector3.Zero,
             Quaternion.Identity,
             Vector3.One);
+
+    public Matrix4x4 ToMatrix() =>
+        Matrix4x4.CreateScale(Scale) *
+        Matrix4x4.CreateFromQuaternion(Rotation) *
+        Matrix4x4.CreateTranslation(Position);
 }

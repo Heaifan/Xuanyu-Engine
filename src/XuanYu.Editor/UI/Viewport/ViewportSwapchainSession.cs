@@ -1,4 +1,3 @@
-
 using Avalonia.Threading;
 using Silk.NET.Vulkan;
 using XuanYu.Editor.Pages;
@@ -57,7 +56,7 @@ internal sealed class ViewportSwapchainSession
             string summary = _vk.ConfigureSwapchain(width, height);
             if (summary.Length > 0)
                 _workbench.Log.Write(summary);
-            Result result = _vk.PresentFrame(_workbench.Scene.Draws);
+            Result result = _vk.PresentFrame(_workbench.RenderDraws);
             if (result == Result.ErrorOutOfDateKhr)
             {
                 summary = _vk.ConfigureSwapchain(width, height, force: true);
@@ -68,7 +67,7 @@ internal sealed class ViewportSwapchainSession
             if (result == Result.Success || result == Result.SuboptimalKhr)
             {
                 if (!_firstFrame)
-                    _workbench.Log.Write("Vulkan 首帧多对象 GPU Draw 与 Present 提交成功");
+                    _workbench.Log.Write("Vulkan 首帧 World GPU Draw 与 Present 提交成功");
                 _firstFrame = true;
             }
         }
