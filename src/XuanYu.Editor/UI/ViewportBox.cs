@@ -6,44 +6,78 @@ namespace XuanYu.Editor.UI;
 
 public sealed class ViewportBox : Border
 {
-    private readonly Win32ViewportHost _host = new();
-    private string _statusNote;
+    private readonly Win32ViewportHost? _windows;
+    private readonly X11ViewportHost? _linux;
 
-    public nint ViewportHwnd => _host.Hwnd;
-    public (uint Width, uint Height) PixelSize => _host.GetPixelSize();
+    public nint ViewportHwnd => _windows?.Hwnd ?? 0;
+    public (uint Width, uint Height) PixelSize =>
+        _windows?.GetPixelSize() ?? _linux?.GetPixelSize() ?? (0u, 0u);
 
-    public event Action<nint>? HwndCreated
+    public event Action<nint>? NativeWindowCreated
     {
-        add => _host.HwndCreated += value;
-        remove => _host.HwndCreated -= value;
+        add
+        {
+            if (_windows is not null) _windows.HwndCreated += value;
+            if (_linux is not null) _linux.XidCreated += value;
+        }
+        remove
+        {
+            if (_windows is not null) _windows.HwndCreated -= value;
+            if (_linux is not null) _linux.XidCreated -= value;
+        }
     }
 
-    public event Action? HwndDestroying
+    public event Action? NativeWindowDestroying
     {
-        add => _host.HwndDestroying += value;
-        remove => _host.HwndDestroying -= value;
+        add
+        {
+            if (_windows is not null) _windows.HwndDestroying += value;
+            if (_linux is not null) _linux.XidDestroying += value;
+        }
+        remove
+        {
+            if (_windows is not null) _windows.HwndDestroying -= value;
+            if (_linux is not null) _linux.XidDestroying -= value;
+        }
+    }
+
+    public event Action<int, int>? Clicked
+    {
+        add
+        {
+            if (_windows is not null) _windows.Clicked += value;
+            if (_linux is not null) _linux.Clicked += value;
+        }
+        remove
+        {
+            if (_windows is not null) _windows.Clicked -= value;
+            if (_linux is not null) _linux.Clicked -= value;
+        }
     }
 
     public ViewportBox(string statusNote)
     {
-        _statusNote = statusNote;
         Background = EditorTheme.ViewportBg;
         BorderBrush = EditorTheme.Border;
         BorderThickness = new Thickness(1);
         Margin = new Thickness(6, 0);
-        Child = _host;
+        if (OperatingSystem.IsWindows())
+        {
+            _windows = new Win32ViewportHost();
+            Child = _windows;
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+            _linux = new X11ViewportHost();
+            Child = _linux;
+        }
+        else
+            throw new PlatformNotSupportedException("仅支持 Windows 与 Linux 桌面平台。");
     }
 
-    public void UpdateOverlay(string statusNote, string activePageTitle)
-    {
-        _statusNote = statusNote;
+    public void UpdateOverlay(string statusNote, string activePageTitle) =>
         UpdateOverlay(activePageTitle);
-    }
 
-    public void UpdateOverlay(string activePageTitle)
-    {
-        _host.SetPageTitle(activePageTitle);
-        ToolTip.SetTip(
-            this, $"{_statusNote} | 当前：{activePageTitle}");
-    }
+    public void UpdateOverlay(string activePageTitle) =>
+        _windows?.SetPageTitle(activePageTitle);
 }

@@ -10,6 +10,7 @@ internal static unsafe class VkLogicalDeviceCreator
     {
         float priority = 1.0f;
         byte[] swapchainName = "VK_KHR_swapchain\0"u8.ToArray();
+        bool useSwapchain = OperatingSystem.IsWindows() || OperatingSystem.IsLinux();
 
         fixed (byte* swapchain = swapchainName)
         {
@@ -21,24 +22,19 @@ internal static unsafe class VkLogicalDeviceCreator
                 QueueCount = 1,
                 PQueuePriorities = &priority
             };
-
             var createInfo = new DeviceCreateInfo
             {
                 SType = StructureType.DeviceCreateInfo,
                 QueueCreateInfoCount = 1,
                 PQueueCreateInfos = &queueInfo,
-                EnabledExtensionCount = OperatingSystem.IsWindows() ? 1u : 0u,
-                PpEnabledExtensionNames = OperatingSystem.IsWindows() ? extensions : null
+                EnabledExtensionCount = useSwapchain ? 1u : 0u,
+                PpEnabledExtensionNames = useSwapchain ? extensions : null
             };
-
             Device device = default;
             Result result = vk.CreateDevice(
                 physicalDevice, &createInfo, null, &device);
-
             if (result != Result.Success)
-                throw new InvalidOperationException(
-                    $"Vulkan 逻辑设备创建失败：{result}");
-
+                throw new InvalidOperationException($"Vulkan 逻辑设备创建失败：{result}");
             Queue queue = default;
             vk.GetDeviceQueue(device, family, 0, &queue);
             return (device, queue);

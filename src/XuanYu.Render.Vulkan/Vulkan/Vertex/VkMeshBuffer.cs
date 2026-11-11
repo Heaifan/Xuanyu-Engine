@@ -1,10 +1,11 @@
 
 using Silk.NET.Vulkan;
+using XuanYu.Render;
 using VkBuffer = Silk.NET.Vulkan.Buffer;
 
 namespace XuanYu.Render.Vulkan;
 
-internal sealed unsafe class VkTriangleVertexBuffer : IDisposable
+internal sealed unsafe class VkMeshBuffer : IDisposable
 {
     private readonly Vk _vk;
     private readonly Device _device;
@@ -12,17 +13,11 @@ internal sealed unsafe class VkTriangleVertexBuffer : IDisposable
     private DeviceMemory _memory;
     public VkBuffer Handle => _buffer;
 
-    public VkTriangleVertexBuffer(Vk vk, PhysicalDevice gpu, Device device)
+    public VkMeshBuffer(Vk vk, PhysicalDevice gpu, Device device, RenderMesh mesh)
     {
         _vk = vk;
         _device = device;
-        float[] vertices =
-        [
-            -0.7f, 0.6f, 0f, 1f, 0.25f, 0.25f, 1f,
-             0.7f, 0.6f, 0f, 0.25f, 1f, 0.45f, 1f,
-             0f, -0.7f, 0f, 0.25f, 0.55f, 1f, 1f
-        ];
-        ulong bytes = (ulong)(vertices.Length * sizeof(float));
+        ulong bytes = (ulong)mesh.Vertices.Length * sizeof(float);
         try
         {
             var info = new BufferCreateInfo
@@ -34,8 +29,7 @@ internal sealed unsafe class VkTriangleVertexBuffer : IDisposable
             };
             Check(vk.CreateBuffer(device, &info, null, out _buffer),
                 "创建顶点缓冲区");
-            vk.GetBufferMemoryRequirements(device, _buffer,
-                out var requirements);
+            vk.GetBufferMemoryRequirements(device, _buffer, out var requirements);
             var allocate = new MemoryAllocateInfo
             {
                 SType = StructureType.MemoryAllocateInfo,
@@ -50,7 +44,7 @@ internal sealed unsafe class VkTriangleVertexBuffer : IDisposable
             void* mapped = null;
             Check(vk.MapMemory(device, _memory, 0, bytes, 0, &mapped),
                 "映射顶点显存");
-            fixed (float* source = vertices)
+            fixed (float* source = mesh.Vertices.Span)
                 System.Buffer.MemoryCopy(
                     source, mapped, (long)bytes, (long)bytes);
             vk.UnmapMemory(device, _memory);
@@ -67,8 +61,7 @@ internal sealed unsafe class VkTriangleVertexBuffer : IDisposable
     {
         vk.GetPhysicalDeviceMemoryProperties(gpu, out var props);
         const MemoryPropertyFlags wanted =
-            MemoryPropertyFlags.HostVisibleBit |
-            MemoryPropertyFlags.HostCoherentBit;
+            MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit;
         for (uint i = 0; i < props.MemoryTypeCount; i++)
         {
             if ((allowed & (1u << (int)i)) != 0 &&

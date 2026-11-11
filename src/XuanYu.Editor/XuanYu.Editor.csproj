@@ -1,3 +1,4 @@
+
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -16,5 +17,8 @@
     <ProjectReference Include="..\XuanYu.Render\XuanYu.Render.csproj" />
     <ProjectReference Include="..\XuanYu.Render.Vulkan\XuanYu.Render.Vulkan.csproj" />
     <ProjectReference Include="..\XuanYu.Runtime\XuanYu.Runtime.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\Left\**\*.svg" />
   </ItemGroup>
 </Project>

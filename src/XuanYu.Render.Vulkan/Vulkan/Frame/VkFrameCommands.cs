@@ -1,13 +1,14 @@
 
 using Silk.NET.Vulkan;
+using XuanYu.Render;
 
 namespace XuanYu.Render.Vulkan;
 
 internal static unsafe class VkFrameCommands
 {
     public static void Record(
-        Vk vk, CommandBuffer command, VkTriangleScene scene,
-        uint imageIndex, Extent2D extent)
+        Vk vk, CommandBuffer command, VkMeshScene scene,
+        uint imageIndex, Extent2D extent, IReadOnlyList<RenderDraw> draws)
     {
         Check(vk.ResetCommandBuffer(command, 0), "重置命令缓冲区");
 
@@ -44,27 +45,41 @@ internal static unsafe class VkFrameCommands
         vk.CmdBindPipeline(
             command, PipelineBindPoint.Graphics, scene.Pipeline);
 
-        Silk.NET.Vulkan.Buffer buffer = scene.VertexBuffer;
+        foreach (RenderDraw draw in draws)
+        {
+            if (!draw.Visible)
+                continue;
+
+            DrawMesh(vk, command, scene, draw);
+        }
+
+        vk.CmdEndRenderPass(command);
+        Check(vk.EndCommandBuffer(command), "结束命令缓冲区");
+    }
+
+    private static void DrawMesh(
+        Vk vk, CommandBuffer cmd, VkMeshScene scene, RenderDraw draw)
+    {
+        Silk.NET.Vulkan.Buffer buffer = scene.BufferFor(draw.Mesh);
         ulong offset = 0;
-        vk.CmdBindVertexBuffers(command, 0, 1, &buffer, &offset);
+        vk.CmdBindVertexBuffers(cmd, 0, 1, &buffer, &offset);
+
+        var m = draw.ModelToClip;
 
         float* push = stackalloc float[20]
         {
-            1f, 0f, 0f, 0f,
-            0f, 1f, 0f, 0f,
-            0f, 0f, 1f, 0f,
-            0f, 0f, 0f, 1f,
-            0f, 0f, 0f, 0f
+            m.M11, m.M12, m.M13, m.M14,
+            m.M21, m.M22, m.M23, m.M24,
+            m.M31, m.M32, m.M33, m.M34,
+            m.M41, m.M42, m.M43, m.M44,
+            1f, 0.78f, 0.15f, draw.Selected ? 0.60f : 0f
         };
 
         vk.CmdPushConstants(
-            command, scene.Layout, ShaderStageFlags.VertexBit,
+            cmd, scene.Layout, ShaderStageFlags.VertexBit,
             0, 80, push);
 
-        vk.CmdDraw(command, 3, 1, 0, 0);
-        vk.CmdEndRenderPass(command);
-
-        Check(vk.EndCommandBuffer(command), "结束命令缓冲区");
+        vk.CmdDraw(cmd, (uint)draw.Mesh.VertexCount, 1, 0, 0);
     }
 
     private static void Check(Result result, string action)

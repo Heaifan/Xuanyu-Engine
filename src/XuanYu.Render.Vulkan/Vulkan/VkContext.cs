@@ -1,5 +1,6 @@
 
 using Silk.NET.Vulkan;
+using XuanYu.Render;
 
 namespace XuanYu.Render.Vulkan;
 
@@ -35,15 +36,17 @@ public sealed unsafe class VkContext : IDisposable
         }
     }
 
-    public void AttachWin32Surface(nint hwnd)
+    public void AttachSurface(nint nativeWindow)
     {
         if (!IsInitialized)
             throw new ObjectDisposedException(nameof(VkContext));
-        DetachWin32Surface();
-        _presentation = new VkPresentationSession(_vk, _instance,
-            PhysicalDevice, _device, GraphicsQueue,
-            Gpu.GraphicsFamilyIndex, hwnd);
+        DetachSurface();
+        _presentation = new VkPresentationSession(
+            _vk, _instance, PhysicalDevice, _device,
+            GraphicsQueue, Gpu.GraphicsFamilyIndex, nativeWindow);
     }
+
+    public void AttachWin32Surface(nint hwnd) => AttachSurface(hwnd);
 
     public string ConfigureSwapchain(uint width, uint height, bool force = false)
     {
@@ -52,21 +55,23 @@ public sealed unsafe class VkContext : IDisposable
         return _presentation.Configure(width, height, force);
     }
 
-    public Result PresentFrame() =>
-        _presentation?.PresentFrame() ?? Result.NotReady;
+    public Result PresentFrame(IReadOnlyList<RenderDraw> draws) =>
+        _presentation?.PresentFrame(draws) ?? Result.NotReady;
 
-    public void DetachWin32Surface()
+    public void DetachSurface()
     {
         _presentation?.Dispose();
         _presentation = null;
     }
+
+    public void DetachWin32Surface() => DetachSurface();
 
     public void Dispose()
     {
         if (_disposed)
             return;
         _disposed = true;
-        DetachWin32Surface();
+        DetachSurface();
         if (_device.Handle != 0)
         {
             _vk.DeviceWaitIdle(_device);

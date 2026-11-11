@@ -11,13 +11,14 @@ internal sealed class Win32ViewportHost : NativeControlHost
 {
     private const uint WindowStyle =
         0x40000000 | 0x10000000 | 0x04000000 |
-        0x02000000 | 0x00000004;
-
+        0x02000000 | 0x00000004 | 0x00000100;
+    private readonly Win32ViewportMouseHook _mouse = new();
     private string _pageTitle = "World";
 
     public nint Hwnd { get; private set; }
     public event Action<nint>? HwndCreated;
     public event Action? HwndDestroying;
+    public event Action<int, int>? Clicked;
 
     public (uint Width, uint Height) GetPixelSize()
     {
@@ -37,17 +38,24 @@ internal sealed class Win32ViewportHost : NativeControlHost
     protected override IPlatformHandle CreateNativeControlCore(IPlatformHandle parent)
     {
         if (!OperatingSystem.IsWindows())
-            throw new PlatformNotSupportedException("E1-02 仅支持 Windows HWND。");
-
+            throw new PlatformNotSupportedException("E1 视口仅支持 Windows HWND。");
         nint hwnd = CreateWindowExW(
             0, "STATIC", $"XuanYu Viewport - {_pageTitle}",
             WindowStyle, 0, 0, 1, 1, parent.Handle, 0, 0, 0);
-
         if (hwnd == 0)
             throw new Win32Exception(
                 Marshal.GetLastWin32Error(), "创建视口 HWND 失败。");
-
         Hwnd = hwnd;
+        try
+        {
+            _mouse.Attach(hwnd, (x, y) => Clicked?.Invoke(x, y));
+        }
+        catch
+        {
+            DestroyWindow(hwnd);
+            Hwnd = 0;
+            throw;
+        }
         Console.WriteLine($"[XYE] 视口 HWND 已创建：0x{hwnd.ToInt64():X}");
         HwndCreated?.Invoke(hwnd);
         return new PlatformHandle(hwnd, "HWND");
@@ -56,6 +64,7 @@ internal sealed class Win32ViewportHost : NativeControlHost
     protected override void DestroyNativeControlCore(IPlatformHandle control)
     {
         HwndDestroying?.Invoke();
+        _mouse.Detach();
         if (!DestroyWindow(control.Handle))
             Console.Error.WriteLine(
                 $"[XYE] 视口 HWND 销毁失败：{Marshal.GetLastWin32Error()}");
@@ -88,4 +97,3 @@ internal sealed class Win32ViewportHost : NativeControlHost
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetWindowTextW(nint hwnd, string text);
 }
-

@@ -1,5 +1,6 @@
 
 using Silk.NET.Vulkan;
+using XuanYu.Render;
 
 namespace XuanYu.Render.Vulkan;
 
@@ -10,7 +11,7 @@ internal sealed unsafe class VkFrameRenderer : IDisposable
     private readonly Queue _queue;
     private readonly VkSwapchain _swapchain;
     private readonly VkFrameResources _resources;
-    private readonly VkTriangleScene _scene;
+    private readonly VkMeshScene _scene;
 
     public VkFrameRenderer(Vk vk, PhysicalDevice gpu, Device device,
         Queue queue, uint family, VkSwapchain swapchain)
@@ -19,7 +20,7 @@ internal sealed unsafe class VkFrameRenderer : IDisposable
         _device = device;
         _queue = queue;
         _swapchain = swapchain;
-        _scene = new VkTriangleScene(vk, gpu, device, swapchain);
+        _scene = new VkMeshScene(vk, gpu, device, swapchain);
         try
         {
             _resources = new VkFrameResources(
@@ -32,13 +33,14 @@ internal sealed unsafe class VkFrameRenderer : IDisposable
         }
     }
 
-    public Result PresentFrame()
+    public Result PresentFrame(IReadOnlyList<RenderDraw> draws)
     {
         Fence fence = _resources.Fence;
         Result wait = _vk.WaitForFences(_device, 1, &fence, true, 0);
         if (wait == Result.Timeout)
             return Result.NotReady;
         Check(wait, "等待上一帧");
+        _scene.SyncMeshes(draws);
         uint index = 0;
         Result acquired = _swapchain.Api.AcquireNextImage(
             _device, _swapchain.Handle, 0,
@@ -48,31 +50,27 @@ internal sealed unsafe class VkFrameRenderer : IDisposable
         if (acquired != Result.Success && acquired != Result.SuboptimalKhr)
             throw new InvalidOperationException($"获取交换链图像失败：{acquired}");
         CommandBuffer command = _resources.Command;
-        VkFrameCommands.Record(_vk, command, _scene, index, _swapchain.Extent);
+        VkFrameCommands.Record(_vk, command, _scene, index,
+            _swapchain.Extent, draws);
         var available = _resources.Available;
         var finished = _resources.Finished(index);
         var stage = PipelineStageFlags.ColorAttachmentOutputBit;
         var submit = new SubmitInfo
         {
             SType = StructureType.SubmitInfo,
-            WaitSemaphoreCount = 1,
-            PWaitSemaphores = &available,
+            WaitSemaphoreCount = 1, PWaitSemaphores = &available,
             PWaitDstStageMask = &stage,
-            CommandBufferCount = 1,
-            PCommandBuffers = &command,
-            SignalSemaphoreCount = 1,
-            PSignalSemaphores = &finished
+            CommandBufferCount = 1, PCommandBuffers = &command,
+            SignalSemaphoreCount = 1, PSignalSemaphores = &finished
         };
         Check(_vk.ResetFences(_device, 1, &fence), "重置帧 Fence");
-        Check(_vk.QueueSubmit(_queue, 1, &submit, fence), "提交三角形绘制");
+        Check(_vk.QueueSubmit(_queue, 1, &submit, fence), "提交网格绘制");
         SwapchainKHR swapchain = _swapchain.Handle;
         var present = new PresentInfoKHR
         {
             SType = StructureType.PresentInfoKhr,
-            WaitSemaphoreCount = 1,
-            PWaitSemaphores = &finished,
-            SwapchainCount = 1,
-            PSwapchains = &swapchain,
+            WaitSemaphoreCount = 1, PWaitSemaphores = &finished,
+            SwapchainCount = 1, PSwapchains = &swapchain,
             PImageIndices = &index
         };
         Result result = _swapchain.Api.QueuePresent(_queue, &present);

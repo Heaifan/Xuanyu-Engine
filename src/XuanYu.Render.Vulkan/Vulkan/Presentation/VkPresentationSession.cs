@@ -1,5 +1,6 @@
 
 using Silk.NET.Vulkan;
+using XuanYu.Render;
 
 namespace XuanYu.Render.Vulkan;
 
@@ -10,12 +11,12 @@ internal sealed class VkPresentationSession : IDisposable
     private readonly Queue _queue;
     private readonly uint _family;
     private readonly PhysicalDevice _gpu;
-    private readonly VkWin32Surface _surface;
+    private readonly IDisposable _surfaceOwner;
     private readonly VkSwapchain _swapchain;
     private VkFrameRenderer? _frames;
 
     public VkPresentationSession(Vk vk, Instance instance,
-        PhysicalDevice gpu, Device device, Queue queue, uint family, nint hwnd)
+        PhysicalDevice gpu, Device device, Queue queue, uint family, nint window)
     {
         _vk = vk;
         _device = device;
@@ -23,15 +24,29 @@ internal sealed class VkPresentationSession : IDisposable
         _family = family;
         _gpu = gpu;
 
-        _surface = new VkWin32Surface(vk, instance, hwnd);
+        SurfaceKHR surface;
+        if (OperatingSystem.IsWindows())
+        {
+            var win32 = new VkWin32Surface(vk, instance, window);
+            _surfaceOwner = win32;
+            surface = win32.Surface;
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+            var xlib = new VkXlibSurface(vk, instance, window);
+            _surfaceOwner = xlib;
+            surface = xlib.Surface;
+        }
+        else
+            throw new PlatformNotSupportedException("不支持当前 Vulkan 视口平台。");
+
         try
         {
-            _swapchain = new VkSwapchain(
-                vk, instance, gpu, device, family, _surface.Surface);
+            _swapchain = new VkSwapchain(vk, instance, gpu, device, family, surface);
         }
         catch
         {
-            _surface.Dispose();
+            _surfaceOwner.Dispose();
             throw;
         }
     }
@@ -40,11 +55,9 @@ internal sealed class VkPresentationSession : IDisposable
     {
         if (!_swapchain.Configure(width, height, force, ReleaseFrames))
             return "";
-
         _frames = new VkFrameRenderer(
             _vk, _gpu, _device, _queue, _family, _swapchain);
-
-        return $"SwapchainKHR 与 Triangle Pipeline 创建成功：" +
+        return $"SwapchainKHR 与 Mesh Pipeline 创建成功：" +
             $"{_swapchain.Extent.Width}×{_swapchain.Extent.Height} | " +
             $"{_swapchain.Format}";
     }
@@ -55,14 +68,14 @@ internal sealed class VkPresentationSession : IDisposable
         _frames = null;
     }
 
-    public Result PresentFrame() =>
-        _frames?.PresentFrame() ?? Result.NotReady;
+    public Result PresentFrame(IReadOnlyList<RenderDraw> draws) =>
+        _frames?.PresentFrame(draws) ?? Result.NotReady;
 
     public void Dispose()
     {
         _vk.DeviceWaitIdle(_device);
         ReleaseFrames();
         _swapchain.Dispose();
-        _surface.Dispose();
+        _surfaceOwner.Dispose();
     }
 }

@@ -14,13 +14,16 @@ public sealed class SideCard : Border
         FontWeight = FontWeight.SemiBold,
         FontSize = 13
     };
-
     private readonly TextBlock _body = new()
     {
         Foreground = EditorTheme.TextSub,
         TextWrapping = TextWrapping.Wrap,
         FontSize = 12,
         LineHeight = 18
+    };
+    private readonly StackPanel _content = new()
+    {
+        Spacing = 9, Margin = new Thickness(12, 12, 12, 0)
     };
 
     public SideCard(string roleTag)
@@ -45,13 +48,6 @@ public sealed class SideCard : Border
             }
         };
 
-        var content = new StackPanel
-        {
-            Spacing = 9,
-            Margin = new Thickness(12, 12, 12, 0),
-            Children = { _head, _body }
-        };
-
         var footer = new Border
         {
             Background = EditorTheme.PanelHeaderBg,
@@ -60,7 +56,7 @@ public sealed class SideCard : Border
             Padding = new Thickness(10, 0),
             Child = new TextBlock
             {
-                Text = "E0 · 工作区框架",
+                Text = "E1 · 预览工作台",
                 FontSize = 10,
                 Foreground = EditorTheme.TextMuted,
                 VerticalAlignment = VerticalAlignment.Center
@@ -72,17 +68,30 @@ public sealed class SideCard : Border
             RowDefinitions = new RowDefinitions("26,*,22")
         };
 
-        Grid.SetRow(content, 1);
+        Grid.SetRow(_content, 1);
         Grid.SetRow(footer, 2);
         grid.Children.Add(header);
-        grid.Children.Add(content);
+        grid.Children.Add(_content);
         grid.Children.Add(footer);
         Child = grid;
     }
 
+    public void SetContent(Control content)
+    {
+        if (_content.Children.Count == 1 &&
+            ReferenceEquals(_content.Children[0], content))
+            return;
+
+        _content.Children.Clear();
+        _content.Children.Add(content);
+    }
+
     public void SetText(string title, string detail)
     {
+        _content.Children.Clear();
         _head.Text = title;
         _body.Text = detail;
+        _content.Children.Add(_head);
+        _content.Children.Add(_body);
     }
 }
