@@ -1,4 +1,3 @@
-
 using Avalonia;
 using Avalonia.Controls;
 using XuanYu.Editor.Pages;
@@ -44,7 +43,7 @@ public sealed class EditorWindow : Window
         _rightHost.Margin = new Thickness(0, 0, 0, 4);
         var workspace = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("236,*,274"),
+            ColumnDefinitions = new ColumnDefinitions("236,*,248"),
             RowDefinitions = new RowDefinitions("*,132"),
             Margin = new Thickness(4)
         };

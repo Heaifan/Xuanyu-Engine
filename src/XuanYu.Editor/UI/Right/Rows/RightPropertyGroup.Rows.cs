@@ -1,4 +1,3 @@
-
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -8,6 +7,17 @@ namespace XuanYu.Editor.UI.Right;
 
 public sealed partial class RightPropertyGroup
 {
+    public void AddSubheading(string title)
+    {
+        _rows.Children.Add(new TextBlock
+        {
+            Text = title, FontSize = 11,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = EditorTheme.TextSub,
+            Margin = new Thickness(10, 6, 0, 2)
+        });
+    }
+
     public void AddText(string name, string value)
     {
         var grid = CreateRow(name);
@@ -29,7 +39,7 @@ public sealed partial class RightPropertyGroup
     public void AddVisibility(bool visible, Action<bool> onChanged)
     {
         var grid = CreateRow("视口可见");
-        grid.Height = 30;
+        grid.Height = 28;
         var check = new CheckBox
         {
             IsChecked = visible,
@@ -43,6 +53,10 @@ public sealed partial class RightPropertyGroup
         grid.Children.Add(check);
         _rows.Children.Add(grid);
     }
+
+    public void AddNumber(string name, float value,
+        Action<float> onChanged, float step = 0.1f) =>
+        _rows.Children.Add(new RightNumberField(name, value, step, onChanged));
 
     private static Grid CreateRow(string name)
     {

@@ -7,7 +7,7 @@ using XuanYu.World;
 
 namespace XuanYu.Editor.Preview;
 
-public sealed class PreviewScene
+public sealed partial class PreviewScene
 {
     private readonly ObservableCollection<PreviewObject> _objects = [];
     private readonly WorldRenderBridge _bridge;

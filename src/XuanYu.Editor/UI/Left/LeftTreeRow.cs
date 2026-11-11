@@ -1,4 +1,3 @@
-
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -6,7 +5,7 @@ using Avalonia.Media;
 
 namespace XuanYu.Editor.UI.Left;
 
-internal sealed class LeftTreeRow : Button
+internal sealed partial class LeftTreeRow : Button
 {
     private static readonly FontFamily TreeFont = new("Microsoft YaHei UI");
     private readonly TextBlock _title;

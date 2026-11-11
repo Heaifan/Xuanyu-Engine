@@ -1,18 +1,16 @@
-
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using XuanYu.Editor.Pages;
 using XuanYu.Editor.Preview;
-
 namespace XuanYu.Editor.UI.Left;
-
 internal sealed class LeftWorkspacePanel : Border
 {
     private static readonly FontFamily TreeFont = new("Microsoft YaHei UI");
     private readonly LeftSceneTree _tree;
     private readonly ScrollViewer _scroll = new();
+    private readonly ContextMenu _sceneMenu;
     private readonly Grid _tabs;
     private readonly StackPanel _infoPanel = new() { Spacing = 9,
         Margin = new Thickness(4, 12, 4, 0) };
@@ -20,16 +18,18 @@ internal sealed class LeftWorkspacePanel : Border
         FontFamily = TreeFont, FontWeight = FontWeight.SemiBold, Foreground = EditorTheme.TextMain };
     private readonly TextBlock _infoDetail = new() { FontSize = 12,
         FontFamily = TreeFont, TextWrapping = TextWrapping.Wrap, Foreground = EditorTheme.TextSub };
-
     public LeftWorkspacePanel(PreviewScene scene)
     {
         _tree = new LeftSceneTree(scene);
+        _sceneMenu = _tree.CreateSceneMenu();
         Background = EditorTheme.PanelBg;
         BorderBrush = EditorTheme.Border;
         BorderThickness = new Thickness(1);
         CornerRadius = new CornerRadius(3);
         _tabs = BuildTabs();
         _scroll.Padding = new Thickness(8, 0, 8, 0);
+        _scroll.Background = Brushes.Transparent;
+        _scroll.ContextMenu = _sceneMenu;
         _scroll.Content = _tree;
         _infoPanel.Children.Add(_infoTitle);
         _infoPanel.Children.Add(_infoDetail);
@@ -59,10 +59,10 @@ internal sealed class LeftWorkspacePanel : Border
         root.Children.Add(footer);
         Child = root;
     }
-
     public void SetPage(PageInfo info, bool isWorld)
     {
         _tabs.IsVisible = isWorld;
+        _scroll.ContextMenu = isWorld ? _sceneMenu : null;
         _infoTitle.Text = info.LeftTitle;
         _infoDetail.Text = info.LeftDetail;
         if ((_scroll.Content is LeftSceneTree) == isWorld)

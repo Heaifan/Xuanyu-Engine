@@ -1,4 +1,3 @@
-
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -9,7 +8,7 @@ public class RightWorkspacePanel : Border
 {
     private readonly StackPanel _body = new()
     {
-        Spacing = 4, HorizontalAlignment = HorizontalAlignment.Stretch
+        Spacing = 2, HorizontalAlignment = HorizontalAlignment.Stretch
     };
     private readonly Dictionary<string, bool> _expanded = [];
     private readonly Func<string, int, Control>? _iconFactory;
@@ -37,7 +36,7 @@ public class RightWorkspacePanel : Border
         {
             Content = _body, HorizontalContentAlignment = HorizontalAlignment.Stretch,
             HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
-            VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
+            VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden
         };
         var root = new DockPanel { LastChildFill = true };
         DockPanel.SetDock(heading, Dock.Top);
@@ -47,7 +46,8 @@ public class RightWorkspacePanel : Border
         Show(null);
     }
 
-    public void Show(RightInspectorSnapshot? snapshot, Action<bool>? setVisible = null)
+    public void Show(RightInspectorSnapshot? snapshot,
+        Action<bool>? setVisible = null, Control? transformEditor = null)
     {
         _body.Children.Clear();
         if (snapshot is null)
@@ -62,6 +62,8 @@ public class RightWorkspacePanel : Border
             return;
         }
         _body.Children.Add(new RightObjectHeader(snapshot, _iconFactory));
+        if (transformEditor is not null)
+            _body.Children.Add(transformEditor);
         foreach (var section in snapshot.Sections)
         {
             var group = CreateGroup(section.Title);
