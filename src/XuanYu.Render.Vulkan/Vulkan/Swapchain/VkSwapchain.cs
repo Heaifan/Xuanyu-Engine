@@ -28,7 +28,8 @@ internal sealed unsafe class VkSwapchain : IDisposable
         _device = device;
         _surface = surface;
         if (!vk.TryGetInstanceExtension<KhrSurface>(instance, out var surfaceApi) ||
-            !vk.TryGetDeviceExtension<KhrSwapchain>(instance, device, out var swapchainApi))
+            !vk.TryGetDeviceExtension<KhrSwapchain>(
+                instance, device, out var swapchainApi))
             throw new NotSupportedException("Vulkan Swapchain 扩展不可用。");
         _surfaceApi = surfaceApi;
         _api = swapchainApi;
@@ -36,21 +37,28 @@ internal sealed unsafe class VkSwapchain : IDisposable
             gpu, family, surface, out var supported);
         if (result != Result.Success || !supported)
             throw new NotSupportedException(
-                "选定的 Graphics Queue 不支持当前 Surface Present。");
+                "Graphics Queue 不支持当前 Surface Present。");
     }
 
-    public bool Configure(uint width, uint height, bool force = false)
+    public bool Configure(uint width, uint height, bool force = false,
+        Action? beforeReplace = null)
     {
         var info = VkSwapchainOptions.Choose(
             _surfaceApi, _gpu, _surface, width, height);
         if (!force && _handle.Handle != 0 &&
             Extent.Width == info.ImageExtent.Width &&
-            Extent.Height == info.ImageExtent.Height && Format == info.ImageFormat)
+            Extent.Height == info.ImageExtent.Height &&
+            Format == info.ImageFormat)
             return false;
-        if (_handle.Handle != 0 && _vk.DeviceWaitIdle(_device) != Result.Success)
-            throw new InvalidOperationException("等待 Vulkan Device 空闲失败。");
+        if (_handle.Handle != 0)
+        {
+            if (_vk.DeviceWaitIdle(_device) != Result.Success)
+                throw new InvalidOperationException("等待 Vulkan Device 空闲失败。");
+            beforeReplace?.Invoke();
+        }
         info.OldSwapchain = _handle;
-        Result result = _api.CreateSwapchain(_device, &info, null, out var next);
+        Result result = _api.CreateSwapchain(
+            _device, &info, null, out var next);
         if (result != Result.Success)
             throw new InvalidOperationException($"创建 SwapchainKHR 失败：{result}");
         uint count = 0;

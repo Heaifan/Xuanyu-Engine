@@ -47,33 +47,40 @@ internal sealed class ViewportSwapchainSession
     {
         if (!_vk.HasSurface)
             return;
+
         var (width, height) = _viewport.PixelSize;
         if (width == 0 || height == 0)
             return;
+
         try
         {
             string summary = _vk.ConfigureSwapchain(width, height);
             if (summary.Length > 0)
                 _workbench.Log.Write(summary);
+
             Result result = _vk.PresentFrame();
             if (result == Result.ErrorOutOfDateKhr)
             {
-                summary = _vk.ConfigureSwapchain(width, height, force: true);
+                summary = _vk.ConfigureSwapchain(
+                    width, height, force: true);
                 _workbench.Log.Write(summary);
+                _firstFrame = false;
                 return;
             }
+
             if (result == Result.Success || result == Result.SuboptimalKhr)
             {
                 if (!_firstFrame)
                     _workbench.Log.Write(
-                        "Vulkan 首帧 GPU 清屏与 Present 提交成功");
+                        "Vulkan 首帧三角形 GPU Draw 与 Present 提交成功");
                 _firstFrame = true;
             }
         }
         catch (Exception error)
         {
             _timer.Stop();
-            _workbench.Log.Write($"Vulkan 帧呈现失败：{error.Message}");
+            _workbench.Log.Write(
+                $"Vulkan 三角形绘制失败：{error.Message}");
         }
     }
 

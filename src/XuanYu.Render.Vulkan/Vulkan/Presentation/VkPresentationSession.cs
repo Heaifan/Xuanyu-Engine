@@ -9,6 +9,7 @@ internal sealed class VkPresentationSession : IDisposable
     private readonly Device _device;
     private readonly Queue _queue;
     private readonly uint _family;
+    private readonly PhysicalDevice _gpu;
     private readonly VkWin32Surface _surface;
     private readonly VkSwapchain _swapchain;
     private VkFrameRenderer? _frames;
@@ -20,6 +21,8 @@ internal sealed class VkPresentationSession : IDisposable
         _device = device;
         _queue = queue;
         _family = family;
+        _gpu = gpu;
+
         _surface = new VkWin32Surface(vk, instance, hwnd);
         try
         {
@@ -35,13 +38,21 @@ internal sealed class VkPresentationSession : IDisposable
 
     public string Configure(uint width, uint height, bool force)
     {
-        if (!_swapchain.Configure(width, height, force))
+        if (!_swapchain.Configure(width, height, force, ReleaseFrames))
             return "";
-        _frames?.Dispose();
+
         _frames = new VkFrameRenderer(
-            _vk, _device, _queue, _family, _swapchain);
-        return $"SwapchainKHR 创建成功：{_swapchain.Extent.Width}×" +
-            $"{_swapchain.Extent.Height} | {_swapchain.Format}";
+            _vk, _gpu, _device, _queue, _family, _swapchain);
+
+        return $"SwapchainKHR 与 Triangle Pipeline 创建成功：" +
+            $"{_swapchain.Extent.Width}×{_swapchain.Extent.Height} | " +
+            $"{_swapchain.Format}";
+    }
+
+    private void ReleaseFrames()
+    {
+        _frames?.Dispose();
+        _frames = null;
     }
 
     public Result PresentFrame() =>
@@ -50,8 +61,7 @@ internal sealed class VkPresentationSession : IDisposable
     public void Dispose()
     {
         _vk.DeviceWaitIdle(_device);
-        _frames?.Dispose();
-        _frames = null;
+        ReleaseFrames();
         _swapchain.Dispose();
         _surface.Dispose();
     }

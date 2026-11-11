@@ -5,51 +5,65 @@ namespace XuanYu.Render.Vulkan;
 
 internal static unsafe class VkFrameCommands
 {
-    public static void Record(Vk vk, CommandBuffer command, Image image)
+    public static void Record(
+        Vk vk, CommandBuffer command, VkTriangleScene scene,
+        uint imageIndex, Extent2D extent)
     {
         Check(vk.ResetCommandBuffer(command, 0), "重置命令缓冲区");
+
         var begin = new CommandBufferBeginInfo
         {
             SType = StructureType.CommandBufferBeginInfo,
             Flags = CommandBufferUsageFlags.OneTimeSubmitBit
         };
+
         Check(vk.BeginCommandBuffer(command, &begin), "开始命令缓冲区");
-        var range = new ImageSubresourceRange
+
+        var clear = new ClearValue
         {
-            AspectMask = ImageAspectFlags.ColorBit,
-            LevelCount = 1,
-            LayerCount = 1
+            Color = new ClearColorValue
+            {
+                Float32_0 = 0.035f,
+                Float32_1 = 0.105f,
+                Float32_2 = 0.220f,
+                Float32_3 = 1f
+            }
         };
-        var barrier = new ImageMemoryBarrier
+
+        var pass = new RenderPassBeginInfo
         {
-            SType = StructureType.ImageMemoryBarrier,
-            SrcQueueFamilyIndex = uint.MaxValue,
-            DstQueueFamilyIndex = uint.MaxValue,
-            OldLayout = ImageLayout.Undefined,
-            NewLayout = ImageLayout.TransferDstOptimal,
-            DstAccessMask = AccessFlags.TransferWriteBit,
-            Image = image,
-            SubresourceRange = range
+            SType = StructureType.RenderPassBeginInfo,
+            RenderPass = scene.RenderPass,
+            Framebuffer = scene.GetFramebuffer(imageIndex),
+            RenderArea = new Rect2D(new Offset2D(0, 0), extent),
+            ClearValueCount = 1,
+            PClearValues = &clear
         };
-        vk.CmdPipelineBarrier(command,
-            PipelineStageFlags.TopOfPipeBit, PipelineStageFlags.TransferBit,
-            0, 0, null, 0, null, 1, &barrier);
-        var color = new ClearColorValue
+
+        vk.CmdBeginRenderPass(command, &pass, SubpassContents.Inline);
+        vk.CmdBindPipeline(
+            command, PipelineBindPoint.Graphics, scene.Pipeline);
+
+        Silk.NET.Vulkan.Buffer buffer = scene.VertexBuffer;
+        ulong offset = 0;
+        vk.CmdBindVertexBuffers(command, 0, 1, &buffer, &offset);
+
+        float* push = stackalloc float[20]
         {
-            Float32_0 = 0.035f,
-            Float32_1 = 0.105f,
-            Float32_2 = 0.220f,
-            Float32_3 = 1.0f
+            1f, 0f, 0f, 0f,
+            0f, 1f, 0f, 0f,
+            0f, 0f, 1f, 0f,
+            0f, 0f, 0f, 1f,
+            0f, 0f, 0f, 0f
         };
-        vk.CmdClearColorImage(command, image,
-            ImageLayout.TransferDstOptimal, &color, 1, &range);
-        barrier.OldLayout = ImageLayout.TransferDstOptimal;
-        barrier.NewLayout = ImageLayout.PresentSrcKhr;
-        barrier.SrcAccessMask = AccessFlags.TransferWriteBit;
-        barrier.DstAccessMask = 0;
-        vk.CmdPipelineBarrier(command,
-            PipelineStageFlags.TransferBit, PipelineStageFlags.BottomOfPipeBit,
-            0, 0, null, 0, null, 1, &barrier);
+
+        vk.CmdPushConstants(
+            command, scene.Layout, ShaderStageFlags.VertexBit,
+            0, 80, push);
+
+        vk.CmdDraw(command, 3, 1, 0, 0);
+        vk.CmdEndRenderPass(command);
+
         Check(vk.EndCommandBuffer(command), "结束命令缓冲区");
     }
 
