@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
@@ -12,5 +12,6 @@
     <ProjectReference Include="..\..\src\XuanYu.Core\XuanYu.Core.csproj" />
     <ProjectReference Include="..\..\src\XuanYu.World\XuanYu.World.csproj" />
     <ProjectReference Include="..\..\src\XuanYu.Editor\XuanYu.Editor.csproj" />
+    <ProjectReference Include="..\..\src\XuanYu.Render.Vulkan\XuanYu.Render.Vulkan.csproj" />
   </ItemGroup>
 </Project>

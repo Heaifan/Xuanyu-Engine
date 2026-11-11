@@ -1,20 +1,35 @@
-﻿# 玄域新引擎 (XuanYuEngine) V0.1 架构与质量基线
+# 玄域新引擎 V0.1 架构与质量基线
 
-## 1. 核心架构原则
-1. **World 是游戏世界数据的权威所有者**：GPU 数据只是世界数据的呈现形式。
-2. **Graphics 与 World 解耦**：World 不依赖 Render。
-3. **Runtime 与 Editor 分离**：独立运行的游戏仅依赖 Core、World、Platform、Render、Runtime。
-4. **先正确，再优化**：M0 优先验证无头 World 模拟（30 Hz 固定步长，米制真实地形）。
+## 1. 基本规则
 
-## 2. 程序集职责与单向依赖
-- `XuanYu.Core`：基础类型、数学、标识符、诊断（零内部引擎依赖）。
-- `XuanYu.World`：实体、空间变换、真实地形、模拟（仅依赖 Core）。
-- `XuanYu.Platform`：窗口、输入、文件系统隔离（仅依赖 Core）。
-- `XuanYu.Render`：图形与 Vulkan 渲染实现（依赖 Core、World、Platform）。
-- `XuanYu.Runtime`：应用生命周期与系统调度（依赖 Core、World、Platform、Render）。
-- `XuanYu.Editor`：编辑器界面与工具协作（依赖 Core、World、Platform、Render、Runtime）。
+1. World 持有权威世界状态；GPU 数据只是展示形式。
+2. World 不依赖 Render；游戏模拟与渲染帧率解耦。
+3. Runtime 不依赖 Editor 或任何具体图形 API。
+4. 当前阶段优先打通真实 Vulkan 渲染路径，不提前设计无消费者的公共接口。
 
-## 3. 5+100 质量审查标准
-- **5**：一级模块最多五个核心职责方向，目录组织最多四层。
-- **100**：对模块全部公开职责、关键成员、依赖、边界和异常路径进行 100% 审查。
-- **测试规范**：测试文件统一使用 `test_` 前缀，严禁为通过测试而删除有意义的测试。
+## 2. 程序集职责和依赖
+
+- `XuanYu.Core`：基础类型、数学与诊断，无其他引擎项目依赖。
+- `XuanYu.World`：世界状态及模拟，仅依赖 Core。
+- `XuanYu.Platform`：平台基础能力，仅依赖 Core。
+- `XuanYu.Render`：通用渲染合同归属，当前仅保留程序集标记，依赖 Core。
+- `XuanYu.Render.Vulkan`：Silk.NET.Vulkan 实现，依赖 Render。
+- `XuanYu.Runtime`：运行时组合与调度，依赖 Core、World、Platform、Render。
+- `XuanYu.Editor`：Avalonia 编辑器与 Vulkan 组合入口，依赖 Core、World、Platform、Render、Render.Vulkan、Runtime。
+
+## 3. E1-02A 边界
+
+- 从 Render 原路径迁移 Vulkan 文件，保留命名空间 `XuanYu.Render.Vulkan`。
+- `VkContext`、Surface、Swapchain、Frame 等归属于 Render.Vulkan。
+- Editor 可以在组合入口创建 `VkContext`，普通 World/Runtime 不引用 Vulkan。
+- 本轮不引入 Graphics Pipeline、RenderGraph、Mesh/Material 抽象。
+- E1-02 的 GPU 清屏和 Present 行为不得变化。
+
+## 4. 质量与验证
+
+- 5：一级模块最多五个核心职责方向，目录结构保持浅层，单目录不超过五个直接源文件。
+- 100：单个生产 C# 文件不超过 100 行；审查公开职责、关键成员、依赖、边界和异常路径。
+- 测试文件使用 `test_` 前缀，不得为了让测试通过而删除有意义的测试。
+- `test_ArchitectureBaseline` 检查项目引用及程序集边界。
+- `test_VkContext` 继续验证实际 Vulkan 设备生命周期。
+- Release 测试通过后，用 `run.bat` 人工验收中央视口清屏、调整窗口大小和关闭程序。
