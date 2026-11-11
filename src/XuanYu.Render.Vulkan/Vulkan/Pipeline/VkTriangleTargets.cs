@@ -1,4 +1,3 @@
-
 using Silk.NET.Vulkan;
 
 namespace XuanYu.Render.Vulkan;
@@ -7,20 +6,26 @@ internal sealed unsafe class VkTriangleTargets : IDisposable
 {
     private readonly Vk _vk;
     private readonly Device _device;
+    private readonly VkDepthImage _depth;
     private readonly ImageView[] _views;
     private readonly Framebuffer[] _buffers;
 
     public Framebuffer this[uint index] => _buffers[checked((int)index)];
 
-    public VkTriangleTargets(Vk vk, Device device, VkSwapchain chain, RenderPass pass)
+    public VkTriangleTargets(Vk vk, PhysicalDevice gpu, Device device,
+        VkSwapchain chain, RenderPass pass)
     {
         _vk = vk;
         _device = device;
         _views = new ImageView[chain.Images.Length];
         _buffers = new Framebuffer[chain.Images.Length];
+        _depth = new VkDepthImage(vk, gpu, device, chain.Extent);
 
         try
         {
+            ImageView* attachments = stackalloc ImageView[2];
+            attachments[1] = _depth.View;
+
             for (int i = 0; i < _views.Length; i++)
             {
                 var viewInfo = new ImageViewCreateInfo
@@ -37,23 +42,26 @@ internal sealed unsafe class VkTriangleTargets : IDisposable
                     }
                 };
 
-                Check(vk.CreateImageView(device, &viewInfo, null, out _views[i]),
+                Check(vk.CreateImageView(
+                    device, &viewInfo, null, out _views[i]),
                     "创建 Swapchain ImageView");
 
-                ImageView view = _views[i];
-                var bufferInfo = new FramebufferCreateInfo
+                attachments[0] = _views[i];
+
+                var info = new FramebufferCreateInfo
                 {
                     SType = StructureType.FramebufferCreateInfo,
                     RenderPass = pass,
-                    AttachmentCount = 1,
-                    PAttachments = &view,
+                    AttachmentCount = 2,
+                    PAttachments = attachments,
                     Width = chain.Extent.Width,
                     Height = chain.Extent.Height,
                     Layers = 1
                 };
 
-                Check(vk.CreateFramebuffer(device, &bufferInfo, null, out _buffers[i]),
-                    "创建 Swapchain Framebuffer");
+                Check(vk.CreateFramebuffer(
+                    device, &info, null, out _buffers[i]),
+                    "创建 3D Framebuffer");
             }
         }
         catch
@@ -78,5 +86,7 @@ internal sealed unsafe class VkTriangleTargets : IDisposable
         foreach (ImageView view in _views)
             if (view.Handle != 0)
                 _vk.DestroyImageView(_device, view, null);
+
+        _depth.Dispose();
     }
 }

@@ -1,5 +1,3 @@
-
-using System;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Avalonia.Controls;
@@ -19,6 +17,8 @@ internal sealed class Win32ViewportHost : NativeControlHost
     public event Action<nint>? HwndCreated;
     public event Action? HwndDestroying;
     public event Action<int, int>? Clicked;
+    public event Action<ViewportCameraGesture>? CameraGesture;
+    public event Action<ViewportCameraShortcut>? CameraShortcut;
 
     public (uint Width, uint Height) GetPixelSize()
     {
@@ -38,7 +38,7 @@ internal sealed class Win32ViewportHost : NativeControlHost
     protected override IPlatformHandle CreateNativeControlCore(IPlatformHandle parent)
     {
         if (!OperatingSystem.IsWindows())
-            throw new PlatformNotSupportedException("E1 视口仅支持 Windows HWND。");
+            throw new PlatformNotSupportedException("Windows 视口需要 HWND。");
         nint hwnd = CreateWindowExW(
             0, "STATIC", $"XuanYu Viewport - {_pageTitle}",
             WindowStyle, 0, 0, 1, 1, parent.Handle, 0, 0, 0);
@@ -48,7 +48,10 @@ internal sealed class Win32ViewportHost : NativeControlHost
         Hwnd = hwnd;
         try
         {
-            _mouse.Attach(hwnd, (x, y) => Clicked?.Invoke(x, y));
+            _mouse.Attach(hwnd,
+                (x, y) => Clicked?.Invoke(x, y),
+                gesture => CameraGesture?.Invoke(gesture),
+                shortcut => CameraShortcut?.Invoke(shortcut));
         }
         catch
         {
@@ -72,26 +75,20 @@ internal sealed class Win32ViewportHost : NativeControlHost
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct Rect
-    {
-        public int Left, Top, Right, Bottom;
-    }
+    private struct Rect { public int Left, Top, Right, Bottom; }
 
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetClientRect(nint hwnd, out Rect rect);
-
     [DllImport("user32.dll", EntryPoint = "CreateWindowExW",
         CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern nint CreateWindowExW(
         uint exStyle, string className, string windowName, uint style,
         int x, int y, int width, int height,
         nint parent, nint menu, nint instance, nint parameter);
-
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool DestroyWindow(nint hwnd);
-
     [DllImport("user32.dll", EntryPoint = "SetWindowTextW",
         CharSet = CharSet.Unicode, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]

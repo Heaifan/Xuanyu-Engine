@@ -1,4 +1,3 @@
-
 using Silk.NET.Vulkan;
 using XuanYu.Render;
 using VkBuffer = Silk.NET.Vulkan.Buffer;
@@ -21,25 +20,21 @@ internal sealed class VkMeshScene : IDisposable
     public Framebuffer GetFramebuffer(uint index) => _targets[index];
     public VkBuffer BufferFor(RenderMesh mesh) => _buffers[mesh].Handle;
 
-    public VkMeshScene(
-        Vk vk, PhysicalDevice gpu, Device device, VkSwapchain chain)
+    public VkMeshScene(Vk vk, PhysicalDevice gpu, Device device, VkSwapchain chain)
     {
         _vk = vk;
         _gpu = gpu;
         _device = device;
-
         VkTrianglePass? pass = null;
         VkTriangleTargets? targets = null;
         VkTrianglePipeline? pipeline = null;
-
         try
         {
             pass = new VkTrianglePass(vk, device, chain.Format);
             targets = new VkTriangleTargets(
-                vk, device, chain, pass.Handle);
+                vk, gpu, device, chain, pass.Handle);
             pipeline = new VkTrianglePipeline(
                 vk, device, pass.Handle, chain.Extent);
-
             _pass = pass;
             _targets = targets;
             _pipeline = pipeline;
@@ -55,16 +50,13 @@ internal sealed class VkMeshScene : IDisposable
 
     public void SyncMeshes(IReadOnlyList<RenderDraw> draws)
     {
-        HashSet<RenderMesh> active =
-            new(draws.Select(x => x.Mesh));
-
+        HashSet<RenderMesh> active = new(draws.Select(x => x.Mesh));
         foreach (RenderMesh old in _buffers.Keys.ToArray())
             if (!active.Contains(old))
             {
                 _buffers[old].Dispose();
                 _buffers.Remove(old);
             }
-
         foreach (RenderDraw draw in draws)
             if (draw.Visible && !_buffers.ContainsKey(draw.Mesh))
                 _buffers.Add(draw.Mesh,
@@ -75,7 +67,6 @@ internal sealed class VkMeshScene : IDisposable
     {
         foreach (VkMeshBuffer buffer in _buffers.Values)
             buffer.Dispose();
-
         _buffers.Clear();
         _pipeline.Dispose();
         _targets.Dispose();

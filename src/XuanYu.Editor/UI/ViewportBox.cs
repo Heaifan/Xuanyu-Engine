@@ -1,10 +1,9 @@
-
 using Avalonia;
 using Avalonia.Controls;
 
 namespace XuanYu.Editor.UI;
 
-public sealed class ViewportBox : Border
+public sealed partial class ViewportBox : Border
 {
     private readonly Win32ViewportHost? _windows;
     private readonly X11ViewportHost? _linux;
@@ -52,6 +51,20 @@ public sealed class ViewportBox : Border
         {
             if (_windows is not null) _windows.Clicked -= value;
             if (_linux is not null) _linux.Clicked -= value;
+        }
+    }
+
+    internal event Action<ViewportCameraGesture>? CameraGesture
+    {
+        add
+        {
+            if (_windows is not null) _windows.CameraGesture += value;
+            if (_linux is not null) _linux.CameraGesture += value;
+        }
+        remove
+        {
+            if (_windows is not null) _windows.CameraGesture -= value;
+            if (_linux is not null) _linux.CameraGesture -= value;
         }
     }
 

@@ -1,4 +1,3 @@
-
 using Avalonia.Controls;
 using Avalonia.Platform;
 
@@ -12,6 +11,8 @@ internal sealed class X11ViewportHost : NativeControlHost
     public event Action<nint>? XidCreated;
     public event Action? XidDestroying;
     public event Action<int, int>? Clicked;
+    public event Action<ViewportCameraGesture>? CameraGesture;
+    public event Action<ViewportCameraShortcut>? CameraShortcut;
 
     public (uint Width, uint Height) GetPixelSize()
     {
@@ -31,7 +32,9 @@ internal sealed class X11ViewportHost : NativeControlHost
         Xid = control.Handle;
         try
         {
-            _mouse.Attach(Xid, (x, y) => Clicked?.Invoke(x, y));
+            _mouse.Attach(Xid, (x, y) => Clicked?.Invoke(x, y),
+                gesture => CameraGesture?.Invoke(gesture),
+                shortcut => CameraShortcut?.Invoke(shortcut));
             Console.WriteLine($"[XYE] X11 视口已创建：0x{Xid.ToInt64():X}");
             XidCreated?.Invoke(Xid);
             return control;

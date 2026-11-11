@@ -1,10 +1,9 @@
-
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 
 namespace XuanYu.Editor.UI;
 
-internal sealed class Win32ViewportMouseHook
+internal sealed partial class Win32ViewportMouseHook
 {
     [UnmanagedFunctionPointer(CallingConvention.Winapi)]
     private delegate nint WindowProcedure(
@@ -12,13 +11,22 @@ internal sealed class Win32ViewportMouseHook
 
     private WindowProcedure? _callback;
     private Action<int, int>? _clicked;
+    private Action<ViewportCameraGesture>? _camera;
+    private Action<ViewportCameraShortcut>? _shortcut;
     private nint _hwnd;
     private nint _previous;
+    private bool _dragging;
+    private int _lastX;
+    private int _lastY;
 
-    public void Attach(nint hwnd, Action<int, int> clicked)
+    public void Attach(nint hwnd, Action<int, int> clicked,
+        Action<ViewportCameraGesture> camera,
+        Action<ViewportCameraShortcut> shortcut)
     {
         _hwnd = hwnd;
         _clicked = clicked;
+        _camera = camera;
+        _shortcut = shortcut;
         _callback = OnMessage;
         _previous = SetWindowLongPtrW(
             hwnd, -4, Marshal.GetFunctionPointerForDelegate(_callback));
@@ -36,27 +44,53 @@ internal sealed class Win32ViewportMouseHook
             throw new Win32Exception(
                 Marshal.GetLastWin32Error(), "恢复视口窗口过程失败。");
         _previous = 0;
-        _callback = null;
-        _clicked = null;
-        _hwnd = 0;
+        _callback = null; _clicked = null; _camera = null;
+        _shortcut = null;
+        _dragging = false; _hwnd = 0;
     }
 
     private nint OnMessage(nint hwnd, uint message, nuint wParam, nint lParam)
     {
+        int packed = unchecked((int)lParam.ToInt64());
+        int x = (short)packed, y = (short)(packed >> 16);
+        if (message == 0x0100 && DispatchShortcut(wParam, lParam))
+            return 0;
         if (message == 0x0201)
         {
-            int packed = unchecked((int)lParam.ToInt64());
-            _clicked?.Invoke((short)packed, (short)(packed >> 16));
+            SetFocus(hwnd);
+            _clicked?.Invoke(x, y);
+            return 0;
+        }
+        if (message == 0x0207)
+        {
+            SetFocus(hwnd);
+            _dragging = true;
+            _lastX = x; _lastY = y;
+            SetCapture(hwnd);
+            return 0;
+        }
+        if (message == 0x0208)
+        {
+            _dragging = false;
+            ReleaseCapture();
+            return 0;
+        }
+        if (message == 0x0215)
+            _dragging = false;
+        if (message == 0x0200 && _dragging)
+        {
+            _camera?.Invoke(new ViewportCameraGesture(
+                x - _lastX, y - _lastY, 0f,
+                ((ulong)wParam & 4ul) != 0));
+            _lastX = x; _lastY = y;
+            return 0;
+        }
+        if (message == 0x020A)
+        {
+            float steps = (short)((ulong)wParam >> 16) / 120f;
+            _camera?.Invoke(new ViewportCameraGesture(0f, 0f, steps, false));
             return 0;
         }
         return CallWindowProcW(_previous, hwnd, message, wParam, lParam);
     }
-
-    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
-    private static extern nint SetWindowLongPtrW(
-        nint hwnd, int index, nint newValue);
-
-    [DllImport("user32.dll", EntryPoint = "CallWindowProcW")]
-    private static extern nint CallWindowProcW(
-        nint previous, nint hwnd, uint message, nuint wParam, nint lParam);
 }

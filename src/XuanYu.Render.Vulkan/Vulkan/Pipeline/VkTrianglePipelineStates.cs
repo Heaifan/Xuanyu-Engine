@@ -1,6 +1,4 @@
-
 using Silk.NET.Vulkan;
-
 namespace XuanYu.Render.Vulkan;
 
 internal static unsafe class VkTrianglePipelineStates
@@ -39,8 +37,7 @@ internal static unsafe class VkTrianglePipelineStates
             {
                 SType = StructureType.PipelineVertexInputStateCreateInfo,
                 VertexBindingDescriptionCount = 1, PVertexBindingDescriptions = &binding,
-                VertexAttributeDescriptionCount = 2,
-                PVertexAttributeDescriptions = attrs
+                VertexAttributeDescriptionCount = 2, PVertexAttributeDescriptions = attrs
             };
             var assembly = new PipelineInputAssemblyStateCreateInfo
             {
@@ -67,6 +64,12 @@ internal static unsafe class VkTrianglePipelineStates
                 SType = StructureType.PipelineMultisampleStateCreateInfo,
                 RasterizationSamples = SampleCountFlags.Count1Bit
             };
+            var depth = new PipelineDepthStencilStateCreateInfo
+            {
+                SType = StructureType.PipelineDepthStencilStateCreateInfo,
+                DepthTestEnable = true, DepthWriteEnable = true,
+                DepthCompareOp = CompareOp.Less
+            };
             var blendAttachment = new PipelineColorBlendAttachmentState
             {
                 ColorWriteMask = ColorComponentFlags.RBit | ColorComponentFlags.GBit |
@@ -83,7 +86,8 @@ internal static unsafe class VkTrianglePipelineStates
                 StageCount = 2, PStages = stages,
                 PVertexInputState = &input, PInputAssemblyState = &assembly,
                 PViewportState = &view, PRasterizationState = &raster,
-                PMultisampleState = &multisample, PColorBlendState = &blend,
+                PMultisampleState = &multisample, PDepthStencilState = &depth,
+                PColorBlendState = &blend,
                 Layout = layout, RenderPass = pass, Subpass = 0
             };
             Result result = vk.CreateGraphicsPipelines(device, default, 1,

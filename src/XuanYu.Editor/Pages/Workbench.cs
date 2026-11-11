@@ -10,8 +10,7 @@ public sealed class Workbench
     public PageId CurrentId { get; private set; }
     public PageInfo Current => PageCatalog.Get(CurrentId);
     public bool KeepViewportAlive => true;
-
-    public PreviewScene Scene { get; } = PreviewSeed.Create();
+    public PreviewScene Scene { get; }
     public WorldScene World => Scene.World;
     public IReadOnlyList<RenderDraw> RenderDraws => Scene.Draws;
 
@@ -21,11 +20,11 @@ public sealed class Workbench
     public LogBox Log { get; } = new();
     public event Action? Changed;
 
-    public Workbench(PageId startPage = PageId.World)
+    public Workbench(PageId startPage = PageId.World, bool use3D = false)
     {
         CurrentId = PageCatalog.Get(startPage).Id;
+        Scene = use3D ? PreviewSeed.Create3D() : PreviewSeed.Create();
         Scene.Changed += () => Changed?.Invoke();
-
         Log.Write($"工作台已就绪，当前页面：{Current.Title}");
     }
 
@@ -46,10 +45,8 @@ public sealed class Workbench
     public void SwitchTo(PageId target)
     {
         PageInfo info = PageCatalog.Get(target);
-
         if (CurrentId == info.Id)
             return;
-
         CurrentId = info.Id;
         Log.Write($"切换页面 -> {info.Title}");
         Changed?.Invoke();

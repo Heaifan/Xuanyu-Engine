@@ -1,4 +1,3 @@
-
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Styling;
@@ -23,7 +22,7 @@ public sealed class EditorApp : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            var workbench = new Workbench();
+            var workbench = new Workbench(use3D: true);
             try
             {
                 _gpu = new VkContext();
