@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using XuanYu.Editor.Pages;
 using XuanYu.Editor.UI.Top.Persistence;
+using XuanYu.Editor.UI.Top.Simulation;
 
 namespace XuanYu.Editor.UI;
 
@@ -43,11 +44,7 @@ internal static class TopMenuBar
                 new()
                 {
                     Header = "运行",
-                    ItemsSource = new MenuItem[]
-                    {
-                        new() { Header = "开始模拟", IsEnabled = false },
-                        new() { Header = "停止模拟", IsEnabled = false }
-                    }
+                    ItemsSource = SimulationMenu.Create(owner, wb)
                 }
             }
         };

@@ -71,7 +71,7 @@ internal sealed partial class ViewportSwapchainSession
             if (summary.Length > 0)
                 _workbench.Log.Write(summary);
             Result result = _vk.PresentFrame(
-                _workbench.Scene.ViewportDraws(width, height));
+                _workbench.ViewportDraws(width, height));
             if (result == Result.ErrorOutOfDateKhr)
             {
                 summary = _vk.ConfigureSwapchain(width, height, force: true);

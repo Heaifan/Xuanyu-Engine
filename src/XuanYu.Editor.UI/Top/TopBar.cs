@@ -9,6 +9,12 @@ public sealed class TopBar : Border
 {
     private readonly Workbench _wb;
     private readonly TopPageTabs _pages;
+    private readonly TextBlock _status = new()
+    {
+        Foreground = EditorTheme.TextMuted,
+        FontSize = 11,
+        VerticalAlignment = VerticalAlignment.Center
+    };
     private readonly TextBlock _context = new()
     {
         Foreground = EditorTheme.TextSub,
@@ -29,18 +35,11 @@ public sealed class TopBar : Border
         };
         var menu = TopMenuBar.Create(owner, wb);
         _pages = new TopPageTabs(wb);
-        var status = new TextBlock
-        {
-            Text = "XYE / E0",
-            Foreground = EditorTheme.TextMuted,
-            FontSize = 11,
-            VerticalAlignment = VerticalAlignment.Center
-        };
         Grid.SetColumn(_pages, 1);
-        Grid.SetColumn(status, 2);
+        Grid.SetColumn(_status, 2);
         first.Children.Add(menu);
         first.Children.Add(_pages);
-        first.Children.Add(status);
+        first.Children.Add(_status);
 
         var tools = TopToolRow.Create(_context);
         var root = new Grid { RowDefinitions = new RowDefinitions("38,36") };
@@ -55,5 +54,8 @@ public sealed class TopBar : Border
     {
         _pages.Refresh();
         _context.Text = $"当前：{_wb.CurrentId}";
+        _status.Text = _wb.IsSimulating
+            ? $"XYE / PLAY {_wb.Simulation.ElapsedSeconds:0.0}s"
+            : "XYE / E3";
     }
 }
