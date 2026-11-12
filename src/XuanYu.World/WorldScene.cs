@@ -46,4 +46,11 @@ public sealed class WorldScene
     }
 
     public bool Delete(Guid id) => _entities.Remove(id);
+
+    public void Replace(IReadOnlyList<WorldEntity> entities)
+    {
+        _entities.Clear();
+        foreach (WorldEntity entity in entities)
+            _entities.Add(entity.Id, entity);
+    }
 }

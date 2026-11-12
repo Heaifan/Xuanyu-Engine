@@ -1,4 +1,3 @@
-
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -28,7 +27,7 @@ public sealed class TopBar : Border
             ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"),
             Margin = new Thickness(6, 0)
         };
-        var menu = TopMenuBar.Create(owner);
+        var menu = TopMenuBar.Create(owner, wb);
         _pages = new TopPageTabs(wb);
         var status = new TextBlock
         {
