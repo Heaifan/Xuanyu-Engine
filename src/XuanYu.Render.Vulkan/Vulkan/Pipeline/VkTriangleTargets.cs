@@ -7,68 +7,59 @@ internal sealed unsafe class VkTriangleTargets : IDisposable
     private readonly Vk _vk;
     private readonly Device _device;
     private readonly VkDepthImage _depth;
+    private readonly VkMsaaColorImage _color;
     private readonly ImageView[] _views;
     private readonly Framebuffer[] _buffers;
-
     public Framebuffer this[uint index] => _buffers[checked((int)index)];
 
     public VkTriangleTargets(Vk vk, PhysicalDevice gpu, Device device,
         VkSwapchain chain, RenderPass pass)
+        : this(vk, gpu, device, chain.Extent, chain.Format, chain.Images, pass) { }
+
+    public VkTriangleTargets(Vk vk, PhysicalDevice gpu, Device device,
+        Extent2D extent, Format format, Image[] images, RenderPass pass)
     {
         _vk = vk;
         _device = device;
-        _views = new ImageView[chain.Images.Length];
-        _buffers = new Framebuffer[chain.Images.Length];
-        _depth = new VkDepthImage(vk, gpu, device, chain.Extent);
-
+        _views = new ImageView[images.Length];
+        _buffers = new Framebuffer[images.Length];
+        _depth = new VkDepthImage(vk, gpu, device, extent);
+        try { _color = new VkMsaaColorImage(vk, gpu, device, extent, format); }
+        catch { _depth.Dispose(); throw; }
         try
         {
-            ImageView* attachments = stackalloc ImageView[2];
+            ImageView* attachments = stackalloc ImageView[3];
+            attachments[0] = _color.View;
             attachments[1] = _depth.View;
-
             for (int i = 0; i < _views.Length; i++)
             {
                 var viewInfo = new ImageViewCreateInfo
                 {
                     SType = StructureType.ImageViewCreateInfo,
-                    Image = chain.Images[i],
-                    ViewType = ImageViewType.Type2D,
-                    Format = chain.Format,
+                    Image = images[i], ViewType = ImageViewType.Type2D,
+                    Format = format,
                     SubresourceRange = new ImageSubresourceRange
                     {
                         AspectMask = ImageAspectFlags.ColorBit,
-                        LevelCount = 1,
-                        LayerCount = 1
+                        LevelCount = 1, LayerCount = 1
                     }
                 };
-
-                Check(vk.CreateImageView(
-                    device, &viewInfo, null, out _views[i]),
+                Check(vk.CreateImageView(device, &viewInfo, null, out _views[i]),
                     "创建 Swapchain ImageView");
-
-                attachments[0] = _views[i];
-
+                attachments[2] = _views[i];
                 var info = new FramebufferCreateInfo
                 {
                     SType = StructureType.FramebufferCreateInfo,
-                    RenderPass = pass,
-                    AttachmentCount = 2,
+                    RenderPass = pass, AttachmentCount = 3,
                     PAttachments = attachments,
-                    Width = chain.Extent.Width,
-                    Height = chain.Extent.Height,
+                    Width = extent.Width, Height = extent.Height,
                     Layers = 1
                 };
-
-                Check(vk.CreateFramebuffer(
-                    device, &info, null, out _buffers[i]),
-                    "创建 3D Framebuffer");
+                Check(vk.CreateFramebuffer(device, &info, null, out _buffers[i]),
+                    "创建 MSAA Framebuffer");
             }
         }
-        catch
-        {
-            Dispose();
-            throw;
-        }
+        catch { Dispose(); throw; }
     }
 
     private static void Check(Result result, string action)
@@ -80,13 +71,10 @@ internal sealed unsafe class VkTriangleTargets : IDisposable
     public void Dispose()
     {
         foreach (Framebuffer buffer in _buffers)
-            if (buffer.Handle != 0)
-                _vk.DestroyFramebuffer(_device, buffer, null);
-
+            if (buffer.Handle != 0) _vk.DestroyFramebuffer(_device, buffer, null);
         foreach (ImageView view in _views)
-            if (view.Handle != 0)
-                _vk.DestroyImageView(_device, view, null);
-
+            if (view.Handle != 0) _vk.DestroyImageView(_device, view, null);
+        _color.Dispose();
         _depth.Dispose();
     }
 }

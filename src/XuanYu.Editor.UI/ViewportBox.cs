@@ -77,12 +77,12 @@ public sealed partial class ViewportBox : Border
         if (OperatingSystem.IsWindows())
         {
             _windows = new Win32ViewportHost();
-            Child = _windows;
+            Child = ViewportOverlayProbe.Wrap(_windows);
         }
         else if (OperatingSystem.IsLinux())
         {
             _linux = new X11ViewportHost();
-            Child = _linux;
+            Child = ViewportOverlayProbe.Wrap(_linux);
         }
         else
             throw new PlatformNotSupportedException("仅支持 Windows 与 Linux 桌面平台。");

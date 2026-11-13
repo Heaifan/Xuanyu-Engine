@@ -22,8 +22,8 @@ internal sealed partial class RightNumberField
     {
         _editing = true;
         _edit.Text = TransformNumber.Display(_value);
-        _surface.IsVisible = false;
-        _edit.IsVisible = true;
+        _surface.Child = _edit;
+        _surface.BorderBrush = EditorTheme.Accent;
         _edit.Focus();
         _edit.SelectAll();
     }
@@ -35,8 +35,7 @@ internal sealed partial class RightNumberField
         if (TransformNumber.TryParse(_edit.Text, out float parsed))
             Apply(parsed);
         _editing = false;
-        _edit.IsVisible = false;
-        _surface.IsVisible = true;
+        _surface.Child = _display;
         ClearError();
     }
 
@@ -53,7 +52,7 @@ internal sealed partial class RightNumberField
                 FinishEdit();
             else
             {
-                _edit.BorderBrush = Brushes.IndianRed;
+                _surface.BorderBrush = Brushes.IndianRed;
                 ToolTip.SetTip(_edit, "请输入有效数字，例如 -2.5");
             }
         }
@@ -86,7 +85,8 @@ internal sealed partial class RightNumberField
 
     private void ClearError()
     {
-        _edit.BorderBrush = EditorTheme.Accent;
+        _surface.BorderBrush = _editing
+            ? EditorTheme.Accent : EditorTheme.Border;
         ToolTip.SetTip(_edit, null);
     }
 }

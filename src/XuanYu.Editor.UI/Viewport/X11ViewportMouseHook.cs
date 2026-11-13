@@ -1,4 +1,5 @@
 using Avalonia.Threading;
+using XuanYu.Editor.Camera;
 
 namespace XuanYu.Editor.UI;
 
@@ -16,12 +17,12 @@ internal sealed partial class X11ViewportMouseHook
     private bool _dragging;
     private int _lastX;
     private int _lastY;
-
     public X11ViewportMouseHook() => _timer.Tick += (_, _) => Poll();
 
     public void Attach(nint xid, Action<int, int> clicked,
         Action<ViewportCameraGesture> camera,
-        Action<ViewportCameraShortcut> shortcut)
+        Action<ViewportCameraShortcut> shortcut,
+        Action<GameCameraKey, bool> gameInput)
     {
         _display = XOpenDisplay(0);
         if (_display == 0)
@@ -30,24 +31,28 @@ internal sealed partial class X11ViewportMouseHook
         _clicked = clicked;
         _camera = camera;
         _shortcut = shortcut;
-        XSelectInput(_display, _window, 1 | 4 | 8 | 64);
+        _gameInput = gameInput;
+        // 包括 KeyReleaseMask 与 FocusChangeMask，防止失焦后按键持续生效。
+        XSelectInput(_display, _window, 1 | 2 | 4 | 8 | 64 | (1 << 21));
         XFlush(_display);
         _timer.Start();
     }
-
     public void Detach()
     {
         _timer.Stop();
         if (_display != 0)
+        {
+            SetPanMode(false);
             XCloseDisplay(_display);
+        }
         _display = 0;
         _window = 0;
         _clicked = null;
         _camera = null;
         _shortcut = null;
+        _gameInput = null;
         _dragging = false;
     }
-
     private void Poll()
     {
         // XEvent 中 Button/Motion 的 x/y 从第八个原生 long 起。
@@ -60,8 +65,16 @@ internal sealed partial class X11ViewportMouseHook
             int y = BitConverter.ToInt32(_eventData, offset + 4);
             int state = BitConverter.ToInt32(_eventData, offset + 16);
             int button = BitConverter.ToInt32(_eventData, offset + 20);
+            if (TryHandlePan(type, button, x, y)) continue;
             if (type == 2)
+            {
                 DispatchShortcut();
+                DispatchGameInput(true);
+            }
+            else if (type == 3)
+                DispatchGameInput(false);
+            else if (type == 10)
+                _gameInput?.Invoke(GameCameraKey.None, false);
             else if (type == 4)
             {
                 if (button is 1 or 2)
@@ -75,8 +88,7 @@ internal sealed partial class X11ViewportMouseHook
                 if (button is 4 or 5)
                     _camera?.Invoke(new(0, 0, button == 4 ? 1f : -1f, false));
             }
-            else if (type == 5 && button == 2)
-                _dragging = false;
+            else if (type == 5 && button == 2) _dragging = false;
             else if (type == 6 && _dragging)
             {
                 _camera?.Invoke(new(x - _lastX, y - _lastY,

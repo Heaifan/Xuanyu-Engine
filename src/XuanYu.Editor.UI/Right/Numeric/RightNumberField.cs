@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Styling;
 
 namespace XuanYu.Editor.UI.Right;
 
@@ -43,29 +44,38 @@ internal sealed partial class RightNumberField : Grid
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(5, 0)
         };
+        _edit = new TextBox
+        {
+            Text = TransformNumber.Display(initial),
+            FontSize = 12, Height = 20, MinHeight = 0, MinWidth = 0,
+            Padding = new Thickness(5, 0),
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            TextAlignment = TextAlignment.Right,
+            VerticalContentAlignment = VerticalAlignment.Center
+        };
         _surface = new Border
         {
             Height = 22, Background = EditorTheme.PanelHeaderBg,
             BorderBrush = EditorTheme.Border,
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(3), Child = _display
+            CornerRadius = new CornerRadius(3),
+            ClipToBounds = true, Child = _display
         };
-        ToolTip.SetTip(_surface, "单击编辑；水平拖动调整数值");
-        _edit = new TextBox
+        Styles.Add(new Style(x => x.OfType<TextBox>().Class(":focus")
+            .Template().OfType<Border>().Name("PART_BorderElement"))
         {
-            Text = TransformNumber.Display(initial),
-            Height = 22, FontSize = 12, IsVisible = false,
-            Padding = new Thickness(5, 1),
-            Background = EditorTheme.PanelHeaderBg,
-            BorderBrush = EditorTheme.Accent,
-            BorderThickness = new Thickness(1),
-            TextAlignment = TextAlignment.Right
-        };
+            Setters =
+            {
+                new Setter(Border.BackgroundProperty, Brushes.Transparent),
+                new Setter(Border.BorderBrushProperty, Brushes.Transparent),
+                new Setter(Border.BorderThicknessProperty, new Thickness(0))
+            }
+        });
+        ToolTip.SetTip(_surface, "单击编辑；水平拖动调整数值");
         Grid.SetColumn(_surface, 2);
-        Grid.SetColumn(_edit, 2);
         Children.Add(label);
         Children.Add(_surface);
-        Children.Add(_edit);
         WireInput();
     }
 }

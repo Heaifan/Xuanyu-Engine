@@ -32,7 +32,11 @@ public sealed class EditorApp : Application
             {
                 workbench.ReportGpuFailure(exception.Message);
             }
-            desktop.MainWindow = new EditorWindow(workbench, _gpu);
+            bool probe = OperatingSystem.IsWindows() && _gpu is not null &&
+                Environment.GetEnvironmentVariable("XYE_E306_GPU_PROBE") == "1";
+            desktop.MainWindow = probe
+                ? new WinSharedProbeWindow(_gpu!, workbench)
+                : new EditorWindow(workbench, _gpu);
             desktop.Exit += (_, _) => _gpu?.Dispose();
         }
         base.OnFrameworkInitializationCompleted();

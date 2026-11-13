@@ -10,7 +10,7 @@ namespace XuanYu.Editor.UI.Left;
 
 internal static class LeftSvgIcon
 {
-    private const string Root = "avares://XuanYu.Editor/Assets/Left/";
+    private const string Root = "avares://XuanYu.Editor.UI/Assets/Left/";
 
     private static readonly Dictionary<string, Geometry> Cache = [];
 

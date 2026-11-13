@@ -6,7 +6,8 @@ internal sealed partial class RightNumberField
 {
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (!e.GetCurrentPoint(_surface).Properties.IsLeftButtonPressed)
+        if (_editing ||
+            !e.GetCurrentPoint(_surface).Properties.IsLeftButtonPressed)
             return;
         _pressed = true;
         _dragged = false;

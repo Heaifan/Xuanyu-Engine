@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Avalonia.Controls;
 using Avalonia.Platform;
+using XuanYu.Editor.Camera;
 
 namespace XuanYu.Editor.UI;
 
@@ -19,6 +20,8 @@ internal sealed class Win32ViewportHost : NativeControlHost
     public event Action<int, int>? Clicked;
     public event Action<ViewportCameraGesture>? CameraGesture;
     public event Action<ViewportCameraShortcut>? CameraShortcut;
+    public event Action<GameCameraKey, bool>? GameInput;
+    public void SetPanMode(bool enabled) => _mouse.SetPanMode(enabled);
 
     public (uint Width, uint Height) GetPixelSize()
     {
@@ -51,7 +54,8 @@ internal sealed class Win32ViewportHost : NativeControlHost
             _mouse.Attach(hwnd,
                 (x, y) => Clicked?.Invoke(x, y),
                 gesture => CameraGesture?.Invoke(gesture),
-                shortcut => CameraShortcut?.Invoke(shortcut));
+                shortcut => CameraShortcut?.Invoke(shortcut),
+                (key, down) => GameInput?.Invoke(key, down));
         }
         catch
         {

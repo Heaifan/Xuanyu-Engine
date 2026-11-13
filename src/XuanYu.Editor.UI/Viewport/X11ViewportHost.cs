@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Platform;
+using XuanYu.Editor.Camera;
 
 namespace XuanYu.Editor.UI;
 
@@ -13,6 +14,8 @@ internal sealed class X11ViewportHost : NativeControlHost
     public event Action<int, int>? Clicked;
     public event Action<ViewportCameraGesture>? CameraGesture;
     public event Action<ViewportCameraShortcut>? CameraShortcut;
+    public event Action<GameCameraKey, bool>? GameInput;
+    public void SetPanMode(bool enabled) => _mouse.SetPanMode(enabled);
 
     public (uint Width, uint Height) GetPixelSize()
     {
@@ -34,7 +37,8 @@ internal sealed class X11ViewportHost : NativeControlHost
         {
             _mouse.Attach(Xid, (x, y) => Clicked?.Invoke(x, y),
                 gesture => CameraGesture?.Invoke(gesture),
-                shortcut => CameraShortcut?.Invoke(shortcut));
+                shortcut => CameraShortcut?.Invoke(shortcut),
+                (key, down) => GameInput?.Invoke(key, down));
             Console.WriteLine($"[XYE] X11 视口已创建：0x{Xid.ToInt64():X}");
             XidCreated?.Invoke(Xid);
             return control;

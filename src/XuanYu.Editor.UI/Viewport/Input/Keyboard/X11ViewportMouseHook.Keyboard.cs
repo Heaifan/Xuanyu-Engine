@@ -1,10 +1,12 @@
 using System.Runtime.InteropServices;
+using XuanYu.Editor.Camera;
 
 namespace XuanYu.Editor.UI;
 
 internal sealed partial class X11ViewportMouseHook
 {
     private Action<ViewportCameraShortcut>? _shortcut;
+    private Action<GameCameraKey, bool>? _gameInput;
 
     private void DispatchShortcut()
     {
@@ -13,6 +15,14 @@ internal sealed partial class X11ViewportMouseHook
             _shortcut?.Invoke(ViewportCameraShortcut.Home);
         else if (symbol == 0x66 || symbol == 0x46)
             _shortcut?.Invoke(ViewportCameraShortcut.FocusSelection);
+    }
+
+    private void DispatchGameInput(bool down)
+    {
+        uint symbol = (uint)XLookupKeysym(_eventData, 0);
+        GameCameraKey key = GameCameraKeyMap.FromKeySymbol(symbol);
+        if (key != GameCameraKey.None)
+            _gameInput?.Invoke(key, down);
     }
 
     [DllImport("libX11.so.6", EntryPoint = "XOpenDisplay")]

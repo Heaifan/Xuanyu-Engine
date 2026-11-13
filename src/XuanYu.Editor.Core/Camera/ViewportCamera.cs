@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace XuanYu.Editor.Camera;
 
-public sealed class ViewportCamera
+public sealed partial class ViewportCamera
 {
     private const float FieldOfView = MathF.PI / 3f;
     private const float OrbitSpeed = 0.006f;
@@ -17,6 +17,7 @@ public sealed class ViewportCamera
         MathF.Sin(_pitch));
 
     public ViewportCamera() => Reset();
+    public ViewportCamera Copy() => (ViewportCamera)MemberwiseClone();
 
     public void Reset()
     {
@@ -30,17 +31,24 @@ public sealed class ViewportCamera
     public void Orbit(float deltaX, float deltaY)
     {
         _yaw -= deltaX * OrbitSpeed;
-        _pitch = Math.Clamp(_pitch + deltaY * OrbitSpeed, -1.48f, 1.48f);
+        _pitch = Math.Clamp(_pitch + deltaY * OrbitSpeed,
+            -MathF.PI / 2f, MathF.PI / 2f);
     }
 
     public void Pan(float deltaX, float deltaY, uint viewportHeight)
     {
-        Vector3 forward = Vector3.Normalize(Target - Position);
-        Vector3 right = Vector3.Normalize(Vector3.Cross(forward, Vector3.UnitZ));
-        Vector3 up = Vector3.Normalize(Vector3.Cross(right, forward));
         float unitsPerPixel = 2f * _distance * MathF.Tan(FieldOfView / 2f)
             / viewportHeight;
-        Target += (-right * deltaX + up * deltaY) * unitsPerPixel;
+        Target += (-ViewRight * deltaX + ViewUp * deltaY) * unitsPerPixel;
+    }
+
+    public void MoveGround(float forward, float right)
+    {
+        Vector3 heading = Target - Position;
+        heading.Z = 0f;
+        heading = Vector3.Normalize(heading);
+        Vector3 strafe = Vector3.Normalize(Vector3.Cross(heading, Vector3.UnitZ));
+        Target += heading * forward + strafe * right;
     }
 
     public void Zoom(float wheelSteps)
@@ -62,10 +70,13 @@ public sealed class ViewportCamera
 
     public Matrix4x4 ViewProjection(uint width, uint height)
     {
-        Matrix4x4 view = Matrix4x4.CreateLookAt(
-            Position, Target, Vector3.UnitZ);
-        Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(
-            FieldOfView, (float)width / height, 0.1f, 1000f);
+        Matrix4x4 view = Matrix4x4.CreateLookAt(Position, Target, ViewUp);
+        Matrix4x4 projection = IsOrthographic
+            ? Matrix4x4.CreateOrthographic(
+                2f * _distance * MathF.Tan(FieldOfView / 2f) * (float)width / height,
+                2f * _distance * MathF.Tan(FieldOfView / 2f), 0.1f, 1000f)
+            : Matrix4x4.CreatePerspectiveFieldOfView(
+                FieldOfView, (float)width / height, 0.1f, 1000f);
         projection.M22 = -projection.M22;
         return view * projection;
     }

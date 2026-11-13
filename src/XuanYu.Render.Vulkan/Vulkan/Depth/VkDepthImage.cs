@@ -9,7 +9,6 @@ internal sealed unsafe class VkDepthImage : IDisposable
     private Image _image;
     private DeviceMemory _memory;
     private ImageView _view;
-
     public ImageView View => _view;
     public const Format DepthFormat = Format.D32Sfloat;
 
@@ -20,7 +19,6 @@ internal sealed unsafe class VkDepthImage : IDisposable
         vk.GetPhysicalDeviceFormatProperties(gpu, DepthFormat, out var format);
         if ((format.OptimalTilingFeatures & FormatFeatureFlags.DepthStencilAttachmentBit) == 0)
             throw new NotSupportedException("GPU 不支持 D32Sfloat 深度附件。");
-
         try
         {
             var info = new ImageCreateInfo
@@ -32,7 +30,7 @@ internal sealed unsafe class VkDepthImage : IDisposable
                 Format = DepthFormat, Tiling = ImageTiling.Optimal,
                 InitialLayout = ImageLayout.Undefined,
                 Usage = ImageUsageFlags.DepthStencilAttachmentBit,
-                Samples = SampleCountFlags.Count1Bit,
+                Samples = VkMsaaSettings.Samples,
                 SharingMode = SharingMode.Exclusive
             };
             Check(vk.CreateImage(device, &info, null, out _image), "创建深度图像");
@@ -57,24 +55,19 @@ internal sealed unsafe class VkDepthImage : IDisposable
                     LevelCount = 1, LayerCount = 1
                 }
             };
-            Check(vk.CreateImageView(device, &viewInfo, null, out _view),
-                "创建深度视图");
+            Check(vk.CreateImageView(device, &viewInfo, null, out _view), "创建深度视图");
         }
-        catch
-        {
-            Dispose();
-            throw;
-        }
+        catch { Dispose(); throw; }
     }
 
-    private static uint FindMemory(PhysicalDeviceMemoryProperties properties, uint bits)
+    private static uint FindMemory(PhysicalDeviceMemoryProperties props, uint bits)
     {
-        for (uint i = 0; i < properties.MemoryTypeCount; i++)
+        for (uint i = 0; i < props.MemoryTypeCount; i++)
             if ((bits & (1u << (int)i)) != 0 &&
-                (properties.MemoryTypes[(int)i].PropertyFlags &
+                (props.MemoryTypes[(int)i].PropertyFlags &
                  MemoryPropertyFlags.DeviceLocalBit) != 0)
                 return i;
-        throw new NotSupportedException("GPU 缺少可用的深度图像显存类型。");
+        throw new NotSupportedException("GPU 缺少可用的深度显存类型。");
     }
 
     private static void Check(Result result, string action)
@@ -88,8 +81,6 @@ internal sealed unsafe class VkDepthImage : IDisposable
         if (_view.Handle != 0) _vk.DestroyImageView(_device, _view, null);
         if (_image.Handle != 0) _vk.DestroyImage(_device, _image, null);
         if (_memory.Handle != 0) _vk.FreeMemory(_device, _memory, null);
-        _view = default;
-        _image = default;
-        _memory = default;
+        _view = default; _image = default; _memory = default;
     }
 }

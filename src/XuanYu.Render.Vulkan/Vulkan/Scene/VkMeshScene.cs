@@ -13,7 +13,6 @@ internal sealed class VkMeshScene : IDisposable
     private readonly VkTriangleTargets _targets;
     private readonly VkTrianglePipeline _pipeline;
     private readonly Dictionary<RenderMesh, VkMeshBuffer> _buffers = [];
-
     public RenderPass RenderPass => _pass.Handle;
     public Pipeline Pipeline => _pipeline.Handle;
     public PipelineLayout Layout => _pipeline.Layout;
@@ -21,20 +20,23 @@ internal sealed class VkMeshScene : IDisposable
     public VkBuffer BufferFor(RenderMesh mesh) => _buffers[mesh].Handle;
 
     public VkMeshScene(Vk vk, PhysicalDevice gpu, Device device, VkSwapchain chain)
+        : this(vk, gpu, device, chain.Format, chain.Extent, chain.Images, false) { }
+
+    public VkMeshScene(Vk vk, PhysicalDevice gpu, Device device,
+        Format format, Extent2D extent, Image[] images, bool offscreen)
     {
         _vk = vk;
         _gpu = gpu;
         _device = device;
+        VkMsaaSettings.Validate(vk, gpu);
         VkTrianglePass? pass = null;
         VkTriangleTargets? targets = null;
         VkTrianglePipeline? pipeline = null;
         try
         {
-            pass = new VkTrianglePass(vk, device, chain.Format);
-            targets = new VkTriangleTargets(
-                vk, gpu, device, chain, pass.Handle);
-            pipeline = new VkTrianglePipeline(
-                vk, device, pass.Handle, chain.Extent);
+            pass = new VkTrianglePass(vk, device, format, offscreen);
+            targets = new VkTriangleTargets(vk, gpu, device, extent, format, images, pass.Handle);
+            pipeline = new VkTrianglePipeline(vk, device, pass.Handle, extent);
             _pass = pass;
             _targets = targets;
             _pipeline = pipeline;

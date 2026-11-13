@@ -62,7 +62,7 @@ internal static unsafe class VkTrianglePipelineStates
             var multisample = new PipelineMultisampleStateCreateInfo
             {
                 SType = StructureType.PipelineMultisampleStateCreateInfo,
-                RasterizationSamples = SampleCountFlags.Count1Bit
+                RasterizationSamples = VkMsaaSettings.Samples
             };
             var depth = new PipelineDepthStencilStateCreateInfo
             {

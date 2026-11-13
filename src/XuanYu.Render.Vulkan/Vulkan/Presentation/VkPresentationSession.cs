@@ -1,4 +1,3 @@
-
 using Silk.NET.Vulkan;
 using XuanYu.Render;
 
@@ -23,7 +22,6 @@ internal sealed class VkPresentationSession : IDisposable
         _queue = queue;
         _family = family;
         _gpu = gpu;
-
         SurfaceKHR surface;
         if (OperatingSystem.IsWindows())
         {
@@ -39,7 +37,6 @@ internal sealed class VkPresentationSession : IDisposable
         }
         else
             throw new PlatformNotSupportedException("不支持当前 Vulkan 视口平台。");
-
         try
         {
             _swapchain = new VkSwapchain(vk, instance, gpu, device, family, surface);
@@ -59,7 +56,7 @@ internal sealed class VkPresentationSession : IDisposable
             _vk, _gpu, _device, _queue, _family, _swapchain);
         return $"SwapchainKHR 与 Mesh Pipeline 创建成功：" +
             $"{_swapchain.Extent.Width}×{_swapchain.Extent.Height} | " +
-            $"{_swapchain.Format}";
+            $"{_swapchain.Format} | MSAA 4x";
     }
 
     private void ReleaseFrames()

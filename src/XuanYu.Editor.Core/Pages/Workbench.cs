@@ -7,7 +7,7 @@ using XuanYu.World;
 
 namespace XuanYu.Editor.Pages;
 
-public sealed class Workbench
+public sealed partial class Workbench
 {
     public PageId CurrentId { get; private set; }
     public PageInfo Current => PageCatalog.Get(CurrentId);
@@ -19,7 +19,8 @@ public sealed class Workbench
         ? Scene.Draws : _runtimeBridge.Snapshot(Matrix4x4.Identity);
     public IReadOnlyList<RenderDraw> ViewportDraws(uint width, uint height) =>
         _runtimeBridge is null ? Scene.ViewportDraws(width, height)
-        : _runtimeBridge.Snapshot(Scene.ViewProjection(width, height));
+        : _runtimeBridge.Snapshot(ActiveCamera?.ViewProjection(width, height)
+            ?? Matrix4x4.Identity);
     public SimulationSession Simulation { get; }
     public bool IsSimulating => Simulation.IsRunning;
 
@@ -38,30 +39,6 @@ public sealed class Workbench
         Log.Write($"工作台已就绪，当前页面：{Current.Title}");
     }
 
-    public void StartSimulation()
-    {
-        Simulation.Start();
-        _runtimeBridge = CreateRuntimeBridge();
-        Log.Write("模拟开始：已建立独立 World 副本，目标 30 Hz");
-        Changed?.Invoke();
-    }
-
-    public void AdvanceSimulationTick()
-    {
-        Simulation.Step();
-        if (Simulation.TickCount % SimulationSession.TicksPerSecond == 0)
-            Changed?.Invoke();
-    }
-
-    public void StopSimulation()
-    {
-        double seconds = Simulation.ElapsedSeconds;
-        Simulation.Stop();
-        _runtimeBridge = null;
-        Log.Write($"模拟停止：累计 {seconds:0.0} 秒，编辑场景未被替换");
-        Changed?.Invoke();
-    }
-
     public void BindGpu(GpuInfo gpu)
     {
         ViewportNote = $"GPU 已连接：{gpu.Summary}";
@@ -76,19 +53,12 @@ public sealed class Workbench
         Changed?.Invoke();
     }
 
-    private WorldRenderBridge CreateRuntimeBridge()
-    {
-        var bridge = new WorldRenderBridge(Simulation.RunningWorld!);
-        foreach (PreviewObject item in Scene.Objects)
-            bridge.Bind(item.Id, item.Mesh);
-        return bridge;
-    }
-
     public void SwitchTo(PageId target)
     {
         PageInfo info = PageCatalog.Get(target);
         if (CurrentId == info.Id)
             return;
+        ResetCameraKeys();
         CurrentId = info.Id;
         Log.Write($"切换页面 -> {info.Title}");
         Changed?.Invoke();

@@ -11,14 +11,14 @@
     <PackageReference Include="Avalonia.Fonts.Inter" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\XuanYu.Core\XuanYu.Core.csproj" />
-    <ProjectReference Include="..\XuanYu.World\XuanYu.World.csproj" />
-    <ProjectReference Include="..\XuanYu.Platform\XuanYu.Platform.csproj" />
-    <ProjectReference Include="..\XuanYu.Render\XuanYu.Render.csproj" />
-    <ProjectReference Include="..\XuanYu.Render.Vulkan\XuanYu.Render.Vulkan.csproj" />
-    <ProjectReference Include="..\XuanYu.Runtime\XuanYu.Runtime.csproj" />
+
+
+
+
+
+
   </ItemGroup>
   <ItemGroup>
-    <AvaloniaResource Include="Assets\Left\**\*.svg" />
+
   </ItemGroup>
-</Project>
+<ItemGroup><ProjectReference Include="..\XuanYu.Editor.Core\XuanYu.Editor.Core.csproj" /><ProjectReference Include="..\XuanYu.Editor.UI\XuanYu.Editor.UI.csproj" /><ProjectReference Include="..\XuanYu.Render.Vulkan\XuanYu.Render.Vulkan.csproj" /></ItemGroup></Project>

@@ -7,7 +7,7 @@ internal sealed partial class ViewportSwapchainSession
 {
     private void OnCameraShortcut(ViewportCameraShortcut shortcut)
     {
-        if (_workbench.CurrentId != PageId.World ||
+        if (_workbench.IsSimulating || _workbench.CurrentId != PageId.World ||
             _workbench.Scene.Camera is not { } camera)
             return;
 

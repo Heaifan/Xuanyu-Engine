@@ -1,10 +1,9 @@
-
 using Silk.NET.Vulkan;
 using XuanYu.Render;
 
 namespace XuanYu.Render.Vulkan;
 
-public sealed unsafe class VkContext : IDisposable
+public sealed unsafe partial class VkContext : IDisposable
 {
     private readonly Vk _vk;
     private Instance _instance;

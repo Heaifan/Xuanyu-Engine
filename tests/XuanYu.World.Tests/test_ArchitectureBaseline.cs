@@ -59,7 +59,9 @@ public sealed class test_ArchitectureBaseline
     [InlineData("XuanYu.Render", "XuanYu.Core")]
     [InlineData("XuanYu.Render.Vulkan", "XuanYu.Render")]
     [InlineData("XuanYu.Runtime", "XuanYu.Core;XuanYu.World;XuanYu.Platform;XuanYu.Render")]
-    [InlineData("XuanYu.Editor", "XuanYu.Core;XuanYu.World;XuanYu.Platform;XuanYu.Render;XuanYu.Render.Vulkan;XuanYu.Runtime")]
+    [InlineData("XuanYu.Editor.Core", "XuanYu.Core;XuanYu.World;XuanYu.Render;XuanYu.Render.Vulkan;XuanYu.Runtime")]
+    [InlineData("XuanYu.Editor.UI", "XuanYu.Editor.Core;XuanYu.World;XuanYu.Render;XuanYu.Render.Vulkan")]
+    [InlineData("XuanYu.Editor", "XuanYu.Editor.Core;XuanYu.Editor.UI;XuanYu.Render.Vulkan")]
     [InlineData("XuanYu.World.Tests", "XuanYu.Core;XuanYu.World;XuanYu.Editor;XuanYu.Render.Vulkan;XuanYu.Runtime")]
     public void Projects_ShouldKeepApprovedReferences(string project, string allowed)
     {

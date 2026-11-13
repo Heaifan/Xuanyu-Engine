@@ -25,13 +25,13 @@ internal sealed partial class ViewportSwapchainSession
         _viewport.NativeWindowDestroying += OnNativeWindowDestroying;
         _viewport.CameraGesture += OnCameraGesture;
         _viewport.CameraShortcut += OnCameraShortcut;
+        _viewport.GameInput += OnGameInput;
         _timer.Tick += (_, _) => Update();
     }
-
     private void OnCameraGesture(ViewportCameraGesture gesture)
     {
         if (_workbench.CurrentId != PageId.World ||
-            _workbench.Scene.Camera is not { } camera)
+            _workbench.ActiveCamera is not { } camera)
             return;
         if (gesture.WheelSteps != 0)
             camera.Zoom(gesture.WheelSteps);
