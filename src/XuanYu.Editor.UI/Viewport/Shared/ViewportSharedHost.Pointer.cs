@@ -1,6 +1,8 @@
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using XuanYu.Editor.Pages;
 
 namespace XuanYu.Editor.UI;
 
@@ -18,6 +20,7 @@ public sealed partial class ViewportSharedHost
             _panGesture = !middle || e.KeyModifiers.HasFlag(KeyModifiers.Shift);
             _previous = e.GetPosition(this);
             e.Pointer.Capture(this);
+            ToolTip.SetIsOpen(this, false);
             Focus();
             e.Handled = true;
         }
@@ -25,17 +28,28 @@ public sealed partial class ViewportSharedHost
         {
             Focus();
             Point point = e.GetPosition(this);
-            double scale = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
-            Clicked?.Invoke((int)Math.Round(point.X * scale),
-                (int)Math.Round(point.Y * scale));
+            if (_wb.CurrentId == PageId.Terrain)
+                ReportTerrainClick(point);
+            else
+            {
+                double scale = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
+                Clicked?.Invoke((int)Math.Round(point.X * scale),
+                    (int)Math.Round(point.Y * scale));
+            }
             e.Handled = true;
         }
     }
 
     private void OnViewportPointerMoved(object? sender, PointerEventArgs e)
     {
-        if (!_dragging) return;
         Point next = e.GetPosition(this);
+        if (!_dragging)
+        {
+            UpdateTerrainHover(next);
+            return;
+        }
+
+        ToolTip.SetIsOpen(this, false);
         double scale = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
         OnCameraGesture(new ViewportCameraGesture(
             (float)((next.X - _previous.X) * scale),
@@ -55,6 +69,7 @@ public sealed partial class ViewportSharedHost
     private void OnViewportWheel(object? sender, PointerWheelEventArgs e)
     {
         if (!ReferenceEquals(e.Source, this)) return;
+        ToolTip.SetIsOpen(this, false);
         OnCameraGesture(new ViewportCameraGesture(0, 0, (float)e.Delta.Y, false));
         e.Handled = true;
     }

@@ -1,5 +1,7 @@
+
 using XuanYu.Editor.Camera;
 using XuanYu.Editor.Pages;
+using XuanYu.Editor.Preview;
 
 namespace XuanYu.Editor.UI;
 
@@ -7,9 +9,10 @@ public sealed partial class ViewportSharedHost
 {
     private void OnCameraGesture(ViewportCameraGesture gesture)
     {
-        if (_wb.CurrentId != PageId.World ||
+        if (_wb.CurrentId is not (PageId.World or PageId.Terrain) ||
             _wb.ActiveCamera is not { } camera)
             return;
+
         if (gesture.WheelSteps != 0)
             camera.Zoom(gesture.WheelSteps);
         else if (gesture.Pan)
@@ -21,24 +24,39 @@ public sealed partial class ViewportSharedHost
 
     private void OnCameraShortcut(ViewportCameraShortcut shortcut)
     {
-        if (_wb.IsSimulating || _wb.CurrentId != PageId.World ||
-            _wb.Scene.Camera is not { } camera)
+        if (_wb.IsSimulating ||
+            _wb.CurrentId is not (PageId.World or PageId.Terrain))
             return;
-        var scene = _wb.Scene;
+
+        PreviewScene scene = _wb.CurrentId == PageId.Terrain
+            ? _wb.TerrainScene : _wb.Scene;
+
+        if (scene.Camera is not { } camera)
+            return;
+
         var (width, height) = PixelSize;
-        float aspect = Math.Max(1u, width) / (float)Math.Max(1u, height);
-        if (shortcut == ViewportCameraShortcut.Home)
+        float aspect = Math.Max(1u, width) /
+            (float)Math.Max(1u, height);
+
+        bool terrain = _wb.CurrentId == PageId.Terrain;
+
+        if (shortcut == ViewportCameraShortcut.Home ||
+            (terrain && shortcut == ViewportCameraShortcut.FocusSelection))
         {
             bool found = ViewportSceneFraming.FrameAll(
                 camera, scene.Objects, aspect);
-            _wb.Log.Write(found
-                ? "Home：已显示全部可见实体"
-                : "Home：场景为空，已恢复默认视角");
+
+            _wb.Log.Write(terrain
+                ? "E4 地形：已聚焦完整地图"
+                : found
+                    ? "Home：已显示全部可见实体"
+                    : "Home：场景为空，已恢复默认视角");
         }
         else if (shortcut == ViewportCameraShortcut.FocusSelection)
         {
             bool found = ViewportSceneFraming.Focus(
                 camera, scene.Selected, aspect);
+
             _wb.Log.Write(found
                 ? $"F：聚焦实体 {scene.Selected!.Name}"
                 : "F：请先选中一个可见实体");

@@ -1,3 +1,4 @@
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -56,6 +57,6 @@ public sealed class TopBar : Border
         _context.Text = $"当前：{_wb.CurrentId}";
         _status.Text = _wb.IsSimulating
             ? $"XYE / PLAY {_wb.Simulation.ElapsedSeconds:0.0}s"
-            : "XYE / E3";
+            : "XYE / EDITOR";
     }
 }

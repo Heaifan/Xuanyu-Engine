@@ -1,3 +1,4 @@
+
 using System.Numerics;
 using XuanYu.Editor.Preview;
 using XuanYu.Render;
@@ -15,12 +16,24 @@ public sealed partial class Workbench
     public PreviewScene Scene { get; }
     public WorldScene World => Scene.World;
     private WorldRenderBridge? _runtimeBridge;
-    public IReadOnlyList<RenderDraw> RenderDraws => _runtimeBridge is null
-        ? Scene.Draws : _runtimeBridge.Snapshot(Matrix4x4.Identity);
-    public IReadOnlyList<RenderDraw> ViewportDraws(uint width, uint height) =>
-        _runtimeBridge is null ? Scene.ViewportDraws(width, height)
-        : _runtimeBridge.Snapshot(ActiveCamera?.ViewProjection(width, height)
-            ?? Matrix4x4.Identity);
+
+    public IReadOnlyList<RenderDraw> RenderDraws =>
+        _runtimeBridge is null ? Scene.Draws
+        : _runtimeBridge.Snapshot(Matrix4x4.Identity);
+
+    public IReadOnlyList<RenderDraw> ViewportDraws(
+        uint width, uint height)
+    {
+        if (CurrentId == PageId.Terrain)
+            return TerrainScene.ViewportDraws(width, height);
+
+        return _runtimeBridge is null
+            ? Scene.ViewportDraws(width, height)
+            : _runtimeBridge.Snapshot(
+                ActiveCamera?.ViewProjection(width, height)
+                ?? Matrix4x4.Identity);
+    }
+
     public SimulationSession Simulation { get; }
     public bool IsSimulating => Simulation.IsRunning;
 
@@ -58,6 +71,7 @@ public sealed partial class Workbench
         PageInfo info = PageCatalog.Get(target);
         if (CurrentId == info.Id)
             return;
+
         ResetCameraKeys();
         CurrentId = info.Id;
         Log.Write($"切换页面 -> {info.Title}");

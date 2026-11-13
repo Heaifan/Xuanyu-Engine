@@ -37,18 +37,20 @@ internal sealed partial class LeftTreeRow : Button
             TextTrimming = TextTrimming.CharacterEllipsis,
             VerticalAlignment = VerticalAlignment.Center
         };
+        bool isLeaf = node.Children.Count == 0;
         var columns = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("Auto,17,21,*"),
+            ColumnDefinitions = new ColumnDefinitions(
+                isLeaf ? "Auto,5,21,*" : "Auto,17,21,*"),
             Children =
             {
-                new LeftTreeGuide(depth, continuations, isLast)
+                new LeftTreeGuide(depth, continuations, isLast, isLeaf)
             }
         };
-        Control expander = node.Children.Count > 0
-            ? LeftSvgIcon.Create(node.IsExpanded
-                ? "Controls/chevron-down" : "Controls/chevron-right", 12)
-            : new Border { Width = 12 };
+        Control expander = isLeaf
+            ? new Border { Width = 5 }
+            : LeftSvgIcon.Create(node.IsExpanded
+                ? "Controls/chevron-down" : "Controls/chevron-right", 12);
         Grid.SetColumn(expander, 1);
         columns.Children.Add(expander);
         _icon = LeftSvgIcon.Create(node.Icon);

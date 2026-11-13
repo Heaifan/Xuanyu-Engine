@@ -1,3 +1,4 @@
+
 using Avalonia.Threading;
 using Silk.NET.Vulkan;
 using XuanYu.Editor.Pages;
@@ -27,19 +28,6 @@ internal sealed partial class ViewportSwapchainSession
         _viewport.CameraShortcut += OnCameraShortcut;
         _viewport.GameInput += OnGameInput;
         _timer.Tick += (_, _) => Update();
-    }
-    private void OnCameraGesture(ViewportCameraGesture gesture)
-    {
-        if (_workbench.CurrentId != PageId.World ||
-            _workbench.ActiveCamera is not { } camera)
-            return;
-        if (gesture.WheelSteps != 0)
-            camera.Zoom(gesture.WheelSteps);
-        else if (gesture.Pan)
-            camera.Pan(gesture.DeltaX, gesture.DeltaY,
-                Math.Max(1u, _viewport.PixelSize.Height));
-        else
-            camera.Orbit(gesture.DeltaX, gesture.DeltaY);
     }
     private void OnNativeWindowCreated(nint window)
     {

@@ -1,7 +1,9 @@
+
 using Avalonia.Controls;
 using XuanYu.Editor.Pages;
 using XuanYu.Editor.UI.Top.Persistence;
 using XuanYu.Editor.UI.Top.Simulation;
+using XuanYu.Editor.UI.Top.Terrain;
 
 namespace XuanYu.Editor.UI;
 
@@ -27,6 +29,7 @@ internal static class TopMenuBar
                     Header = "文件",
                     ItemsSource = SceneFileMenu.Create(owner, wb)
                 },
+                new() { Header = "地图", ItemsSource = TerrainFileMenu.Create(owner, wb) },
                 new()
                 {
                     Header = "编辑",
