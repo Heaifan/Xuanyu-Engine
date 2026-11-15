@@ -11,6 +11,10 @@ public sealed class NasademGeoReference
     public int WestLongitude { get; }
     public double WidthMeters { get; }
     public double LengthMeters { get; }
+    public double SampleSpacingXMeters =>
+        WidthMeters / (NasademTile.Side - 1);
+    public double SampleSpacingYMeters =>
+        LengthMeters / (NasademTile.Side - 1);
 
     public NasademGeoReference(NasademTile tile)
     {

@@ -32,25 +32,27 @@ public sealed partial class Workbench
     public void ImportTerrain(string path)
     {
         NasademTile tile = NasademHgtFile.Load(path);
-        MapDocument map = NasademPreviewBuilder.Create(tile);
+        TerrainWaterMask? water = NasademWaterFile.Load(path, tile);
+        MapDocument map = NasademPreviewBuilder.Create(tile, water);
         SetTerrain(map, tile, path, null);
-        Log.Write($"E4 导入 NASADEM：{tile.TileId}；原始 {NasademTile.Side}×{NasademTile.Side}，预览 {map.HeightField.SamplesX}×{map.HeightField.SamplesY}");
+        Log.Write($"E4 NASADEM：{tile.TileId}；{map.HeightField.SamplesX}×{map.HeightField.SamplesY}");
+        Log.Write(water is null
+            ? "E4 水体：未发现对应 SWB，保持原地表色，不猜测海洋。"
+            : "E4 水体：SWB 已导入，蓝色水面及岸线着色已启用。");
     }
 
     public void OpenTerrainMap(string path)
     {
         MapDocument map = MapFile.Load(path);
         SetTerrain(map, null, path, path);
-        Log.Write($"E4 地图已打开：{map.Name}");
+        Log.Write($"E4 地图已打开：{map.Name}；SWB={(map.WaterMask is null ? "无" : "有")}");
     }
 
     public void SaveTerrainMap(string path)
     {
         MapFile.Save(TerrainMap, path);
         TerrainMapPath = path;
-        Log.Write($"E4 地图已保存：{path}");
-        if (TerrainSourceTile is not null)
-            Log.Write("E4 注意：xymap 仅保存预览高度场，原始 HGT 需保留。");
+        Log.Write($"E4 地图已保存：{path}；分辨率 {TerrainMap.HeightField.SamplesX}×{TerrainMap.HeightField.SamplesY}");
         Changed?.Invoke();
     }
 

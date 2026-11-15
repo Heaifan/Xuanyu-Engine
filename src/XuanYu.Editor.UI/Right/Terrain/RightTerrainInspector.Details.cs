@@ -25,8 +25,10 @@ internal sealed partial class RightTerrainInspector
         if (_showHeightField)
         {
             AddPair("分辨率", $"{field.SamplesX} × {field.SamplesY}");
-            AddPair("采样间距", $"{field.SpacingMeters:0.##} m");
+            AddPair("采样间距",
+                $"{field.SpacingXMeters:0.##} × {field.SpacingYMeters:0.##} m");
             AddPair("尺寸", $"{map.WidthMeters:0} × {map.LengthMeters:0} m");
+            AddPair("水体掩膜", map.WaterMask is null ? "缺失 SWB" : "SWB 已加载");
         }
 
         AddGroup("NASADEM 数据源", _showSource,

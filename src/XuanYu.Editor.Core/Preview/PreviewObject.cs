@@ -9,24 +9,20 @@ public sealed class PreviewObject
     private readonly WorldScene _world;
 
     public Guid Id { get; }
-    public RenderMesh Mesh { get; }
-
+    public RenderMesh Mesh { get; private set; }
     public string Name => _world.Find(Id)!.Name;
-
     public bool Visible => _world.Find(Id)!.IsVisible;
-
     public Matrix4x4 ModelToClip =>
         _world.Find(Id)!.Transform.ToMatrix();
 
-    internal PreviewObject(
-        WorldScene world,
-        Guid id,
-        RenderMesh mesh)
+    internal PreviewObject(WorldScene world, Guid id, RenderMesh mesh)
     {
         _world = world;
         Id = id;
         Mesh = mesh;
     }
+
+    internal void ReplaceMesh(RenderMesh mesh) => Mesh = mesh;
 
     public override string ToString() => Name;
 }

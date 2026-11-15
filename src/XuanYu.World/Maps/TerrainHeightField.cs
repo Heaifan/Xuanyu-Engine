@@ -9,24 +9,33 @@ public sealed class TerrainHeightField
 
     public int SamplesX { get; }
     public int SamplesY { get; }
-    public float SpacingMeters { get; }
-    public float WidthMeters => (SamplesX - 1) * SpacingMeters;
-    public float LengthMeters => (SamplesY - 1) * SpacingMeters;
+    public float SpacingXMeters { get; }
+    public float SpacingYMeters { get; }
+    public float SpacingMeters => SpacingXMeters;
+    public float WidthMeters => (SamplesX - 1) * SpacingXMeters;
+    public float LengthMeters => (SamplesY - 1) * SpacingYMeters;
     public int SampleCount => _heights.Length;
     public ReadOnlySpan<float> Samples => _heights;
 
     public TerrainHeightField(int samplesX, int samplesY, float spacingMeters)
+        : this(samplesX, samplesY, spacingMeters, spacingMeters) { }
+
+    public TerrainHeightField(int samplesX, int samplesY,
+        float spacingXMeters, float spacingYMeters)
     {
         if (samplesX < 2)
             throw new ArgumentOutOfRangeException(nameof(samplesX));
         if (samplesY < 2)
             throw new ArgumentOutOfRangeException(nameof(samplesY));
-        if (!float.IsFinite(spacingMeters) || spacingMeters <= 0f)
-            throw new ArgumentOutOfRangeException(nameof(spacingMeters));
+        if (!float.IsFinite(spacingXMeters) || spacingXMeters <= 0f)
+            throw new ArgumentOutOfRangeException(nameof(spacingXMeters));
+        if (!float.IsFinite(spacingYMeters) || spacingYMeters <= 0f)
+            throw new ArgumentOutOfRangeException(nameof(spacingYMeters));
 
         SamplesX = samplesX;
         SamplesY = samplesY;
-        SpacingMeters = spacingMeters;
+        SpacingXMeters = spacingXMeters;
+        SpacingYMeters = spacingYMeters;
         _heights = new float[checked(samplesX * samplesY)];
     }
 
@@ -44,8 +53,8 @@ public sealed class TerrainHeightField
     {
         int index = IndexOf(x, y);
         return new Vector3(
-            x * SpacingMeters,
-            y * SpacingMeters,
+            x * SpacingXMeters,
+            y * SpacingYMeters,
             _heights[index]);
     }
 

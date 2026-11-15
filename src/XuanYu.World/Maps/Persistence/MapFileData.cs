@@ -11,6 +11,7 @@ internal sealed class MapFileData
     public int SamplesX { get; set; }
     public int SamplesY { get; set; }
     public float SpacingMeters { get; set; }
+    public float? SpacingYMeters { get; set; }
     public float[] Heights { get; set; } = [];
 
     public static MapFileData Capture(MapDocument map)
@@ -27,7 +28,8 @@ internal sealed class MapFileData
             Name = map.Name,
             SamplesX = field.SamplesX,
             SamplesY = field.SamplesY,
-            SpacingMeters = field.SpacingMeters,
+            SpacingMeters = field.SpacingXMeters,
+            SpacingYMeters = field.SpacingYMeters,
             Heights = heights
         };
     }
@@ -39,7 +41,8 @@ internal sealed class MapFileData
         if (string.IsNullOrWhiteSpace(Name))
             throw new InvalidDataException("地图名称不能为空。");
         if (SamplesX < 2 || SamplesY < 2 ||
-            !float.IsFinite(SpacingMeters) || SpacingMeters <= 0f)
+            !float.IsFinite(SpacingMeters) || SpacingMeters <= 0f ||
+            (SpacingYMeters is { } y && (!float.IsFinite(y) || y <= 0f)))
             throw new InvalidDataException("地图采样尺寸或间距无效。");
         if (Heights is null || Heights.LongLength != (long)SamplesX * SamplesY)
             throw new InvalidDataException("地图高度数据数量与采样尺寸不一致。");
@@ -50,7 +53,9 @@ internal sealed class MapFileData
 
     public MapDocument Restore()
     {
-        TerrainHeightField field = new(SamplesX, SamplesY, SpacingMeters);
+        TerrainHeightField field = new(
+            SamplesX, SamplesY, SpacingMeters,
+            SpacingYMeters ?? SpacingMeters);
         for (int y = 0; y < SamplesY; y++)
             for (int x = 0; x < SamplesX; x++)
                 field.SetHeight(x, y, Heights[y * SamplesX + x]);

@@ -1,4 +1,3 @@
-
 using System.Numerics;
 using XuanYu.Editor.Preview;
 using XuanYu.Render;
@@ -25,7 +24,8 @@ public sealed partial class Workbench
         uint width, uint height)
     {
         if (CurrentId == PageId.Terrain)
-            return TerrainScene.ViewportDraws(width, height);
+            return (_terrainPreview ??= CreateTerrainPreview())
+                .ViewportDraws(width, height);
 
         return _runtimeBridge is null
             ? Scene.ViewportDraws(width, height)

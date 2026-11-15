@@ -27,4 +27,11 @@ public sealed partial class PreviewScene
         EntityRenamed?.Invoke();
         Publish();
     }
+
+    public void ReplaceMesh(Guid id, RenderMesh mesh)
+    {
+        PreviewObject item = _objects.First(x => x.Id == id);
+        _bridge.Bind(id, mesh);
+        item.ReplaceMesh(mesh);
+    }
 }

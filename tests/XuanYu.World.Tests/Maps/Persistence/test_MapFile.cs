@@ -11,7 +11,7 @@ public sealed class TestMapFile
     [Fact]
     public void SaveLoad_RestoresEveryHeightAndMetadata()
     {
-        var field = new TerrainHeightField(3, 2, 2.5f);
+        var field = new TerrainHeightField(3, 2, 2.5f, 5.5f);
         field.SetHeight(1, 0, -2.75f);
         field.SetHeight(2, 1, 10.125f);
         var original = new MapDocument("玄域测试地图", field);
@@ -25,10 +25,12 @@ public sealed class TestMapFile
             Assert.Equal(original.Name, loaded.Name);
             Assert.Equal(field.SamplesX, loaded.HeightField.SamplesX);
             Assert.Equal(field.SamplesY, loaded.HeightField.SamplesY);
-            Assert.Equal(field.SpacingMeters, loaded.HeightField.SpacingMeters);
+            Assert.Equal(field.SpacingXMeters, loaded.HeightField.SpacingXMeters);
+            Assert.Equal(field.SpacingYMeters, loaded.HeightField.SpacingYMeters);
             for (int y = 0; y < field.SamplesY; y++)
                 for (int x = 0; x < field.SamplesX; x++)
-                    Assert.Equal(field.GetHeight(x, y), loaded.HeightField.GetHeight(x, y));
+                    Assert.Equal(field.GetHeight(x, y),
+                        loaded.HeightField.GetHeight(x, y));
         }
         finally { File.Delete(path); }
     }
@@ -46,6 +48,24 @@ public sealed class TestMapFile
             field.SetHeight(1, 1, 7.25f);
             MapFile.Save(map, path);
             Assert.Equal(7.25f, MapFile.Load(path).HeightField.GetHeight(1, 1));
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void Load_LegacyMapUsesUniformSpacing()
+    {
+        const string json = """
+        {"Version":1,"Name":"旧地图","SamplesX":2,"SamplesY":2,
+        "SpacingMeters":3,"Heights":[0,1,2,3]}
+        """;
+        string path = NewPath();
+        try
+        {
+            File.WriteAllText(path, json);
+            var field = MapFile.Load(path).HeightField;
+            Assert.Equal(3f, field.SpacingXMeters);
+            Assert.Equal(3f, field.SpacingYMeters);
         }
         finally { File.Delete(path); }
     }
