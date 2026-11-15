@@ -15,6 +15,8 @@ internal sealed class VkMeshScene : IDisposable
     private readonly Dictionary<RenderMesh, VkMeshBuffer> _buffers = [];
     public RenderPass RenderPass => _pass.Handle;
     public Pipeline Pipeline => _pipeline.Handle;
+    public Pipeline SelectionMaskPipeline => _pipeline.Mask;
+    public Pipeline SelectionOutlinePipeline => _pipeline.Outline;
     public PipelineLayout Layout => _pipeline.Layout;
     public Framebuffer GetFramebuffer(uint index) => _targets[index];
     public VkBuffer BufferFor(RenderMesh mesh) => _buffers[mesh].Handle;

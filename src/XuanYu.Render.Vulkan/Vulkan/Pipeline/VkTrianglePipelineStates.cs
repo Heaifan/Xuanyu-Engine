@@ -1,10 +1,10 @@
 using Silk.NET.Vulkan;
 namespace XuanYu.Render.Vulkan;
-
 internal static unsafe class VkTrianglePipelineStates
 {
     public static Pipeline Create(Vk vk, Device device, RenderPass pass,
-        PipelineLayout layout, Extent2D extent, ShaderModule vert, ShaderModule frag)
+        PipelineLayout layout, Extent2D extent, ShaderModule vert,
+        ShaderModule frag, VkSelectionPass selection = VkSelectionPass.Base)
     {
         byte[] entry = "main\0"u8.ToArray();
         fixed (byte* name = entry)
@@ -21,9 +21,7 @@ internal static unsafe class VkTrianglePipelineStates
                 Stage = ShaderStageFlags.FragmentBit, Module = frag, PName = name
             };
             var binding = new VertexInputBindingDescription
-            {
-                Binding = 0, Stride = 28, InputRate = VertexInputRate.Vertex
-            };
+                { Binding = 0, Stride = 28, InputRate = VertexInputRate.Vertex };
             VertexInputAttributeDescription* attrs = stackalloc VertexInputAttributeDescription[2];
             attrs[0] = new VertexInputAttributeDescription
             {
@@ -75,6 +73,7 @@ internal static unsafe class VkTrianglePipelineStates
                 ColorWriteMask = ColorComponentFlags.RBit | ColorComponentFlags.GBit |
                     ColorComponentFlags.BBit | ColorComponentFlags.ABit
             };
+            VkSelectionPipelineState.Apply(selection, ref depth, ref blendAttachment);
             var blend = new PipelineColorBlendStateCreateInfo
             {
                 SType = StructureType.PipelineColorBlendStateCreateInfo,

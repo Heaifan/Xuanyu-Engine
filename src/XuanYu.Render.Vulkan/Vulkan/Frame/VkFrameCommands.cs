@@ -41,16 +41,16 @@ internal static unsafe class VkFrameCommands
         vk.CmdBindPipeline(command, PipelineBindPoint.Graphics, scene.Pipeline);
         foreach (RenderDraw draw in draws)
         {
-            if (!draw.Visible)
-                continue;
+            if (!draw.Visible) continue;
             DrawMesh(vk, command, scene, draw);
         }
+        VkFrameSelection.Record(vk, command, scene, extent, draws);
         vk.CmdEndRenderPass(command);
         Check(vk.EndCommandBuffer(command), "结束命令缓冲区");
     }
 
-    private static void DrawMesh(
-        Vk vk, CommandBuffer cmd, VkMeshScene scene, RenderDraw draw)
+    internal static void DrawMesh(Vk vk, CommandBuffer cmd, VkMeshScene scene,
+        RenderDraw draw, bool outline = false)
     {
         Silk.NET.Vulkan.Buffer buffer = scene.BufferFor(draw.Mesh);
         ulong offset = 0;
@@ -62,10 +62,9 @@ internal static unsafe class VkFrameCommands
             m.M21, m.M22, m.M23, m.M24,
             m.M31, m.M32, m.M33, m.M34,
             m.M41, m.M42, m.M43, m.M44,
-            1f, 0.78f, 0.15f, draw.Selected ? 0.60f : 0f
+            1f, 0.722f, 0.188f, outline ? 1f : 0f
         };
-        vk.CmdPushConstants(
-            cmd, scene.Layout, ShaderStageFlags.VertexBit,
+        vk.CmdPushConstants(cmd, scene.Layout, ShaderStageFlags.VertexBit,
             0, 80, push);
         vk.CmdDraw(cmd, (uint)draw.Mesh.VertexCount, 1, 0, 0);
     }

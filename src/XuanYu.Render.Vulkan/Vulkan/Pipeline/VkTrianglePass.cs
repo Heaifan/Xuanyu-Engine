@@ -26,7 +26,7 @@ internal sealed unsafe class VkTrianglePass : IDisposable
         {
             Format = VkDepthImage.DepthFormat, Samples = VkMsaaSettings.Samples,
             LoadOp = AttachmentLoadOp.Clear, StoreOp = AttachmentStoreOp.DontCare,
-            StencilLoadOp = AttachmentLoadOp.DontCare,
+            StencilLoadOp = AttachmentLoadOp.Clear,
             StencilStoreOp = AttachmentStoreOp.DontCare,
             InitialLayout = ImageLayout.Undefined,
             FinalLayout = ImageLayout.DepthStencilAttachmentOptimal

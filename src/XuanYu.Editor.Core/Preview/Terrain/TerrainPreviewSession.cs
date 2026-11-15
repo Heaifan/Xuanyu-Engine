@@ -42,7 +42,9 @@ public sealed partial class TerrainPreviewSession
     public IReadOnlyList<RenderDraw> ViewportDraws(uint width, uint height)
     {
         UpdateChunks();
-        return Scene.ViewportDraws(width, height);
+        IReadOnlyList<RenderDraw> draws = Scene.ViewportDraws(width, height);
+        if (_chunks.Count == 0 || Scene.SelectedId is null) return draws;
+        return draws.Select(draw => draw with { Selected = true }).ToArray();
     }
 
     public bool TryPick(Vector2 pixel, uint width, uint height,

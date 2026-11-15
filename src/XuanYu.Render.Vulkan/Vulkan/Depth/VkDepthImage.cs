@@ -10,7 +10,7 @@ internal sealed unsafe class VkDepthImage : IDisposable
     private DeviceMemory _memory;
     private ImageView _view;
     public ImageView View => _view;
-    public const Format DepthFormat = Format.D32Sfloat;
+    public const Format DepthFormat = Format.D32SfloatS8Uint;
 
     public VkDepthImage(Vk vk, PhysicalDevice gpu, Device device, Extent2D extent)
     {
@@ -18,7 +18,7 @@ internal sealed unsafe class VkDepthImage : IDisposable
         _device = device;
         vk.GetPhysicalDeviceFormatProperties(gpu, DepthFormat, out var format);
         if ((format.OptimalTilingFeatures & FormatFeatureFlags.DepthStencilAttachmentBit) == 0)
-            throw new NotSupportedException("GPU 不支持 D32Sfloat 深度附件。");
+            throw new NotSupportedException("GPU 不支持 D32SfloatS8Uint 深度模板附件。");
         try
         {
             var info = new ImageCreateInfo
@@ -33,7 +33,7 @@ internal sealed unsafe class VkDepthImage : IDisposable
                 Samples = VkMsaaSettings.Samples,
                 SharingMode = SharingMode.Exclusive
             };
-            Check(vk.CreateImage(device, &info, null, out _image), "创建深度图像");
+            Check(vk.CreateImage(device, &info, null, out _image), "创建深度模板图像");
             vk.GetImageMemoryRequirements(device, _image, out var requirements);
             vk.GetPhysicalDeviceMemoryProperties(gpu, out var properties);
             var alloc = new MemoryAllocateInfo
@@ -42,8 +42,8 @@ internal sealed unsafe class VkDepthImage : IDisposable
                 AllocationSize = requirements.Size,
                 MemoryTypeIndex = FindMemory(properties, requirements.MemoryTypeBits)
             };
-            Check(vk.AllocateMemory(device, &alloc, null, out _memory), "分配深度显存");
-            Check(vk.BindImageMemory(device, _image, _memory, 0), "绑定深度显存");
+            Check(vk.AllocateMemory(device, &alloc, null, out _memory), "分配深度模板显存");
+            Check(vk.BindImageMemory(device, _image, _memory, 0), "绑定深度模板显存");
             var viewInfo = new ImageViewCreateInfo
             {
                 SType = StructureType.ImageViewCreateInfo,
@@ -51,11 +51,11 @@ internal sealed unsafe class VkDepthImage : IDisposable
                 Format = DepthFormat,
                 SubresourceRange = new ImageSubresourceRange
                 {
-                    AspectMask = ImageAspectFlags.DepthBit,
+                    AspectMask = ImageAspectFlags.DepthBit | ImageAspectFlags.StencilBit,
                     LevelCount = 1, LayerCount = 1
                 }
             };
-            Check(vk.CreateImageView(device, &viewInfo, null, out _view), "创建深度视图");
+            Check(vk.CreateImageView(device, &viewInfo, null, out _view), "创建深度模板视图");
         }
         catch { Dispose(); throw; }
     }
@@ -67,7 +67,7 @@ internal sealed unsafe class VkDepthImage : IDisposable
                 (props.MemoryTypes[(int)i].PropertyFlags &
                  MemoryPropertyFlags.DeviceLocalBit) != 0)
                 return i;
-        throw new NotSupportedException("GPU 缺少可用的深度显存类型。");
+        throw new NotSupportedException("GPU 缺少可用的深度模板显存类型。");
     }
 
     private static void Check(Result result, string action)
