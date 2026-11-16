@@ -23,7 +23,7 @@ public sealed partial class Workbench
 
     public Vector3? PickTerrainPoint(Vector2 pixel, uint width, uint height)
     {
-        if (CurrentId != PageId.Terrain) return null;
+        if (CurrentId != PageId.Terrain || IsGeoTerrainPreview) return null;
         var session = _terrainPreview ??= CreateTerrainPreview();
         return session.TryPick(pixel, width, height, out var hit)
             ? hit.WorldPosition : null;
@@ -67,6 +67,7 @@ public sealed partial class Workbench
     private void SetTerrain(MapDocument map, NasademTile? tile,
         string sourcePath, string? mapPath)
     {
+        _geoPreview = null;
         _terrainPreview = new TerrainPreviewSession(map);
         BindTerrainScene(_terrainPreview.Scene);
         TerrainSourceTile = tile;

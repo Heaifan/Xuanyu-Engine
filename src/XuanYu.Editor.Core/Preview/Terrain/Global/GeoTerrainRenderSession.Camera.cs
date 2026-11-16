@@ -1,0 +1,50 @@
+using System.Numerics;
+using XuanYu.Core.Geodesy;
+using XuanYu.Editor.Camera;
+
+namespace XuanYu.Editor.Preview.Terrain;
+
+public sealed partial class GeoTerrainRenderSession
+{
+    public void ResetCamera() => Camera =
+        new GlobalCamera(_anchor.Origin, 150_000d);
+
+    public void Navigate(float dx, float dy, float wheel, bool pan,
+        uint viewportHeight)
+    {
+        if (wheel != 0f)
+            Camera.Zoom(wheel);
+        else if (pan)
+        {
+            double meters = 2d * Camera.DistanceMeters * Math.Tan(Math.PI / 6d) /
+                Math.Max(1u, viewportHeight);
+            double yaw = Camera.YawRadians;
+            double east = (-dx * Math.Cos(yaw) + dy * Math.Sin(yaw)) * meters;
+            double north = (-dx * Math.Sin(yaw) - dy * Math.Cos(yaw)) * meters;
+            var origin = new EnuFrame(Camera.Target);
+            GeoCoordinate geo = Wgs84.ToGeo(origin.ToEcef(
+                new EnuPosition(east, north, 0d)));
+            Camera.Focus(new GeoCoordinate(geo.LatitudeDegrees,
+                geo.LongitudeDegrees, 0d));
+        }
+        else
+            Camera.Orbit(-dx * 0.006d, dy * 0.006d);
+    }
+
+    private Matrix4x4 ViewProjection(uint width, uint height)
+    {
+        EnuPosition eye = _anchor.ToEnu(Camera.PositionEcef);
+        EnuPosition target = _anchor.ToEnu(Camera.TargetEcef);
+        Matrix4x4 view = Matrix4x4.CreateLookAt(ToFloat(eye),
+            ToFloat(target), Vector3.UnitZ);
+        float near = (float)Math.Max(0.1d, Camera.DistanceMeters * 0.01d);
+        float far = (float)Math.Max(500_000d, Camera.DistanceMeters * 8d);
+        Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(
+            MathF.PI / 3f, (float)width / height, near, far);
+        projection.M22 = -projection.M22;
+        return view * projection;
+    }
+
+    private static Vector3 ToFloat(EnuPosition p) =>
+        new((float)p.East, (float)p.North, (float)p.Up);
+}

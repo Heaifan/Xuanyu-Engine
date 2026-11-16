@@ -8,7 +8,7 @@ public static partial class MapFile
     {
         TerrainHeightField field = map.HeightField;
         using var output = File.Create(path);
-        output.Write("XYEMAP03"u8);
+        output.Write(map.GeoReference is null ? "XYEMAP03"u8 : "XYEMAP04"u8);
         using var zip = new GZipStream(output, CompressionLevel.Fastest);
         using var writer = new BinaryWriter(zip);
         writer.Write(MapDocument.CurrentVersion);
@@ -22,9 +22,18 @@ public static partial class MapFile
         writer.Write(map.WaterMask is not null);
         if (map.WaterMask is { } water)
             writer.Write(water.Samples);
+        if (map.GeoReference is { } geo)
+        {
+            writer.Write(geo.SouthLatitudeDegrees);
+            writer.Write(geo.WestLongitudeDegrees);
+            writer.Write(geo.NorthLatitudeDegrees);
+            writer.Write(geo.EastLongitudeDegrees);
+            writer.Write((byte)geo.VerticalDatum);
+        }
     }
 
-    private static MapDocument LoadBinary(Stream source, bool hasMask)
+    private static MapDocument LoadBinary(Stream source, bool hasMask,
+        bool hasGeoReference)
     {
         using var zip = new GZipStream(source, CompressionMode.Decompress);
         using var reader = new BinaryReader(zip);
@@ -49,6 +58,11 @@ public static partial class MapFile
                 throw new InvalidDataException("SWB 掩膜数据不完整。");
             water = new TerrainWaterMask(width, height, values);
         }
-        return new MapDocument(name, field, water);
+        MapGeoReference? geo = null;
+        if (hasGeoReference)
+            geo = new MapGeoReference(reader.ReadDouble(), reader.ReadDouble(),
+                reader.ReadDouble(), reader.ReadDouble(),
+                (MapVerticalDatum)reader.ReadByte());
+        return new MapDocument(name, field, water, geo);
     }
 }

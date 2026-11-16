@@ -29,10 +29,12 @@ public static partial class MapFile
         using var input = File.OpenRead(path);
         Span<byte> signature = stackalloc byte[8];
         int read = input.Read(signature);
+        if (read == 8 && signature.SequenceEqual("XYEMAP04"u8))
+            return LoadBinary(input, true, true);
         if (read == 8 && signature.SequenceEqual("XYEMAP03"u8))
-            return LoadBinary(input, true);
+            return LoadBinary(input, true, false);
         if (read == 8 && signature.SequenceEqual("XYEMAP02"u8))
-            return LoadBinary(input, false);
+            return LoadBinary(input, false, false);
         input.Dispose();
         string json = File.ReadAllText(path);
         MapFileData data = JsonSerializer.Deserialize<MapFileData>(json)

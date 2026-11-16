@@ -1,4 +1,3 @@
-
 using System.Numerics;
 using Avalonia;
 using Avalonia.Controls;
@@ -32,6 +31,11 @@ public sealed partial class ViewportSharedHost
 
     private void ReportTerrainClick(Point point)
     {
+        if (_wb.IsGeoTerrainPreview)
+        {
+            _wb.Log.Write("G-02F 瓦片预览：地理拾取尚未接入，切回 E4 可继续拾取");
+            return;
+        }
         Vector3? hit = PickTerrainAtPointer(point);
         _wb.Log.Write(hit is { } position
             ? $"E4 地形定位：{FormatTerrainPoint(position)}"
@@ -40,9 +44,8 @@ public sealed partial class ViewportSharedHost
 
     private Vector3? PickTerrainAtPointer(Point point)
     {
-        if (_wb.CurrentId != PageId.Terrain)
+        if (_wb.CurrentId != PageId.Terrain || _wb.IsGeoTerrainPreview)
             return null;
-
         double scale = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
         var (width, height) = PixelSize;
         return _wb.PickTerrainPoint(new Vector2(

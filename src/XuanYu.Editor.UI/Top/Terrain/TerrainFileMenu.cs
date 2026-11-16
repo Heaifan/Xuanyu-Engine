@@ -1,4 +1,3 @@
-
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using XuanYu.Editor.Pages;
@@ -21,7 +20,10 @@ internal static class TerrainFileMenu
         var saveAs = new MenuItem { Header = "地图另存为…" };
         saveAs.Click += async (_, _) => await Save(owner, wb, true);
 
-        return [import, open, save, saveAs];
+        var geo = new MenuItem { Header = "G-02 瓦片预览（实验模式，切换）" };
+        geo.Click += (_, _) => wb.ToggleGeoTerrainPreview();
+
+        return [import, open, save, saveAs, geo];
     }
 
     public static Task Import(Window owner, Workbench wb) =>

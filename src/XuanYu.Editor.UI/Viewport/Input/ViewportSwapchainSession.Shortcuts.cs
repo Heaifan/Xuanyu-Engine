@@ -1,4 +1,3 @@
-
 using XuanYu.Editor.Camera;
 using XuanYu.Editor.Pages;
 using XuanYu.Editor.Preview;
@@ -12,6 +11,12 @@ internal sealed partial class ViewportSwapchainSession
         if (_workbench.IsSimulating ||
             _workbench.CurrentId is not (PageId.World or PageId.Terrain))
             return;
+        if (_workbench.CurrentId == PageId.Terrain &&
+            _workbench.IsGeoTerrainPreview)
+        {
+            _workbench.ResetGeoTerrainCamera();
+            return;
+        }
 
         PreviewScene scene = _workbench.CurrentId == PageId.Terrain
             ? _workbench.TerrainScene : _workbench.Scene;

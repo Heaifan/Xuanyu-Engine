@@ -1,4 +1,3 @@
-
 using XuanYu.Editor.Camera;
 using XuanYu.Editor.Pages;
 using XuanYu.Editor.Preview;
@@ -9,6 +8,12 @@ public sealed partial class ViewportSharedHost
 {
     private void OnCameraGesture(ViewportCameraGesture gesture)
     {
+        if (_wb.CurrentId == PageId.Terrain && _wb.IsGeoTerrainPreview)
+        {
+            _wb.NavigateGeoTerrain(gesture.DeltaX, gesture.DeltaY,
+                gesture.WheelSteps, gesture.Pan, PixelSize.Height);
+            return;
+        }
         if (_wb.CurrentId is not (PageId.World or PageId.Terrain) ||
             _wb.ActiveCamera is not { } camera)
             return;
@@ -27,6 +32,11 @@ public sealed partial class ViewportSharedHost
         if (_wb.IsSimulating ||
             _wb.CurrentId is not (PageId.World or PageId.Terrain))
             return;
+        if (_wb.CurrentId == PageId.Terrain && _wb.IsGeoTerrainPreview)
+        {
+            _wb.ResetGeoTerrainCamera();
+            return;
+        }
 
         PreviewScene scene = _wb.CurrentId == PageId.Terrain
             ? _wb.TerrainScene : _wb.Scene;

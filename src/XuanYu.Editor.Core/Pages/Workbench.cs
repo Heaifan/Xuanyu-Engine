@@ -24,8 +24,10 @@ public sealed partial class Workbench
         uint width, uint height)
     {
         if (CurrentId == PageId.Terrain)
-            return (_terrainPreview ??= CreateTerrainPreview())
-                .ViewportDraws(width, height);
+            return _geoPreview is not null
+                ? GeoTerrainDraws(width, height)
+                : (_terrainPreview ??= CreateTerrainPreview())
+                    .ViewportDraws(width, height);
 
         return _runtimeBridge is null
             ? Scene.ViewportDraws(width, height)

@@ -1,4 +1,3 @@
-
 using System;
 using System.IO;
 
@@ -13,6 +12,7 @@ internal sealed class MapFileData
     public float SpacingMeters { get; set; }
     public float? SpacingYMeters { get; set; }
     public float[] Heights { get; set; } = [];
+    public MapGeoReference? GeoReference { get; set; }
 
     public static MapFileData Capture(MapDocument map)
     {
@@ -30,7 +30,8 @@ internal sealed class MapFileData
             SamplesY = field.SamplesY,
             SpacingMeters = field.SpacingXMeters,
             SpacingYMeters = field.SpacingYMeters,
-            Heights = heights
+            Heights = heights,
+            GeoReference = map.GeoReference
         };
     }
 
@@ -59,6 +60,6 @@ internal sealed class MapFileData
         for (int y = 0; y < SamplesY; y++)
             for (int x = 0; x < SamplesX; x++)
                 field.SetHeight(x, y, Heights[y * SamplesX + x]);
-        return new MapDocument(Name, field);
+        return new MapDocument(Name, field, geoReference: GeoReference);
     }
 }

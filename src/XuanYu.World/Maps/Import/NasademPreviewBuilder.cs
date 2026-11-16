@@ -16,6 +16,9 @@ public static class NasademPreviewBuilder
             for (int x = 0; x < size; x++)
                 field.SetHeight(x, y, tile.HeightAt(x, y) ?? 0f);
 
-        return new MapDocument($"NASADEM_{tile.TileId}", field, water);
+        var reference = new MapGeoReference(tile.SouthLatitude,
+            tile.WestLongitude, tile.SouthLatitude + 1d,
+            tile.WestLongitude + 1d, MapVerticalDatum.Egm96Orthometric);
+        return new MapDocument($"NASADEM_{tile.TileId}", field, water, reference);
     }
 }

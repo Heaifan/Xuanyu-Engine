@@ -10,7 +10,8 @@ public static class TerrainTileMeshBuilder
     public static RenderMesh Create(TerrainHeightField source,
         int startX, int startY, int step,
         TerrainWaterMask? water = null,
-        (float Min, float Max)? heightRange = null)
+        (float Min, float Max)? heightRange = null,
+        TerrainShadingField? shading = null)
     {
         int cellsX = Math.Min(TileCells, source.SamplesX - 1 - startX);
         int cellsY = Math.Min(TileCells, source.SamplesY - 1 - startY);
@@ -20,6 +21,6 @@ public static class TerrainTileMeshBuilder
         return TerrainRenderMeshAdapter.Create(geometry,
             TerrainDisplayMode.Standard, water, startX: 0, startY: 0,
             spacingX: source.SpacingXMeters, spacingY: source.SpacingYMeters,
-            heightRange: heightRange);
+            heightRange: heightRange, shading: shading);
     }
 }

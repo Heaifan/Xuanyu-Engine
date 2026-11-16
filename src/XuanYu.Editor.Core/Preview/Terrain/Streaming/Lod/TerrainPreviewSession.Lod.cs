@@ -1,4 +1,5 @@
 using System.Numerics;
+using XuanYu.Editor.Camera;
 using XuanYu.Render;
 using XuanYu.World.Maps;
 
@@ -6,61 +7,74 @@ namespace XuanYu.Editor.Preview.Terrain;
 
 public sealed partial class TerrainPreviewSession
 {
-    private sealed record Planned(Chunk Chunk, int Step, float Distance);
+    private sealed record Planned(Chunk Chunk, int Needed, int Ahead,
+        float Distance, float FocusDistance);
     private sealed record Built(Chunk Chunk, int Step, RenderMesh Mesh);
     private Task<Built[]>? _buildJob;
-    private Vector3 _lastCameraPosition = new(float.NaN);
-    private Vector3 _lastCameraTarget = new(float.NaN);
-    private DateTime _lastMotion = DateTime.UtcNow;
-    private DateTime _jobStarted;
 
     private void UpdateChunks()
     {
         if (_chunks.Count == 0 || Scene.Camera is not { } camera) return;
-        DateTime now = DateTime.UtcNow;
-        if (camera.Position != _lastCameraPosition ||
-            camera.Target != _lastCameraTarget)
+        if (_buildJob is { IsCompleted: true } finished)
         {
-            _lastCameraPosition = camera.Position;
-            _lastCameraTarget = camera.Target;
-            _lastMotion = now;
-        }
-        if (_buildJob is not null)
-        {
-            if (!_buildJob.IsCompleted) return;
-            Built[] completed = _buildJob.GetAwaiter().GetResult();
+            foreach (Built item in finished.GetAwaiter().GetResult())
+                CacheMesh(item.Chunk, item.Step, item.Mesh);
             _buildJob = null;
-            if (_lastMotion <= _jobStarted)
-                foreach (Built item in completed)
-                {
-                    Scene.ReplaceMesh(item.Chunk.Id, item.Mesh);
-                    item.Chunk.Step = item.Step;
-                }
         }
-        if (now - _lastMotion < TimeSpan.FromMilliseconds(300)) return;
+
+        Planned[] plans = PlanChunks(camera);
+        foreach (Planned item in plans)
+        {
+            if (item.Chunk.Step == item.Needed) continue;
+            if (TakeCached(item.Chunk, item.Needed) is { } mesh)
+                ApplyMesh(item.Chunk, item.Needed, mesh);
+        }
+        if (_buildJob is not null) return;
+
+        Planned[] candidates = plans.Where(item =>
+                item.Chunk.Step != item.Needed &&
+                !HasCached(item.Chunk, item.Needed))
+            .OrderBy(item => item.Distance).Take(2).ToArray();
+        bool required = candidates.Length != 0;
+        if (!required && _cacheBytes < 64L * 1024 * 1024)
+            candidates = plans.OrderBy(item => item.FocusDistance)
+                .Take(6).Where(item =>
+                    item.Ahead < item.Chunk.Step &&
+                    !HasCached(item.Chunk, item.Ahead))
+                .Take(2).ToArray();
+        if (candidates.Length == 0) return;
+
+        TerrainHeightField field = Map.HeightField;
+        _buildJob = Task.Run(() => candidates.Select(item =>
+        {
+            int step = required ? item.Needed : item.Ahead;
+            return new Built(item.Chunk, step, TerrainTileMeshBuilder.Create(
+                field, item.Chunk.X, item.Chunk.Y, step,
+                Map.WaterMask, _heightRange, _shading));
+        }).ToArray());
+    }
+
+    private Planned[] PlanChunks(ViewportCamera camera)
+    {
         TerrainHeightField field = Map.HeightField;
         float tileSize = TerrainTileMeshBuilder.TileCells * MathF.Max(
             field.SpacingXMeters, field.SpacingYMeters) * DisplayScale;
-        Planned[] pending = _chunks.Select(chunk =>
+        Vector3 predicted = camera.Target +
+            (camera.Position - camera.Target) * 0.72f;
+        return _chunks.Select(chunk =>
         {
             var center = new Vector3(
-                (chunk.X + TerrainTileMeshBuilder.TileCells * 0.5f) *
-                    field.SpacingXMeters * DisplayScale,
-                (chunk.Y + TerrainTileMeshBuilder.TileCells * 0.5f) *
-                    field.SpacingYMeters * DisplayScale,
+                (chunk.X + 150f) * field.SpacingXMeters * DisplayScale,
+                (chunk.Y + 150f) * field.SpacingYMeters * DisplayScale,
                 field.GetHeight(Math.Min(chunk.X + 150, field.SamplesX - 1),
                     Math.Min(chunk.Y + 150, field.SamplesY - 1)) * DisplayScale);
             float distance = Vector3.Distance(camera.Position, center);
-            return new Planned(chunk,
-                SelectStep(chunk.Step, distance / tileSize), distance);
-        }).Where(item => item.Chunk.Step != item.Step)
-          .OrderBy(item => item.Distance).Take(2).ToArray();
-        if (pending.Length == 0) return;
-        _jobStarted = now;
-        _buildJob = Task.Run(() => pending.Select(item => new Built(
-            item.Chunk, item.Step, TerrainTileMeshBuilder.Create(
-                field, item.Chunk.X, item.Chunk.Y, item.Step,
-                Map.WaterMask, _heightRange))).ToArray());
+            int needed = Math.Min(20, SelectStep(chunk.Step, distance / tileSize));
+            int ahead = Math.Min(needed, Math.Min(20,
+                SelectStep(chunk.Step, Vector3.Distance(predicted, center) / tileSize)));
+            return new Planned(chunk, needed, ahead, distance,
+                Vector3.Distance(camera.Target, center));
+        }).ToArray();
     }
 
     private static int SelectStep(int current, float d)

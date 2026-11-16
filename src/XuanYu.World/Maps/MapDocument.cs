@@ -7,11 +7,13 @@ public sealed class MapDocument
     public string Name { get; }
     public TerrainHeightField HeightField { get; }
     public TerrainWaterMask? WaterMask { get; }
+    public MapGeoReference? GeoReference { get; }
     public float WidthMeters => HeightField.WidthMeters;
     public float LengthMeters => HeightField.LengthMeters;
 
     public MapDocument(string name, TerrainHeightField heightField,
-        TerrainWaterMask? waterMask = null)
+        TerrainWaterMask? waterMask = null,
+        MapGeoReference? geoReference = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("地图名称不能为空。", nameof(name));
@@ -23,6 +25,7 @@ public sealed class MapDocument
         Name = name.Trim();
         HeightField = heightField;
         WaterMask = waterMask;
+        GeoReference = geoReference;
     }
 
     public static MapDocument CreateDefault(string name) =>
