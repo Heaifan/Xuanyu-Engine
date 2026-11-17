@@ -1,10 +1,9 @@
-
 using System.Numerics;
 using XuanYu.Core.Geodesy;
 
 namespace XuanYu.Editor.Camera;
 
-public sealed class GlobalCamera
+public sealed partial class GlobalCamera
 {
     public const double MinDistanceMeters = 0.5d;
     public const double MaxDistanceMeters = 50_000_000d;
@@ -37,25 +36,38 @@ public sealed class GlobalCamera
         }
     }
 
-    public void Focus(GeoCoordinate target) => Target = target;
+    public void Focus(GeoCoordinate target)
+    {
+        GeoCoordinate previous = Target;
+        Target = target;
+        if (!IsAboveTerrain()) Target = previous;
+    }
 
     public void Orbit(double yawDeltaRadians, double pitchDeltaRadians)
     {
         if (!double.IsFinite(yawDeltaRadians) ||
             !double.IsFinite(pitchDeltaRadians))
             throw new ArgumentOutOfRangeException(nameof(yawDeltaRadians));
+        double yaw = YawRadians, pitch = PitchRadians;
         YawRadians = (YawRadians + yawDeltaRadians) % (2d * Math.PI);
         PitchRadians = Math.Clamp(PitchRadians + pitchDeltaRadians,
             0.01d, Math.PI / 2d - 0.01d);
+        if (!IsAboveTerrain())
+        {
+            YawRadians = yaw;
+            PitchRadians = pitch;
+        }
     }
 
     public void Zoom(double wheelSteps)
     {
         if (!double.IsFinite(wheelSteps))
             throw new ArgumentOutOfRangeException(nameof(wheelSteps));
+        double previous = DistanceMeters;
         DistanceMeters = Math.Clamp(
             DistanceMeters * Math.Pow(0.85d, wheelSteps),
             MinDistanceMeters, MaxDistanceMeters);
+        ConstrainZoom(previous);
     }
 
     public Vector3 ToCameraRelative(EcefPosition position)

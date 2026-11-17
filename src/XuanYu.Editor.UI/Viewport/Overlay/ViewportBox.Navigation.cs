@@ -11,7 +11,7 @@ public sealed partial class ViewportBox
         var layout = (Grid)Child!;
         var popup = (Popup)layout.Children[1];
         var panel = (ViewportNavigationPanel)popup.Child!;
-        panel.Bind(workbench);
+        panel.Bind(workbench, () => PixelSize);
         panel.PanModeChanged += enabled =>
         {
             _windows?.SetPanMode(enabled);

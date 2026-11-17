@@ -5,6 +5,8 @@ public sealed class GeoTerrainViewSession
     private readonly GeoTileSelector _selector;
     private readonly GeoTerrainTileSession _tiles;
 
+    public int PendingCount => _tiles.PendingCount;
+
     public GeoTerrainViewSession(GeoTileSelector selector,
         GeoTerrainTileSession tiles)
     {
@@ -26,5 +28,11 @@ public sealed class GeoTerrainViewSession
         GeoTerrainFrame.Tile[] results = selected.Select(id =>
             new GeoTerrainFrame.Tile(id, _tiles.Request(id))).ToArray();
         return new GeoTerrainFrame(results, built, _tiles.PendingCount);
+    }
+
+    public GeoHeightTile? RequestExact(GeoTileId id)
+    {
+        _tiles.Request(id);
+        return _tiles.TryGetExact(id);
     }
 }

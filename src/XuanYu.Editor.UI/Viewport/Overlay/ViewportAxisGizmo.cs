@@ -4,7 +4,6 @@ using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Media;
 using Avalonia.Threading;
-using XuanYu.Editor.Camera;
 
 namespace XuanYu.Editor.UI;
 
@@ -19,7 +18,9 @@ internal sealed partial class ViewportAxisGizmo : Canvas
     private readonly Line[] _lines = new Line[6];
     private readonly DispatcherTimer _timer = new()
         { Interval = TimeSpan.FromMilliseconds(32) };
-    private Func<ViewportCamera?>? _camera;
+    private Func<ViewportNavPose?>? _pose;
+    private Action<float, float>? _orbit;
+    private Action<Vector3>? _snap;
 
     public ViewportAxisGizmo()
     {
@@ -56,7 +57,7 @@ internal sealed partial class ViewportAxisGizmo : Canvas
                     VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
                 }
             };
-            ToolTip.SetTip(dot,
+            ToolTip.SetTip(dot, i == 5 ? "−Z 地下视角禁用" :
                 $"{(i % 2 == 0 ? "+" : "−")}{"XYZ"[i / 2]} 视图 · 拖动旋转");
             dot.PointerPressed += (_, e) => BeginOrbit(e, axis);
             _dots[i] = dot; Children.Add(dot);
@@ -71,9 +72,10 @@ internal sealed partial class ViewportAxisGizmo : Canvas
         DetachedFromVisualTree += (_, _) => _timer.Stop();
     }
 
-    public void Bind(Func<ViewportCamera?> camera)
+    public void Bind(Func<ViewportNavPose?> pose, Action<float, float> orbit,
+        Action<Vector3> snap)
     {
-        _camera = camera;
+        _pose = pose; _orbit = orbit; _snap = snap;
         Refresh();
     }
 

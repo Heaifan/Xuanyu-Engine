@@ -90,11 +90,7 @@ internal sealed partial class Win32ViewportMouseHook
             return 0;
         }
         if (message == 0x020A)
-        {
-            float steps = (short)((ulong)wParam >> 16) / 120f;
-            _camera?.Invoke(new ViewportCameraGesture(0f, 0f, steps, false));
-            return 0;
-        }
+            return HandleWheel(hwnd, wParam, x, y);
         return CallWindowProcW(_previous, hwnd, message, wParam, lParam);
     }
 }

@@ -86,7 +86,7 @@ internal sealed partial class X11ViewportMouseHook
                     _lastX = x; _lastY = y;
                 }
                 if (button is 4 or 5)
-                    _camera?.Invoke(new(0, 0, button == 4 ? 1f : -1f, false));
+                    _camera?.Invoke(new(0, 0, button == 4 ? 1f : -1f, false, x, y));
             }
             else if (type == 5 && button == 2) _dragging = false;
             else if (type == 6 && _dragging)

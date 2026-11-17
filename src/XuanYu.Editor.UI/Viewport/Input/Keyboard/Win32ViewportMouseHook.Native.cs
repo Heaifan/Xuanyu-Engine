@@ -15,6 +15,23 @@ internal sealed partial class Win32ViewportMouseHook
         return true;
     }
 
+    private nint HandleWheel(nint hwnd, nuint wParam, int x, int y)
+    {
+        var point = new MousePoint { X = x, Y = y };
+        ScreenToClient(hwnd, ref point);
+        float steps = (short)((ulong)wParam >> 16) / 120f;
+        _camera?.Invoke(new ViewportCameraGesture(0f, 0f, steps,
+            false, point.X, point.Y));
+        return 0;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MousePoint { public int X; public int Y; }
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool ScreenToClient(nint hwnd, ref MousePoint point);
+
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
     private static extern nint SetWindowLongPtrW(nint hwnd, int index, nint value);
 

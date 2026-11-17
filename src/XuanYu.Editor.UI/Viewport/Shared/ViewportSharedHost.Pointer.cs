@@ -1,4 +1,3 @@
-
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -70,7 +69,11 @@ public sealed partial class ViewportSharedHost
     {
         if (!ReferenceEquals(e.Source, this)) return;
         ToolTip.SetIsOpen(this, false);
-        OnCameraGesture(new ViewportCameraGesture(0, 0, (float)e.Delta.Y, false));
+        Point cursor = e.GetPosition(this);
+        double scale = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
+        OnCameraGesture(new ViewportCameraGesture(0, 0,
+            (float)e.Delta.Y, false,
+            (float)(cursor.X * scale), (float)(cursor.Y * scale)));
         e.Handled = true;
     }
 }

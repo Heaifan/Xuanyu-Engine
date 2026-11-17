@@ -1,4 +1,3 @@
-
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -31,5 +30,12 @@ public sealed class ViewportCompositionHost : Grid
         _navigation.PanModeChanged += enabled => PanModeChanged?.Invoke(enabled);
     }
 
-    public void BindNavigation(Workbench workbench) => _navigation.Bind(workbench);
+    public void BindNavigation(Workbench workbench) =>
+        _navigation.Bind(workbench, () =>
+        {
+            double scale = TopLevel.GetTopLevel(Scene)?.RenderScaling ?? 1d;
+            return (
+                (uint)Math.Max(0, Math.Round(Scene.Bounds.Width * scale)),
+                (uint)Math.Max(0, Math.Round(Scene.Bounds.Height * scale)));
+        });
 }

@@ -41,6 +41,9 @@ public sealed class GeoTerrainTileSession
         return null;
     }
 
+    public GeoHeightTile? TryGetExact(GeoTileId id) =>
+        _cache.TryGet(id, out GeoHeightTile? tile) ? tile : null;
+
     public int ProcessPending(int maxTiles)
     {
         if (maxTiles < 1)

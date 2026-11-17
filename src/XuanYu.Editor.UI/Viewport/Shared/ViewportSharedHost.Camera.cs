@@ -10,8 +10,15 @@ public sealed partial class ViewportSharedHost
     {
         if (_wb.CurrentId == PageId.Terrain && _wb.IsGeoTerrainPreview)
         {
-            _wb.NavigateGeoTerrain(gesture.DeltaX, gesture.DeltaY,
-                gesture.WheelSteps, gesture.Pan, PixelSize.Height);
+            if (gesture.WheelSteps != 0f)
+            {
+                var (width, height) = PixelSize;
+                _wb.ZoomGeoTerrainAt(gesture.WheelSteps,
+                    gesture.CursorX, gesture.CursorY, width, height);
+            }
+            else
+                _wb.NavigateGeoTerrain(gesture.DeltaX, gesture.DeltaY,
+                    0f, gesture.Pan, PixelSize.Height);
             return;
         }
         if (_wb.CurrentId is not (PageId.World or PageId.Terrain) ||
@@ -19,7 +26,15 @@ public sealed partial class ViewportSharedHost
             return;
 
         if (gesture.WheelSteps != 0)
-            camera.Zoom(gesture.WheelSteps);
+        {
+            if (_wb.CurrentId == PageId.Terrain)
+            {
+                var (width, height) = PixelSize;
+                _wb.ZoomTerrainAt(gesture.WheelSteps,
+                    gesture.CursorX, gesture.CursorY, width, height);
+            }
+            else camera.Zoom(gesture.WheelSteps);
+        }
         else if (gesture.Pan)
             camera.Pan(gesture.DeltaX, gesture.DeltaY,
                 Math.Max(1u, PixelSize.Height));

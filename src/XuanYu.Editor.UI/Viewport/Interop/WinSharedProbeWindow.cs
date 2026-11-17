@@ -39,7 +39,13 @@ public sealed partial class WinSharedProbeWindow : Window
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
             Margin = new Thickness(0, 12, 12, 0)
         };
-        navigation.Bind(workbench);
+        navigation.Bind(workbench, () =>
+        {
+            double scale = TopLevel.GetTopLevel(_scene)?.RenderScaling ?? 1d;
+            return (
+                (uint)Math.Max(0, Math.Round(_scene.Bounds.Width * scale)),
+                (uint)Math.Max(0, Math.Round(_scene.Bounds.Height * scale)));
+        });
         root.Children.Add(navigation);
         root.Children.Add(new Border
         {

@@ -1,4 +1,3 @@
-
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -16,6 +15,7 @@ internal sealed partial class ViewportNavigationPanel : StackPanel
     private readonly Button _panButton =
         MakeButton("pan", "进入平移模式");
     private Workbench? _workbench;
+    private Func<(uint Width, uint Height)>? _viewportSize;
 
     public ViewportNavigationPanel()
     {
@@ -24,10 +24,10 @@ internal sealed partial class ViewportNavigationPanel : StackPanel
         Children.Add(_axis);
 
         var zoom = MakeButton("zoom", "点击放大；滚轮双向缩放");
-        zoom.Click += (_, _) => Camera()?.Zoom(1);
+        zoom.Click += (_, _) => ZoomActive(1f);
         zoom.PointerWheelChanged += (_, e) =>
         {
-            Camera()?.Zoom((float)e.Delta.Y);
+            ZoomActive((float)e.Delta.Y);
             e.Handled = true;
         };
         Children.Add(zoom);
@@ -43,9 +43,12 @@ internal sealed partial class ViewportNavigationPanel : StackPanel
 
         _projection.Click += (_, _) =>
         {
-            if (Camera() is not { } camera)
+            if (GeoCamera() is not null)
+            {
+                ToolTip.SetTip(_projection, "G-03 正交投影尚未接入");
                 return;
-
+            }
+            if (Camera() is not { } camera) return;
             camera.ToggleProjection();
             ToolTip.SetTip(_projection, camera.IsOrthographic
                 ? "当前正交投影；点击切换透视"
@@ -54,16 +57,19 @@ internal sealed partial class ViewportNavigationPanel : StackPanel
         Children.Add(_projection);
     }
 
-    public void Bind(Workbench workbench)
+    public void Bind(Workbench workbench,
+        Func<(uint Width, uint Height)> viewportSize)
     {
         _workbench = workbench;
-        _axis.Bind(Camera);
+        _viewportSize = viewportSize;
+        _axis.Bind(Pose, OrbitActive, SnapActive);
     }
 
     private ViewportCamera? Camera() => _workbench switch
     {
         { CurrentId: PageId.World } wb => wb.Scene.Camera,
-        { CurrentId: PageId.Terrain } wb => wb.TerrainScene.Camera,
+        { CurrentId: PageId.Terrain, IsGeoTerrainPreview: false } wb =>
+            wb.TerrainScene.Camera,
         _ => null
     };
 
@@ -80,8 +86,7 @@ internal sealed partial class ViewportNavigationPanel : StackPanel
             VerticalContentAlignment = VerticalAlignment.Center,
             Padding = new Thickness(0),
             CornerRadius = new CornerRadius(6),
-            Background = new SolidColorBrush(
-                Color.Parse("#EFF3F7"), 0.88),
+            Background = new SolidColorBrush(Color.Parse("#EFF3F7"), 0.88),
             BorderThickness = new Thickness(0)
         };
         ToolTip.SetTip(button, tip);

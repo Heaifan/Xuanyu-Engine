@@ -10,7 +10,7 @@ internal sealed partial class ViewportNavigationPanel
 
     private void TogglePanMode()
     {
-        if (!_panMode && Camera() is null) return;
+        if (!_panMode && Camera() is null && GeoCamera() is null) return;
         _panMode = !_panMode;
         _panButton.Background = _panMode
             ? new SolidColorBrush(Color.Parse("#C9DEF3"))

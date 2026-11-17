@@ -56,7 +56,7 @@ public sealed partial class ViewportSharedHost : Grid
             VerticalAlignment = VerticalAlignment.Top,
             Margin = new Thickness(0, 12, 12, 0)
         };
-        navigation.Bind(workbench);
+        navigation.Bind(workbench, () => PixelSize);
         navigation.PanModeChanged += enabled => _panMode = enabled;
         Children.Add(navigation);
         _scene.GpuInteropReady += interop =>

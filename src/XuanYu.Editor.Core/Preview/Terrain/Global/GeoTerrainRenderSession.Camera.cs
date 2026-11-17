@@ -6,8 +6,11 @@ namespace XuanYu.Editor.Preview.Terrain;
 
 public sealed partial class GeoTerrainRenderSession
 {
-    public void ResetCamera() => Camera =
-        new GlobalCamera(_anchor.Origin, 150_000d);
+    public void ResetCamera()
+    {
+        Camera = new GlobalCamera(_anchor.Origin, 150_000d);
+        Camera.SetTerrainCollision(SampleGroundHeight);
+    }
 
     public void Navigate(float dx, float dy, float wheel, bool pan,
         uint viewportHeight)
@@ -29,6 +32,30 @@ public sealed partial class GeoTerrainRenderSession
         }
         else
             Camera.Orbit(-dx * 0.006d, dy * 0.006d);
+    }
+
+    public void ZoomAtCursor(float wheel, Vector2 pixel, uint width, uint height)
+    {
+        if (width < 2 || height < 2) return;
+        bool found = TryPickZoomAnchor(pixel, width, height, out Vector3 anchor);
+        double before = Camera.DistanceMeters;
+        Camera.Zoom(wheel);
+        if (!found || Camera.DistanceMeters == before) return;
+
+        for (int i = 0; i < 2; i++)
+        {
+            if (!ViewportScreenRay.TryCreate(ViewProjection(width, height),
+                pixel, width, height, out Vector3 start, out Vector3 ray) ||
+                MathF.Abs(ray.Z) < 1e-4f) return;
+            float distance = (anchor.Z - start.Z) / ray.Z;
+            if (!float.IsFinite(distance) || distance <= 0f) return;
+            Vector3 atHeight = start + ray * distance;
+            var origin = new EnuFrame(Camera.Target);
+            GeoCoordinate position = Wgs84.ToGeo(origin.ToEcef(new EnuPosition(
+                anchor.X - atHeight.X, anchor.Y - atHeight.Y, 0d)));
+            Camera.FocusForCursorZoom(new GeoCoordinate(position.LatitudeDegrees,
+                position.LongitudeDegrees, 0d));
+        }
     }
 
     private Matrix4x4 ViewProjection(uint width, uint height)
