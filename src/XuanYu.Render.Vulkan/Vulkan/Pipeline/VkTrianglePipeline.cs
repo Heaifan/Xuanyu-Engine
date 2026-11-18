@@ -10,6 +10,8 @@ internal sealed unsafe class VkTrianglePipeline : IDisposable
     public Pipeline Handle { get; private set; }
     public Pipeline Mask { get; private set; }
     public Pipeline Outline { get; private set; }
+    public Pipeline OverlayMask { get; private set; }
+    public Pipeline OverlayOutline { get; private set; }
 
     public VkTrianglePipeline(Vk vk, Device device, RenderPass pass, Extent2D extent)
     {
@@ -26,8 +28,7 @@ internal sealed unsafe class VkTrianglePipeline : IDisposable
             PushConstantRangeCount = 1,
             PPushConstantRanges = &range
         };
-        Result result = vk.CreatePipelineLayout(
-            device, &info, null, out var layout);
+        Result result = vk.CreatePipelineLayout(device, &info, null, out var layout);
         if (result != Result.Success)
             throw new InvalidOperationException($"创建 PipelineLayout 失败：{result}");
         Layout = layout;
@@ -37,6 +38,8 @@ internal sealed unsafe class VkTrianglePipeline : IDisposable
             Handle = Create(shaders.Vertex, shaders.Fragment, VkSelectionPass.Base);
             Mask = Create(shaders.Vertex, shaders.Fragment, VkSelectionPass.Mask);
             Outline = Create(shaders.Vertex, shaders.Fragment, VkSelectionPass.Outline);
+            OverlayMask = Create(shaders.Vertex, shaders.Fragment, VkSelectionPass.OverlayMask);
+            OverlayOutline = Create(shaders.Vertex, shaders.Fragment, VkSelectionPass.OverlayOutline);
         }
         catch { Dispose(); throw; }
 
@@ -47,14 +50,14 @@ internal sealed unsafe class VkTrianglePipeline : IDisposable
 
     public void Dispose()
     {
-        if (Outline.Handle != 0)
-            _vk.DestroyPipeline(_device, Outline, null);
-        if (Mask.Handle != 0)
-            _vk.DestroyPipeline(_device, Mask, null);
-        if (Handle.Handle != 0)
-            _vk.DestroyPipeline(_device, Handle, null);
-        if (Layout.Handle != 0)
-            _vk.DestroyPipelineLayout(_device, Layout, null);
+        if (OverlayOutline.Handle != 0) _vk.DestroyPipeline(_device, OverlayOutline, null);
+        if (OverlayMask.Handle != 0) _vk.DestroyPipeline(_device, OverlayMask, null);
+        if (Outline.Handle != 0) _vk.DestroyPipeline(_device, Outline, null);
+        if (Mask.Handle != 0) _vk.DestroyPipeline(_device, Mask, null);
+        if (Handle.Handle != 0) _vk.DestroyPipeline(_device, Handle, null);
+        if (Layout.Handle != 0) _vk.DestroyPipelineLayout(_device, Layout, null);
+        OverlayOutline = default;
+        OverlayMask = default;
         Outline = default;
         Mask = default;
         Handle = default;

@@ -55,7 +55,19 @@ public sealed partial class GlobalCamera
 
     public void FocusForCursorZoom(GeoCoordinate target)
     {
+        EcefPosition previousEye = PositionEcef;
+        EcefPosition previousTarget = TargetEcef;
+        EcefPosition nextTarget = Wgs84.ToEcef(target);
+        // 目标点改变时保留地心坐标中的观察方向，避免 ENU 坐标轴变化引起画面旋转。
+        var shiftedEye = new EcefPosition(
+            nextTarget.X + previousEye.X - previousTarget.X,
+            nextTarget.Y + previousEye.Y - previousTarget.Y,
+            nextTarget.Z + previousEye.Z - previousTarget.Z);
+        EnuPosition local = new EnuFrame(target).ToEnu(shiftedEye);
         Target = target;
+        YawRadians = Math.Atan2(local.East, -local.North);
+        PitchRadians = Math.Atan2(local.Up,
+            Math.Sqrt(local.East * local.East + local.North * local.North));
         RestoreTerrainClearance();
     }
 

@@ -8,6 +8,11 @@ internal sealed partial class RightTerrainInspector
     public void Refresh()
     {
         _rows.Children.Clear();
+        if (_wb.TerrainMultiSourceLabel is { } pair)
+        {
+            RefreshMulti(pair);
+            return;
+        }
         MapDocument map = _wb.TerrainMap;
         TerrainHeightField field = map.HeightField;
         NasademTile? tile = _wb.TerrainSourceTile;
@@ -53,4 +58,5 @@ internal sealed partial class RightTerrainInspector
         AddPair("地理范围",
             $"{geo.WidthMeters / 1000:0.0} × {geo.LengthMeters / 1000:0.0} km");
     }
+
 }

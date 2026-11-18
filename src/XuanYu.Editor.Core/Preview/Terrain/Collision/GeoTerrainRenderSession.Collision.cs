@@ -7,8 +7,9 @@ public sealed partial class GeoTerrainRenderSession
 {
     private double? SampleGroundHeight(GeoCoordinate position)
     {
-        double? height = _source.Sample(
-            position.LatitudeDegrees, position.LongitudeDegrees);
+        // 原始 HGT 为有符号 16 位米值；超过其上界与安全间距时无需解码。
+        double? height = StreamingEnabled && position.HeightMeters > short.MaxValue + 3d
+            ? null : _source.Sample(position.LatitudeDegrees, position.LongitudeDegrees);
         if (_visibleMeshes.Count == 0) return height ?? 0d;
 
         EnuPosition eye = _anchor.ToEnu(Wgs84.ToEcef(position));

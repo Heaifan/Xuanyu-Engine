@@ -12,6 +12,13 @@ public static partial class GeoTerrainNativeMeshBuilder
         GeoTileBounds coverage, GeoTerrainEdgeNeighbors neighbors)
     {
         ArgumentNullException.ThrowIfNull(tile);
+        return Build(tile.TileId, id, anchor, source, coverage, neighbors);
+    }
+
+    internal static RenderMesh? Build(string sourceId, GeoTileId id,
+        EnuFrame anchor, NasademElevationSource source,
+        GeoTileBounds coverage, GeoTerrainEdgeNeighbors neighbors)
+    {
         ArgumentNullException.ThrowIfNull(anchor);
         ArgumentNullException.ThrowIfNull(source);
         GeoTileBounds area = GeographicTileScheme.Bounds(id);
@@ -22,32 +29,28 @@ public static partial class GeoTerrainNativeMeshBuilder
         if (south >= north || west >= east) return null;
         var bounds = new GeoTileBounds(south, west, north, east);
         NativeEdgeProfile[] edges = EdgeProfiles(bounds, neighbors, source, anchor, coverage);
-        double[] xs = Axis(west, east, tile.WestLongitude,
-            ExtraLongitudes(bounds, edges));
-        double[] ys = Axis(south, north, tile.SouthLatitude,
-            ExtraLatitudes(bounds, edges));
+        double[] xs = Axis(west, east, ExtraLongitudes(bounds, edges));
+        double[] ys = Axis(south, north, ExtraLatitudes(bounds, edges));
         int width = xs.Length, height = ys.Length;
         var points = new Vector3[width * height];
         var colors = new Vector3[width * height];
         var valid = new bool[width * height];
-        var blocks = new Dictionary<(int, int), NasademSampleBlock>();
         for (int y = 0; y < height; y++)
             for (int x = 0; x < width; x++)
             {
-                double? h = ReadHeight(tile, source, xs[x], ys[y], blocks);
+                double? h = source.Sample(ys[y], xs[x]);
                 if (h is not { } elevation) continue;
                 EnuPosition p = anchor.ToEnu(Wgs84.ToEcef(
                     new GeoCoordinate(ys[y], xs[x], 0d)));
                 Vector3 position = new((float)p.East, (float)p.North,
                     (float)(p.Up + elevation));
                 int index = y * width + x;
-                Vector3? border = BorderPosition(position, bounds, edges,
+                var vertex = GeoTerrainEdgeVertex.FromHeight(position, elevation);
+                GeoTerrainEdgeVertex? border = BorderVertex(vertex, bounds, edges,
                     xs[x], ys[y], x, y, width, height);
-                if (border is not { } finalPosition) continue;
-                points[index] = finalPosition;
-                float t = Math.Clamp((float)((elevation + 100d) / 3000d), 0f, 1f);
-                colors[index] = Vector3.Lerp(new(0.21f, 0.35f, 0.24f),
-                    new(0.66f, 0.64f, 0.58f), t);
+                if (border is not { } finalVertex) continue;
+                points[index] = finalVertex.Position;
+                colors[index] = finalVertex.Color;
                 valid[index] = true;
             }
         var vertices = new List<float>();
@@ -60,7 +63,7 @@ public static partial class GeoTerrainNativeMeshBuilder
                 Triangle(vertices, points, colors, valid, a, d, c);
             }
         return vertices.Count == 0 ? null :
-            new RenderMesh($"terrain/g04/{tile.TileId}/{id}/{neighbors}",
+            new RenderMesh($"terrain/g04/{sourceId}/{id}/{neighbors}",
                 vertices.ToArray());
     }
 }

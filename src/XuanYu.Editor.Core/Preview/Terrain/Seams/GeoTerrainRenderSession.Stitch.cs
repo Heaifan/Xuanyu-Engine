@@ -5,13 +5,18 @@ namespace XuanYu.Editor.Preview.Terrain;
 
 public sealed partial class GeoTerrainRenderSession
 {
-    private readonly Dictionary<(GeoTileId, GeoTerrainEdgeNeighbors), RenderMesh>
-        _stitchedMeshes = [];
+    private readonly GeoTerrainFrameCache<(GeoTileId, GeoTerrainEdgeNeighbors), RenderMesh>
+        _stitchedMeshes = new();
     private bool _firstStitchLogged;
 
     private void StitchVisibleTiles()
     {
         GeoTileId[] visible = _visibleMeshes.Keys.ToArray();
+        if (_footprint is not null)
+        {
+            StitchFootprint(visible);
+            return;
+        }
         foreach (GeoTileId id in visible)
         {
             GeoTerrainEdgeNeighbors neighbors = FindNeighbors(id, visible);
@@ -23,9 +28,7 @@ public sealed partial class GeoTerrainRenderSession
             var key = (id, neighbors);
             if (!_stitchedMeshes.TryGetValue(key, out RenderMesh? mesh))
             {
-                GeoHeightTile tile = GeoHeightTileBuilder.Build(_source, id, 16);
-                mesh = GeoTerrainMeshBuilder.Build(tile, _anchor,
-                    _source, _coverage, neighbors);
+                mesh = BuildRectangularMesh(id, neighbors, false);
                 if (mesh is null) continue;
                 _stitchedMeshes.Add(key, mesh);
                 if (!_firstStitchLogged)
@@ -73,5 +76,4 @@ public sealed partial class GeoTerrainRenderSession
             Math.Min(area.NorthLatitudeDegrees, _coverage.NorthLatitudeDegrees),
             Math.Min(area.EastLongitudeDegrees, _coverage.EastLongitudeDegrees));
     }
-
 }

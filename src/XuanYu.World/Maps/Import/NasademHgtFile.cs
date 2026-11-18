@@ -1,14 +1,21 @@
-
 using System.Buffers.Binary;
 using System.IO.Compression;
 using System.Linq;
-using System.Text.RegularExpressions;
 
 namespace XuanYu.World.Maps;
 
-public static class NasademHgtFile
+public static partial class NasademHgtFile
 {
-    public static NasademTile Load(string path)
+    public static NasademTile Load(string path) =>
+        string.Equals(Path.GetExtension(path), ".xyt", StringComparison.OrdinalIgnoreCase)
+            ? XYTerrainReader.ReadTile(path) : Read<NasademTile>(path, Decode);
+
+    public static NasademHgtInfo ReadInfo(string path) =>
+        string.Equals(Path.GetExtension(path), ".xyt", StringComparison.OrdinalIgnoreCase)
+            ? XYTerrainReader.ReadInfo(path)
+            : Read(path, static (_, length, name) => ParseInfo(length, name));
+
+    private static T Read<T>(string path, Func<Stream, long, string, T> read)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         string extension = Path.GetExtension(path);
@@ -16,7 +23,7 @@ public static class NasademHgtFile
         if (extension.Equals(".hgt", StringComparison.OrdinalIgnoreCase))
         {
             using var stream = File.OpenRead(path);
-            return Decode(stream, stream.Length,
+            return read(stream, stream.Length,
                 Path.GetFileNameWithoutExtension(path));
         }
 
@@ -26,13 +33,12 @@ public static class NasademHgtFile
             var entries = archive.Entries.Where(entry =>
                 Path.GetExtension(entry.Name).Equals(
                     ".hgt", StringComparison.OrdinalIgnoreCase)).ToArray();
-
             if (entries.Length != 1)
                 throw new InvalidDataException(
                     "NASADEM ZIP 中必须包含且仅包含一个 HGT 文件。");
 
             using var stream = entries[0].Open();
-            return Decode(stream, entries[0].Length,
+            return read(stream, entries[0].Length,
                 Path.GetFileNameWithoutExtension(entries[0].Name));
         }
 
@@ -41,30 +47,7 @@ public static class NasademHgtFile
 
     private static NasademTile Decode(Stream stream, long length, string name)
     {
-        var match = Regex.Match(name,
-            @"([NS])(\d{2})([EW])(\d{3})$",
-            RegexOptions.IgnoreCase);
-
-        if (!match.Success)
-            throw new InvalidDataException("HGT 文件名缺少有效的经纬度瓦片编号。");
-
-        int latitude = int.Parse(match.Groups[2].Value);
-        int longitude = int.Parse(match.Groups[4].Value);
-        if (latitude > 90 || longitude > 180 ||
-            (latitude == 90 && match.Groups[1].Value.Equals(
-                "N", StringComparison.OrdinalIgnoreCase)) ||
-            (longitude == 180 && match.Groups[3].Value.Equals(
-                "E", StringComparison.OrdinalIgnoreCase)))
-            throw new InvalidDataException("HGT 瓦片经纬度超出范围。");
-
-        if (match.Groups[1].Value.Equals("S", StringComparison.OrdinalIgnoreCase))
-            latitude = -latitude;
-        if (match.Groups[3].Value.Equals("W", StringComparison.OrdinalIgnoreCase))
-            longitude = -longitude;
-
-        if (length != NasademTile.ByteLength)
-            throw new InvalidDataException("HGT 数据大小不是 3601×3601×2 字节。");
-
+        NasademHgtInfo info = ParseInfo(length, name);
         byte[] raw = new byte[(int)NasademTile.ByteLength];
         stream.ReadExactly(raw);
 
@@ -90,8 +73,7 @@ public static class NasademHgtFile
         if (missing == samples.Length)
             throw new InvalidDataException("HGT 不包含有效高程数据。");
 
-        string id = match.Value.ToUpperInvariant();
-        return new NasademTile(id, latitude, longitude,
-            samples, missing, min, max);
+        return new NasademTile(info.TileId, info.SouthLatitude,
+            info.WestLongitude, samples, missing, min, max);
     }
 }

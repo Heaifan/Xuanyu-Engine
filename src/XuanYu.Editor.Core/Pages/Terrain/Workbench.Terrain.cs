@@ -13,8 +13,8 @@ public sealed partial class Workbench
     public string? TerrainSourcePath { get; private set; }
     public string? TerrainMapPath { get; private set; }
     public bool TerrainSelected { get; private set; } = true;
-    public string TerrainNodeText => TerrainSourcePath is { } path
-        ? Path.GetFileName(path) : "地形高度场";
+    public string TerrainNodeText => TerrainMultiSourceLabel ??
+        (TerrainSourcePath is { } path ? Path.GetFileName(path) : "地形高度场");
 
     public PreviewScene TerrainScene =>
         (_terrainPreview ??= CreateTerrainPreview()).Scene;
@@ -51,6 +51,8 @@ public sealed partial class Workbench
 
     public void SaveTerrainMap(string path)
     {
+        if (TerrainMultiSourceLabel is not null)
+            throw new InvalidOperationException("多 HGT 为多数据源预览，暂不支持保存为单张 XYMAP。");
         MapFile.Save(TerrainMap, path);
         TerrainMapPath = path;
         Log.Write($"地图已保存：{path}；分辨率 {TerrainMap.HeightField.SamplesX}×{TerrainMap.HeightField.SamplesY}");
@@ -59,14 +61,16 @@ public sealed partial class Workbench
 
     public void SelectTerrain(bool selected)
     {
-        if (TerrainSelected == selected) return;
+        if (TerrainSelected == selected && SelectedTerrainDem is null) return;
+        ClearTerrainDemSelection();
         TerrainSelected = selected;
         TerrainScene.Select(null);
         Changed?.Invoke();
     }
 
     private void SetTerrain(MapDocument map, NasademTile? tile,
-        string sourcePath, string? mapPath)
+        string sourcePath, string? mapPath, GeoTerrainRenderSession? geo = null,
+        IReadOnlyList<TerrainDemEntry>? entries = null)
     {
         _terrainPreview = new TerrainPreviewSession(map);
         BindTerrainScene(_terrainPreview.Scene);
@@ -74,7 +78,10 @@ public sealed partial class Workbench
         TerrainSourcePath = sourcePath;
         TerrainMapPath = mapPath;
         TerrainSelected = true;
-        BindImportedTerrain(tile);
+        TerrainDemEntries = entries ?? [];
+        SelectedTerrainDem = null;
+        SelectedTerrainDemSummary = null;
+        BindImportedTerrain(tile, geo);
         if (CurrentId != PageId.Terrain) SwitchTo(PageId.Terrain);
         Changed?.Invoke();
     }

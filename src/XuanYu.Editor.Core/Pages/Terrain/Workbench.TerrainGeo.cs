@@ -11,14 +11,18 @@ public sealed partial class Workbench
     private GeoTerrainRenderSession? _geoPreview;
     public bool IsGeoTerrainPreview => _geoPreview is not null;
     public GlobalCamera? GeoTerrainCamera => _geoPreview?.Camera;
+    public string? TerrainMultiSourceLabel => _geoPreview is { IsMultiSource: true } geo
+        ? geo.SourceLabel : null;
 
-    private void BindImportedTerrain(NasademTile? tile)
+    public int TerrainSourceCount => _geoPreview?.SourceCount ?? 0;
+
+    private void BindImportedTerrain(NasademTile? tile, GeoTerrainRenderSession? geo)
     {
-        _geoPreview = tile is null ? null : new GeoTerrainRenderSession(tile);
+        _geoPreview = geo ?? (tile is null ? null : new GeoTerrainRenderSession(tile));
         if (_geoPreview is not null)
         {
             _geoPreview.Notice += Log.Write;
-            Log.Write($"G-03 地形正式视口已接入：{tile!.TileId}");
+            Log.Write($"G-03 地形正式视口已接入：{_geoPreview.SourceLabel}");
         }
     }
 

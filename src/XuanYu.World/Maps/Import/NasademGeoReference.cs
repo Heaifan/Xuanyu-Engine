@@ -1,4 +1,3 @@
-
 namespace XuanYu.World.Maps;
 
 public sealed class NasademGeoReference
@@ -17,10 +16,13 @@ public sealed class NasademGeoReference
         LengthMeters / (NasademTile.Side - 1);
 
     public NasademGeoReference(NasademTile tile)
+        : this(new NasademHgtInfo(tile.TileId, tile.SouthLatitude, tile.WestLongitude)) { }
+
+    public NasademGeoReference(NasademHgtInfo info)
     {
-        TileId = tile.TileId;
-        SouthLatitude = tile.SouthLatitude;
-        WestLongitude = tile.WestLongitude;
+        TileId = info.TileId;
+        SouthLatitude = info.SouthLatitude;
+        WestLongitude = info.WestLongitude;
 
         double latitude = (SouthLatitude + 0.5) * Math.PI / 180.0;
         double sine = Math.Sin(latitude);
@@ -28,8 +30,7 @@ public sealed class NasademGeoReference
             1.0 - EccentricitySquared * sine * sine);
         double radians = Math.PI / 180.0;
 
-        WidthMeters = Radius / factor *
-            Math.Cos(latitude) * radians;
+        WidthMeters = Radius / factor * Math.Cos(latitude) * radians;
         LengthMeters = Radius * (1.0 - EccentricitySquared) /
             (factor * factor * factor) * radians;
     }

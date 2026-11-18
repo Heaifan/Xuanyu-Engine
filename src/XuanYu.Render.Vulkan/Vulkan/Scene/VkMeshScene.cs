@@ -17,6 +17,8 @@ internal sealed class VkMeshScene : IDisposable
     public Pipeline Pipeline => _pipeline.Handle;
     public Pipeline SelectionMaskPipeline => _pipeline.Mask;
     public Pipeline SelectionOutlinePipeline => _pipeline.Outline;
+    public Pipeline OverlayMaskPipeline => _pipeline.OverlayMask;
+    public Pipeline OverlayOutlinePipeline => _pipeline.OverlayOutline;
     public PipelineLayout Layout => _pipeline.Layout;
     public Framebuffer GetFramebuffer(uint index) => _targets[index];
     public VkBuffer BufferFor(RenderMesh mesh) => _buffers[mesh].Handle;

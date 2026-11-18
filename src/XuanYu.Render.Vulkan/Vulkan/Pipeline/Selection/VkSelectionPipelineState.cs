@@ -2,7 +2,7 @@ using Silk.NET.Vulkan;
 
 namespace XuanYu.Render.Vulkan;
 
-internal enum VkSelectionPass { Base, Mask, Outline }
+internal enum VkSelectionPass { Base, Mask, Outline, OverlayMask, OverlayOutline }
 
 internal static class VkSelectionPipelineState
 {
@@ -11,25 +11,26 @@ internal static class VkSelectionPipelineState
         ref PipelineColorBlendAttachmentState color)
     {
         if (pass == VkSelectionPass.Base) return;
+        bool mask = pass is VkSelectionPass.Mask or VkSelectionPass.OverlayMask;
+        bool overlay = pass is VkSelectionPass.OverlayMask or VkSelectionPass.OverlayOutline;
+        uint bit = overlay ? 2u : 1u;
         depth.StencilTestEnable = true;
+        depth.DepthTestEnable = !overlay;
         depth.DepthWriteEnable = false;
-        depth.DepthCompareOp = pass == VkSelectionPass.Mask
-            ? CompareOp.Equal : CompareOp.LessOrEqual;
+        depth.DepthCompareOp = mask ? CompareOp.Equal : CompareOp.LessOrEqual;
+        // 普通物体与地图叠加使用不同 stencil 位，互不覆盖。
         var stencil = new StencilOpState
         {
-            CompareOp = pass == VkSelectionPass.Mask
-                ? CompareOp.Always : CompareOp.NotEqual,
+            CompareOp = mask ? CompareOp.Always : CompareOp.NotEqual,
             FailOp = StencilOp.Keep,
-            PassOp = pass == VkSelectionPass.Mask
-                ? StencilOp.Replace : StencilOp.Keep,
+            PassOp = mask ? StencilOp.Replace : StencilOp.Keep,
             DepthFailOp = StencilOp.Keep,
-            CompareMask = 0xFF,
-            WriteMask = pass == VkSelectionPass.Mask ? 0xFFu : 0u,
-            Reference = 1
+            CompareMask = bit,
+            WriteMask = mask ? bit : 0u,
+            Reference = bit
         };
         depth.Front = stencil;
         depth.Back = stencil;
-        if (pass == VkSelectionPass.Mask)
-            color.ColorWriteMask = 0;
+        if (mask) color.ColorWriteMask = 0;
     }
 }

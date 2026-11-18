@@ -1,3 +1,5 @@
+using XuanYu.Core.Geodesy;
+
 namespace XuanYu.World.Maps;
 
 public sealed class GeoTileSelector
@@ -24,22 +26,26 @@ public sealed class GeoTileSelector
             throw new ArgumentOutOfRangeException(nameof(heightMarginMeters));
         _rootErrorMeters = rootErrorMeters;
         _maxScreenErrorPixels = maxScreenErrorPixels;
-        _heightMarginMeters = heightMarginMeters;
         _maxLevel = maxLevel;
         _maxTiles = maxTiles;
+        _heightMarginMeters = heightMarginMeters;
     }
 
     public IReadOnlyList<GeoTileId> Select(GeoTileView view,
-        GeoTileBounds? coverage = null)
+        GeoTileBounds? coverage = null, Func<GeoTileId, bool>? hasCoverage = null,
+        GeoCoordinate? focus = null)
     {
-        var pending = new Queue<GeoTileId>();
+        var pending = new PriorityQueue<GeoTileId, (int Focus, int Order)>();
+        GeoTileId? focal = focus is { } point ? GeographicTileScheme.Find(point, _maxLevel) : null;
+        int order = 0;
         var selected = new List<GeoTileId>();
         var expanded = new HashSet<GeoTileId>();
         for (int x = 0; x < 2; x++)
         {
             var root = new GeoTileId(0, x, 0);
-            if (IsVisible(root, view) && InCoverage(root, coverage))
-                pending.Enqueue(root);
+            if (IsVisible(root, view) && InCoverage(root, coverage) &&
+                (hasCoverage is null || hasCoverage(root)))
+                Enqueue(root);
         }
 
         while (pending.Count > 0)
@@ -52,13 +58,13 @@ public sealed class GeoTileSelector
                 view, sphere, id.Level, _rootErrorMeters) > threshold)
             {
                 GeoTileId[] children = GeographicTileScheme.Children(id)
-                    .Where(child => IsVisible(child, view) &&
-                        InCoverage(child, coverage)).ToArray();
+                    .Where(child => IsVisible(child, view) && InCoverage(child, coverage) &&
+                        (hasCoverage is null || hasCoverage(child))).ToArray();
                 if (children.Length > 0 &&
                     selected.Count + pending.Count + children.Length <= _maxTiles)
                 {
                     expanded.Add(id);
-                    foreach (GeoTileId child in children) pending.Enqueue(child);
+                    foreach (GeoTileId child in children) Enqueue(child);
                     continue;
                 }
             }
@@ -66,6 +72,14 @@ public sealed class GeoTileSelector
         }
         _expandedLastFrame = expanded;
         return selected;
+
+        void Enqueue(GeoTileId id)
+        {
+            // 先保留焦点的细化机会，其余节点维持原来的广度优先顺序。
+            int shift = _maxLevel - id.Level;
+            bool focalPath = focal is { } f && (f.X >> shift) == id.X && (f.Y >> shift) == id.Y;
+            pending.Enqueue(id, (focalPath ? 0 : 1, order++));
+        }
     }
 
     private bool IsVisible(GeoTileId id, GeoTileView view) =>

@@ -6,16 +6,16 @@ namespace XuanYu.Editor.Preview.Terrain;
 
 public static partial class GeoTerrainNativeMeshBuilder
 {
-    private sealed record NativeEdgeProfile(double[] Knots, Vector3?[] Positions)
+    private sealed record NativeEdgeProfile(double[] Knots, GeoTerrainEdgeVertex?[] Vertices)
     {
-        public Vector3? At(double t)
+        public GeoTerrainEdgeVertex? At(double t)
         {
             int i = Array.BinarySearch(Knots, t);
-            if (i >= 0) return Positions[i];
+            if (i >= 0) return Vertices[i];
             i = Math.Clamp(~i - 1, 0, 15);
             float u = (float)((t - Knots[i]) / (Knots[i + 1] - Knots[i]));
-            return Positions[i] is { } a && Positions[i + 1] is { } b
-                ? Vector3.Lerp(a, b, u) : null;
+            return Vertices[i] is { } a && Vertices[i + 1] is { } b
+                ? GeoTerrainEdgeVertex.Lerp(a, b, u) : null;
         }
     }
 
@@ -40,7 +40,7 @@ public static partial class GeoTerrainNativeMeshBuilder
                     Math.Min(area.EastLongitudeDegrees, coverage.EastLongitudeDegrees));
                 knots = GeoTerrainEdgeLayout.Fit(bounds, coarse, 16, horizontal);
             }
-            var positions = new Vector3?[17];
+            var vertices = new GeoTerrainEdgeVertex?[17];
             for (int i = 0; i <= 16; i++)
             {
                 int row = edge == 0 ? 0 : edge == 1 ? 16 : i;
@@ -55,10 +55,11 @@ public static partial class GeoTerrainNativeMeshBuilder
                     new GeoCoordinate(latitude, longitude, 0d)));
                 var position = new Vector3((float)p.East,
                     (float)p.North, (float)(p.Up + elevation));
-                positions[i] = GeoTerrainEdgeSnap.Align(position, row, col,
+                var vertex = GeoTerrainEdgeVertex.FromHeight(position, elevation);
+                vertices[i] = GeoTerrainEdgeSnap.Align(vertex, row, col,
                     16, bounds, neighbors, source, anchor, coverage);
             }
-            result[edge] = new NativeEdgeProfile(knots, positions);
+            result[edge] = new NativeEdgeProfile(knots, vertices);
         }
         return result;
     }
@@ -75,8 +76,8 @@ public static partial class GeoTerrainNativeMeshBuilder
             bounds.NorthLatitudeDegrees -
             (bounds.NorthLatitudeDegrees - bounds.SouthLatitudeDegrees) * t));
 
-    private static Vector3? BorderPosition(Vector3 point, GeoTileBounds bounds,
-        NativeEdgeProfile[] edges, double longitude, double latitude,
+    private static GeoTerrainEdgeVertex? BorderVertex(GeoTerrainEdgeVertex point,
+        GeoTileBounds bounds, NativeEdgeProfile[] edges, double longitude, double latitude,
         int x, int y, int width, int height)
     {
         if (y == height - 1 || y == 0)

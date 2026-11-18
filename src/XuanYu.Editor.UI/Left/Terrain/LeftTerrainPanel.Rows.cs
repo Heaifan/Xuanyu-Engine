@@ -7,10 +7,8 @@ namespace XuanYu.Editor.UI.Left;
 
 internal sealed partial class LeftTerrainPanel
 {
-    private static readonly IBrush SelectedBrush =
-        new SolidColorBrush(Color.Parse("#E7F1FD"));
-    private static readonly IBrush HoverBrush =
-        new SolidColorBrush(Color.Parse("#F6F9FC"));
+    private static readonly IBrush SelectedBrush = new SolidColorBrush(Color.Parse("#E7F1FD"));
+    private static readonly IBrush HoverBrush = new SolidColorBrush(Color.Parse("#F6F9FC"));
 
     private Border BuildMapRow()
     {
@@ -22,55 +20,48 @@ internal sealed partial class LeftTerrainPanel
         Grid.SetColumn(_chevron, 1);
         grid.Children.Add(_chevron);
         Control icon = LeftSvgIcon.Create("Terrain/terrain", 16);
-        Grid.SetColumn(icon, 2);
-        grid.Children.Add(icon);
-        Grid.SetColumn(_mapText, 3);
-        grid.Children.Add(_mapText);
-        return MakeRow(grid, false, () =>
-        {
-            _expanded = !_expanded;
-            _wb.SelectTerrain(false);
-        });
+        Grid.SetColumn(icon, 2); grid.Children.Add(icon);
+        Grid.SetColumn(_mapText, 3); grid.Children.Add(_mapText);
+        return MakeRow(grid, () => { _expanded = !_expanded; _wb.SelectTerrain(false); },
+            () => _wb.SelectTerrain(false));
     }
 
-    private Border BuildDemRow()
+    private Border BuildDemRow() => DatasetRow(1, true, null, "Terrain/heightfield",
+        _demText, () => _wb.SelectTerrain(true));
+
+    private Border DatasetRow(int depth, bool last, Control? arrow, string iconKey,
+        TextBlock text, Action action)
     {
-        var grid = new Grid { ColumnDefinitions = new("Auto,5,21,*") };
-        grid.Children.Add(new LeftTreeGuide(1, [], true, isLeaf: true));
-        var expander = new Border { Width = 5 };
-        Grid.SetColumn(expander, 1);
-        grid.Children.Add(expander);
-        Control icon = LeftSvgIcon.Create("Terrain/heightfield", 16);
-        Grid.SetColumn(icon, 2);
-        grid.Children.Add(icon);
-        Grid.SetColumn(_demText, 3);
-        grid.Children.Add(_demText);
-        return MakeRow(grid, true, () => _wb.SelectTerrain(true));
+        bool leaf = arrow is null;
+        var grid = new Grid { ColumnDefinitions = new(leaf ? "Auto,5,21,*" : "Auto,17,21,*") };
+        grid.Children.Add(new LeftTreeGuide(depth, [], last, leaf));
+        Control expander = arrow ?? new Border { Width = 5 };
+        Grid.SetColumn(expander, 1); grid.Children.Add(expander);
+        Control icon = LeftSvgIcon.Create(iconKey, 16);
+        Grid.SetColumn(icon, 2); grid.Children.Add(icon);
+        text.FontFamily = new FontFamily("Microsoft YaHei UI");
+        text.VerticalAlignment = VerticalAlignment.Center;
+        text.TextTrimming = TextTrimming.CharacterEllipsis;
+        Grid.SetColumn(text, 3); grid.Children.Add(text);
+        return MakeRow(grid, action, leaf ? action : () => _wb.SelectTerrain(true));
     }
 
-    private Border MakeRow(Control content, bool selectDem, Action action)
+    private Border MakeRow(Control content, Action action, Action selectOnRight)
     {
         var row = new Border
         {
-            Height = 28, ClipToBounds = true,
-            Padding = new Thickness(0),
-            Background = Brushes.Transparent, Child = content,
-            ContextMenu = CreateTerrainMenu()
+            Height = 28, ClipToBounds = true, Padding = new Thickness(0),
+            Background = Brushes.Transparent, Child = content, ContextMenu = CreateTerrainMenu()
         };
         row.PointerPressed += (_, e) =>
         {
             var point = e.GetCurrentPoint(row).Properties;
             if (point.IsRightButtonPressed)
             {
-                _wb.SelectTerrain(selectDem);
-                Refresh();
-                return;
+                selectOnRight(); Refresh(); return;
             }
-            if (!point.IsLeftButtonPressed)
-                return;
-            action();
-            Refresh();
-            e.Handled = true;
+            if (!point.IsLeftButtonPressed) return;
+            action(); Refresh(); e.Handled = true;
         };
         row.PointerEntered += (_, _) => Refresh();
         row.PointerExited += (_, _) => Refresh();

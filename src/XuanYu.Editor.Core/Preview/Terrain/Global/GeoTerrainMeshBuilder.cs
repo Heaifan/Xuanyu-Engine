@@ -56,16 +56,13 @@ public static partial class GeoTerrainMeshBuilder
                 int index = row * side + col;
                 Vector3 position = new((float)local.East, (float)local.North,
                     (float)(local.Up + elevation));
-                points[index] = source is not null && coverage is { } region &&
-                    !neighbors.IsEmpty
-                    ? GeoTerrainEdgeSnap.Align(position, row, col,
-                        tile.CellsPerEdge, bounds, neighbors,
-                        source, anchor, region)
-                    : position;
+                var vertex = GeoTerrainEdgeVertex.FromHeight(position, elevation);
+                if (source is not null && coverage is { } region && !neighbors.IsEmpty)
+                    vertex = GeoTerrainEdgeSnap.Align(vertex, row, col,
+                        tile.CellsPerEdge, bounds, neighbors, source, anchor, region);
+                points[index] = vertex.Position;
+                colors[index] = vertex.Color;
                 valid[index] = true;
-                float t = Math.Clamp((float)((elevation + 100d) / 3000d), 0f, 1f);
-                colors[index] = Vector3.Lerp(new Vector3(0.21f, 0.35f, 0.24f),
-                    new Vector3(0.66f, 0.64f, 0.58f), t);
             }
 
         var vertices = new List<float>();

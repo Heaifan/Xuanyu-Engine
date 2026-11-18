@@ -7,10 +7,10 @@ public sealed partial class GeoTerrainRenderSession
 {
     private const int NativeLevel = 13;
     private const int NativeCacheLimit = 12;
-    private readonly NasademTile _nativeTile;
-    private readonly Dictionary<(GeoTileId, GeoTerrainEdgeNeighbors), RenderMesh>
+    private readonly string _nativeSourceId;
+    private readonly Dictionary<(GeoTileId, GeoTerrainEdgeNeighbors, GeoTerrainFootprintTile?), RenderMesh>
         _nativeMeshes = [];
-    private readonly Queue<(GeoTileId, GeoTerrainEdgeNeighbors)> _nativeOrder = new();
+    private readonly Queue<(GeoTileId, GeoTerrainEdgeNeighbors, GeoTerrainFootprintTile?)> _nativeOrder = new();
     private bool _firstNativeLogged;
 
     public bool NativeEnabled { get; private set; } = true;
@@ -28,13 +28,15 @@ public sealed partial class GeoTerrainRenderSession
         bool built = false;
         foreach (GeoTileId id in targets)
         {
-            GeoTerrainEdgeNeighbors neighbors = FindNeighbors(id, visible);
-            var key = (id, neighbors);
+            GeoTerrainFootprintTile? tile = _footprint is null ? null : _footprintTiles[id];
+            GeoTerrainEdgeNeighbors neighbors = tile is null ? FindNeighbors(id, visible) : default;
+            var key = (id, neighbors, tile);
             if (!_nativeMeshes.TryGetValue(key, out RenderMesh? mesh))
             {
                 if (built) continue;
-                mesh = GeoTerrainNativeMeshBuilder.Build(_nativeTile, id,
-                    _anchor, _source, _coverage, neighbors);
+                if (StreamingEnabled && !_source.PrepareNativeRegion(
+                    GeographicTileScheme.Bounds(id))) continue;
+                mesh = tile is null ? BuildRectangularMesh(id, neighbors, true) : BuildFootprintMesh(tile, true);
                 if (mesh is null) continue;
                 _nativeMeshes.Add(key, mesh);
                 _nativeOrder.Enqueue(key);

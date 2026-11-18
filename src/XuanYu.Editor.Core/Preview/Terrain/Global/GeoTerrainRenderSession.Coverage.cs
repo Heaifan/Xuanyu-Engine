@@ -13,8 +13,9 @@ public sealed partial class GeoTerrainRenderSession
     {
         _visibleMeshes.Clear();
         int budget = 4;
-        if (_meshes[_coverRoot] is { } root)
-            Cover(_coverRoot, root, targets, ref budget);
+        foreach (GeoTileId id in _coverRoots)
+            if (_meshes[id] is { } root)
+                Cover(id, root, targets, ref budget);
     }
 
     private void Cover(GeoTileId id, RenderMesh mesh,
@@ -54,20 +55,8 @@ public sealed partial class GeoTerrainRenderSession
         return mesh;
     }
 
-    private RenderMesh? BuildCoarseMesh(GeoTileId id)
-    {
-        GeoHeightTile tile = GeoHeightTileBuilder.Build(_source, id, 16);
-        return GeoTerrainMeshBuilder.Build(tile, _anchor, _source, _coverage);
-    }
-
-    private bool InCoverage(GeoTileId id)
-    {
-        GeoTileBounds bounds = GeographicTileScheme.Bounds(id);
-        return bounds.SouthLatitudeDegrees < _coverage.NorthLatitudeDegrees &&
-            bounds.NorthLatitudeDegrees > _coverage.SouthLatitudeDegrees &&
-            bounds.WestLongitudeDegrees < _coverage.EastLongitudeDegrees &&
-            bounds.EastLongitudeDegrees > _coverage.WestLongitudeDegrees;
-    }
+    private RenderMesh? BuildCoarseMesh(GeoTileId id) =>
+        _footprint is null ? BuildRectangularMesh(id, default, false) : BuildFootprintBase(id);
 
     private static bool Contains(GeoTileId outer, GeoTileId inner)
     {

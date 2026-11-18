@@ -1,4 +1,3 @@
-using System.IO;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -37,25 +36,27 @@ internal sealed partial class LeftTerrainPanel : StackPanel
         _demRow = BuildDemRow();
         Children.Add(_mapRow);
         Children.Add(_demRow);
+        BuildDatasetTree();
         ContextMenu = CreateTerrainMenu();
         Refresh();
     }
 
     public void Refresh()
     {
-        _mapText.Text = _wb.TerrainMap.Name;
-        string name = _wb.TerrainSourcePath is { Length: > 0 } path
-            ? Path.GetFileName(path) : _wb.TerrainNodeText;
+        RefreshDatasetTree();
+        _mapText.Text = _wb.TerrainMultiSourceLabel is null
+            ? _wb.TerrainMap.Name : "NASADEM 多瓦片地形";
+        string name = _wb.TerrainNodeText;
         _demText.Text = name.Length > 27
             ? $"{name[..12]}…{name[^14..]}" : name;
-        ToolTip.SetTip(_demRow, _wb.TerrainSourcePath ?? _wb.TerrainNodeText);
+        ToolTip.SetTip(_demRow, _wb.TerrainMultiSourceLabel ?? _wb.TerrainSourcePath ?? name);
         _mapRow.Background = !_wb.TerrainSelected ? SelectedBrush :
             _mapRow.IsPointerOver ? HoverBrush : Brushes.Transparent;
         _demRow.Background = _wb.TerrainSelected ? SelectedBrush :
             _demRow.IsPointerOver ? HoverBrush : Brushes.Transparent;
         _mapText.Foreground = !_wb.TerrainSelected ? EditorTheme.Accent : EditorTheme.TextMain;
         _demText.Foreground = _wb.TerrainSelected ? EditorTheme.Accent : EditorTheme.TextMain;
-        _demRow.IsVisible = _expanded;
+        _demRow.IsVisible = _expanded && _wb.TerrainDemEntries.Count == 0;
         _chevronRotation.Angle = _expanded ? 0 : -90;
     }
 }

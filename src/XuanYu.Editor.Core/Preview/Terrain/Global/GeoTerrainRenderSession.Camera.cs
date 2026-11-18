@@ -8,7 +8,7 @@ public sealed partial class GeoTerrainRenderSession
 {
     public void ResetCamera()
     {
-        Camera = new GlobalCamera(_anchor.Origin, 150_000d);
+        Camera = new GlobalCamera(_anchor.Origin, InitialDistanceMeters);
         Camera.SetTerrainCollision(SampleGroundHeight);
     }
 
@@ -39,7 +39,10 @@ public sealed partial class GeoTerrainRenderSession
         get
         {
             GeoCoordinate eye = Wgs84.ToGeo(Camera.PositionEcef);
-            double ground = _source.Sample(eye.LatitudeDegrees,
+            // 流式远景裁剪面只需派生高程，禁止每帧同步解码完整 HGT。
+            var sampler = StreamingEnabled && Camera.DistanceMeters > 20_000d
+                ? _source.CoarseFor(9) : _source;
+            double ground = sampler.Sample(eye.LatitudeDegrees,
                 eye.LongitudeDegrees) ?? 0d;
             double clearance = Math.Max(0d, eye.HeightMeters - ground);
             double near = Math.Min(Camera.DistanceMeters * 0.01d,

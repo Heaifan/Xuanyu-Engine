@@ -16,14 +16,25 @@ internal static class VkFrameSelection
     public static void Record(Vk vk, CommandBuffer cmd, VkMeshScene scene,
         Extent2D extent, IReadOnlyList<RenderDraw> draws)
     {
-        RenderDraw[] selected = draws.Where(d => d.Visible && d.Selected).ToArray();
+        var selected = draws.Where(d => d.Visible && d.Selected).ToArray();
         if (selected.Length == 0) return;
+        RecordGroup(vk, cmd, scene, extent,
+            selected.Where(d => !d.OutlineThroughOcclusion).ToArray(),
+            scene.SelectionMaskPipeline, scene.SelectionOutlinePipeline);
+        RecordGroup(vk, cmd, scene, extent,
+            selected.Where(d => d.OutlineThroughOcclusion).ToArray(),
+            scene.OverlayMaskPipeline, scene.OverlayOutlinePipeline);
+    }
 
-        vk.CmdBindPipeline(cmd, PipelineBindPoint.Graphics, scene.SelectionMaskPipeline);
+    private static void RecordGroup(Vk vk, CommandBuffer cmd, VkMeshScene scene,
+        Extent2D extent, RenderDraw[] selected, Pipeline mask, Pipeline outline)
+    {
+        if (selected.Length == 0) return;
+        vk.CmdBindPipeline(cmd, PipelineBindPoint.Graphics, mask);
         foreach (RenderDraw draw in selected)
             VkFrameCommands.DrawMesh(vk, cmd, scene, draw);
 
-        vk.CmdBindPipeline(cmd, PipelineBindPoint.Graphics, scene.SelectionOutlinePipeline);
+        vk.CmdBindPipeline(cmd, PipelineBindPoint.Graphics, outline);
         foreach (RenderDraw draw in selected)
             foreach ((float x, float y) in Directions)
             {

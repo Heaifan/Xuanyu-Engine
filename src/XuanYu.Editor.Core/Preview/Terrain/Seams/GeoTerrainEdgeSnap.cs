@@ -6,9 +6,10 @@ namespace XuanYu.Editor.Preview.Terrain;
 
 internal static class GeoTerrainEdgeSnap
 {
-    public static Vector3 Align(Vector3 point, int row, int col, int cells,
-        GeoTileBounds fine, GeoTerrainEdgeNeighbors neighbors,
-        NasademElevationSource source, EnuFrame anchor, GeoTileBounds coverage)
+    public static GeoTerrainEdgeVertex Align(GeoTerrainEdgeVertex point,
+        int row, int col, int cells, GeoTileBounds fine,
+        GeoTerrainEdgeNeighbors neighbors, NasademElevationSource source,
+        EnuFrame anchor, GeoTileBounds coverage)
     {
         bool horizontal;
         GeoTileId other;
@@ -43,12 +44,13 @@ internal static class GeoTerrainEdgeSnap
         double scaled = Math.Clamp(t * cells, 0d, cells);
         int first = Math.Min(cells - 1, (int)Math.Floor(scaled));
         float fraction = (float)(scaled - first);
-        Vector3? a = Sample(first);
-        Vector3? b = Sample(first + 1);
+        GeoTerrainEdgeVertex? a = Sample(first);
+        GeoTerrainEdgeVertex? b = Sample(first + 1);
+        // 贴边顶点必须沿同一粗边同时插值位置与已映射的颜色。
         return a is { } left && b is { } right
-            ? Vector3.Lerp(left, right, fraction) : point;
+            ? GeoTerrainEdgeVertex.Lerp(left, right, fraction) : point;
 
-        Vector3? Sample(int step)
+        GeoTerrainEdgeVertex? Sample(int step)
         {
             double u = (double)step / cells;
             double lat = horizontal ? latitude : coarse.NorthLatitudeDegrees - span * u;
@@ -57,8 +59,9 @@ internal static class GeoTerrainEdgeSnap
             if (elevation is null) return null;
             EnuPosition p = anchor.ToEnu(Wgs84.ToEcef(
                 new GeoCoordinate(lat, lon, 0d)));
-            return new Vector3((float)p.East, (float)p.North,
+            var vertex = new Vector3((float)p.East, (float)p.North,
                 (float)(p.Up + elevation.Value));
+            return GeoTerrainEdgeVertex.FromHeight(vertex, elevation.Value);
         }
     }
 }
