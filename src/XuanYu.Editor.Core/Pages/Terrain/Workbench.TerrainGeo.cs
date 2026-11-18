@@ -13,8 +13,12 @@ public sealed partial class Workbench
     public GlobalCamera? GeoTerrainCamera => _geoPreview?.Camera;
     public string? TerrainMultiSourceLabel => _geoPreview is { IsMultiSource: true } geo
         ? geo.SourceLabel : null;
-
     public int TerrainSourceCount => _geoPreview?.SourceCount ?? 0;
+
+    public TerrainStats? TerrainStats => _geoPreview is { } geo ? new(
+        geo.MeshCacheStats, geo.SourceResidency, geo.DrawCount,
+        geo.SelectedCount, geo.PendingCount, geo.OverviewMiddleCount,
+        geo.OverviewMiddleCapacity, geo.BackgroundLoadCount) : null;
 
     private void BindImportedTerrain(NasademTile? tile, GeoTerrainRenderSession? geo)
     {

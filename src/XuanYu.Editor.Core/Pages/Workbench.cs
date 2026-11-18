@@ -20,28 +20,23 @@ public sealed partial class Workbench
         _runtimeBridge is null ? Scene.Draws
         : _runtimeBridge.Snapshot(Matrix4x4.Identity);
 
-    public IReadOnlyList<RenderDraw> ViewportDraws(
-        uint width, uint height)
+    public IReadOnlyList<RenderDraw> ViewportDraws(uint width, uint height)
     {
         if (CurrentId == PageId.Terrain)
             return _geoPreview is not null
                 ? GeoTerrainDraws(width, height)
                 : (_terrainPreview ??= CreateTerrainPreview())
                     .ViewportDraws(width, height);
-
         return _runtimeBridge is null
             ? Scene.ViewportDraws(width, height)
             : _runtimeBridge.Snapshot(
-                ActiveCamera?.ViewProjection(width, height)
-                ?? Matrix4x4.Identity);
+                ActiveCamera?.ViewProjection(width, height) ?? Matrix4x4.Identity);
     }
 
     public SimulationSession Simulation { get; }
     public bool IsSimulating => Simulation.IsRunning;
-
     public string ViewportNote { get; private set; } =
         "Vulkan 1.3 视口常驻容器（待初始化 GPU）";
-
     public LogBox Log { get; } = new();
     public event Action? Changed;
 
@@ -64,16 +59,14 @@ public sealed partial class Workbench
     public void ReportGpuFailure(string reason)
     {
         ViewportNote = $"GPU 初始化失败：{reason}";
-        Log.Write($"Vulkan 初始化失败：{reason}");
+        Log.Error($"Vulkan 初始化失败：{reason}", "Vulkan");
         Changed?.Invoke();
     }
 
     public void SwitchTo(PageId target)
     {
         PageInfo info = PageCatalog.Get(target);
-        if (CurrentId == info.Id)
-            return;
-
+        if (CurrentId == info.Id) return;
         ResetCameraKeys();
         CurrentId = info.Id;
         Log.Write($"切换页面 -> {info.Title}");

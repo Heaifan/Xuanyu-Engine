@@ -26,23 +26,28 @@ internal static partial class TerrainFileMenu
         foreach (var file in selected)
         {
             string? input = file.TryGetLocalPath();
-            if (input is null) { wb.Log.Write("仅支持本地 NASADEM 文件。"); return; }
+            if (input is null)
+            {
+                wb.Log.Warn("仅支持本地 NASADEM 文件。", "XYTerrain");
+                return;
+            }
             string output = Path.Combine(folder,
                 Path.GetFileNameWithoutExtension(input) + ".xyt");
             try
             {
                 var watch = System.Diagnostics.Stopwatch.StartNew();
                 var result = await Task.Run(() => XYTerrainWriter.Write(input, output));
-                wb.Log.Write($"G-05D-04：{Path.GetFileName(output)}，" +
+                wb.Log.WriteOutput($"G-05D-04：{Path.GetFileName(output)}，" +
                     $"原始 {result.RawBytes / 1048576d:F1} MiB → " +
                     $"压缩 {result.PackBytes / 1048576d:F1} MiB，" +
                     $"占比 {result.Ratio:P1}，{watch.Elapsed.TotalSeconds:F1}s，" +
                     $"分块 Raw/Deflate/Brotli/Delta={result.RawBlocks}/" +
-                    $"{result.DeflateBlocks}/{result.BrotliBlocks}/{result.DeltaBrotliBlocks}");
+                    $"{result.DeflateBlocks}/{result.BrotliBlocks}/{result.DeltaBrotliBlocks}",
+                    "XYTerrain");
             }
             catch (Exception ex)
             {
-                wb.Log.Write($"XYTerrain 导出失败：{ex.Message}");
+                wb.Log.Error($"XYTerrain 导出失败：{ex.Message}", "XYTerrain");
                 return;
             }
         }

@@ -36,14 +36,14 @@ internal static partial class TerrainFileMenu
         {
             if (file.TryGetLocalPath() is not { } path)
             {
-                wb.Log.Write("G-05BR：请选择本地 HGT / ZIP / XYT 文件。");
+                wb.Log.Warn("G-05BR：请选择本地 HGT / ZIP / XYT 文件。", "地图导入");
                 return;
             }
             paths.Add(path);
         }
         wb.Log.Write($"G-05BR：开始导入 {paths.Count} 张 NASADEM 文件");
         try { wb.ImportTerrainFiles(paths); }
-        catch (Exception ex) { wb.Log.Write($"NASADEM 导入失败：{ex.Message}"); }
+        catch (Exception ex) { wb.Log.Error($"NASADEM 导入失败：{ex.Message}", "地图导入"); }
     }
 
     private static async Task Open(Window owner, Workbench wb)
@@ -56,14 +56,14 @@ internal static partial class TerrainFileMenu
         string? path = files.FirstOrDefault()?.TryGetLocalPath();
         if (path is null) return;
         try { wb.OpenTerrainMap(path); }
-        catch (Exception ex) { wb.Log.Write($"地图读取失败：{ex.Message}"); }
+        catch (Exception ex) { wb.Log.Error($"地图读取失败：{ex.Message}", "地图读取"); }
     }
 
     private static async Task Save(Window owner, Workbench wb, bool saveAs)
     {
         if (wb.TerrainMultiSourceLabel is not null)
         {
-            wb.Log.Write("多 HGT 为预览模式，暂不支持保存为单张 XYMAP。");
+            wb.Log.Warn("多 HGT 为预览模式，暂不支持保存为单张 XYMAP。", "地图保存");
             return;
         }
         string? path = saveAs ? null : wb.TerrainMapPath;
@@ -83,6 +83,6 @@ internal static partial class TerrainFileMenu
         }
         if (path is null) return;
         try { wb.SaveTerrainMap(path); }
-        catch (Exception ex) { wb.Log.Write($"地图保存失败：{ex.Message}"); }
+        catch (Exception ex) { wb.Log.Error($"地图保存失败：{ex.Message}", "地图保存"); }
     }
 }

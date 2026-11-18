@@ -28,7 +28,8 @@ public sealed partial class GeoTerrainRenderSession
         SourceCount = tiles.Length;
         _coverage = CreateCoverage(tiles);
         _regions = CreateRegions(tiles, _coverage);
-        if (_regions.Length > 1 || source.HasOverview) _footprint = new GeoTerrainFootprintGrid(tiles, _coverage);
+        if (_regions.Length > 1 || source.HasOverview)
+            _footprint = new GeoTerrainFootprintGrid(tiles, _coverage);
         _nativeSourceId = tiles.Length <= 2 ? string.Join("+", tiles.Select(t => t.TileId))
             : $"NASADEM · {tiles.Length} 片";
         var center = new GeoCoordinate(
@@ -44,7 +45,6 @@ public sealed partial class GeoTerrainRenderSession
         Camera.SetTerrainCollision(SampleGroundHeight);
     }
 
-    private long _nextSourceReport;
     public NasademSourceResidency SourceResidency => _source.Residency;
     public int OverviewCount => _source.OverviewCount;
     public long OverviewBytes => _source.OverviewBytes;
@@ -54,15 +54,4 @@ public sealed partial class GeoTerrainRenderSession
 
     public NasademTileSummary? ReadSourceSummary(int south, int west) =>
         _source.ReadSummary(south, west);
-
-    private void ReportSourceResidency()
-    {
-        NasademSourceResidency s = SourceResidency;
-        if (!s.IsFileBacked || s.LoadCount < _nextSourceReport) return;
-        // 小数据集逐次报告实际解码变化；大数据集保留原有节流。
-        _nextSourceReport = s.LoadCount + (SourceCount <= s.Capacity ? 1 : 16);
-        Notice?.Invoke($"G-05D-02：索引 {SourceCount} 片，高程驻留 {s.ResidentCount}/{s.Capacity} 片，" +
-            $"数组 {s.ResidentBytes / 1048576d:F1} MiB，解码 {s.LoadCount} 次，淘汰 {s.EvictedCount} 次；" +
-            $"后台完成 {BackgroundLoadCount} 次，Middle {OverviewMiddleCount}/{OverviewMiddleCapacity} 片");
-    }
 }

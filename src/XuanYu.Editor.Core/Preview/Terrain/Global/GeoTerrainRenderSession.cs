@@ -56,7 +56,6 @@ public sealed partial class GeoTerrainRenderSession
         RenderDraw[] draws = CreateSelectionDraws(projection);
         DrawCount = draws.Length;
         TrimMeshCaches();
-        ReportSourceResidency();
         if (!_firstSurfaceLogged && DrawCount > 0)
         {
             _firstSurfaceLogged = true;
