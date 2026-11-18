@@ -1,5 +1,6 @@
 using Avalonia.Input;
 using XuanYu.Editor.Camera;
+using XuanYu.Editor.Pages;
 
 namespace XuanYu.Editor.UI;
 
@@ -7,6 +8,13 @@ public sealed partial class ViewportSharedHost
 {
     private void OnViewportKeyDown(object? sender, KeyEventArgs e)
     {
+        if (e.Key == Key.F8 &&
+            _wb.CurrentId == PageId.Terrain && _wb.IsGeoTerrainPreview)
+        {
+            _wb.ToggleGeoTerrainNative();
+            e.Handled = true;
+            return;
+        }
         if (e.Key == Key.Home)
         {
             OnCameraShortcut(ViewportCameraShortcut.Home);

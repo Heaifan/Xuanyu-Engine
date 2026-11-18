@@ -13,7 +13,7 @@ internal sealed partial class ViewportNavigationPanel : StackPanel
     private readonly Button _projection =
         MakeButton("projection", "切换透视/正交");
     private readonly Button _panButton =
-        MakeButton("pan", "进入平移模式");
+        MakeButton("pan", "按住手掌拖动平移；点击切换左键平移模式");
     private Workbench? _workbench;
     private Func<(uint Width, uint Height)>? _viewportSize;
 
@@ -32,7 +32,7 @@ internal sealed partial class ViewportNavigationPanel : StackPanel
         };
         Children.Add(zoom);
 
-        _panButton.Click += (_, _) => TogglePanMode();
+        InitializePanButton();
         Children.Add(_panButton);
 
         var sceneCamera = MakeButton(

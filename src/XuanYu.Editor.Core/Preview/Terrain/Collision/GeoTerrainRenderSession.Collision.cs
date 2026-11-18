@@ -9,7 +9,7 @@ public sealed partial class GeoTerrainRenderSession
     {
         double? height = _source.Sample(
             position.LatitudeDegrees, position.LongitudeDegrees);
-        if (_visibleMeshes.Count == 0) return height;
+        if (_visibleMeshes.Count == 0) return height ?? 0d;
 
         EnuPosition eye = _anchor.ToEnu(Wgs84.ToEcef(position));
         foreach (var (id, mesh) in _visibleMeshes)
@@ -27,6 +27,7 @@ public sealed partial class GeoTerrainRenderSession
             double altitude = Wgs84.ToGeo(terrain).HeightMeters;
             height = height is { } old ? Math.Max(old, altitude) : altitude;
         }
-        return height;
+        // 未加载 HGT 的区域仍须受椭球零高程保护，不能无限钻入地球内部。
+        return height ?? 0d;
     }
 }

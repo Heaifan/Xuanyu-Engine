@@ -1,4 +1,4 @@
-
+using Avalonia.Input.Platform;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -11,7 +11,6 @@ namespace XuanYu.Editor.UI;
 public sealed class LogPanel : Border
 {
     private readonly LogBox _log;
-
     private readonly SelectableTextBlock _output = new()
     {
         Foreground = EditorTheme.TextSub,
@@ -19,16 +18,12 @@ public sealed class LogPanel : Border
         FontSize = 12,
         TextWrapping = TextWrapping.NoWrap
     };
-
     private readonly CheckBox _follow = new()
     {
-        Content = "自动滚动",
-        IsChecked = true,
-        FontSize = 11,
-        VerticalAlignment = VerticalAlignment.Center,
+        Content = "自动滚动", IsChecked = true,
+        FontSize = 11, VerticalAlignment = VerticalAlignment.Center,
         Margin = new Thickness(0, 0, 8, 0)
     };
-
     private readonly ScrollViewer _scroll;
 
     public LogPanel(LogBox log)
@@ -37,42 +32,50 @@ public sealed class LogPanel : Border
         Background = EditorTheme.PanelBg;
         BorderBrush = EditorTheme.Border;
         BorderThickness = new Thickness(1);
-
         _scroll = new ScrollViewer
         {
-            Content = _output,
-            Background = EditorTheme.PanelBg,
+            Content = _output, Background = EditorTheme.PanelBg,
             Padding = new Thickness(10, 6)
         };
-
+        var copy = new Button
+        {
+            Content = "复制全部", FontSize = 11,
+            Padding = new Thickness(8, 2),
+            Margin = new Thickness(0, 0, 8, 0),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        copy.Click += async (_, _) =>
+        {
+            var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+            if (clipboard is not null)
+                await clipboard.SetTextAsync(
+                    string.Join(Environment.NewLine, _log.Items));
+        };
+        var actions = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        actions.Children.Add(copy);
+        actions.Children.Add(_follow);
         var header = new Grid
         {
             Background = EditorTheme.PanelHeaderBg,
             ColumnDefinitions = new ColumnDefinitions("*,Auto")
         };
-
         header.Children.Add(new TextBlock
         {
-            Text = "输出 / 日志",
-            Foreground = EditorTheme.TextMain,
-            FontWeight = FontWeight.SemiBold,
-            FontSize = 11,
+            Text = "输出 / 日志", Foreground = EditorTheme.TextMain,
+            FontWeight = FontWeight.SemiBold, FontSize = 11,
             Margin = new Thickness(10, 0),
             VerticalAlignment = VerticalAlignment.Center
         });
-
-        Grid.SetColumn(_follow, 1);
-        header.Children.Add(_follow);
-
-        var root = new Grid
-        {
-            RowDefinitions = new RowDefinitions("24,*")
-        };
-
+        Grid.SetColumn(actions, 1);
+        header.Children.Add(actions);
+        var root = new Grid { RowDefinitions = new RowDefinitions("24,*") };
         Grid.SetRow(_scroll, 1);
         root.Children.Add(header);
         root.Children.Add(_scroll);
-
         Child = root;
         _log.Updated += Refresh;
         Refresh();
@@ -81,12 +84,8 @@ public sealed class LogPanel : Border
     public void Refresh()
     {
         _output.Text = string.Join(Environment.NewLine, _log.Items);
-
         if (_follow.IsChecked == true)
-        {
-            Dispatcher.UIThread.Post(
-                () => _scroll.ScrollToEnd(),
+            Dispatcher.UIThread.Post(() => _scroll.ScrollToEnd(),
                 DispatcherPriority.Loaded);
-        }
     }
 }

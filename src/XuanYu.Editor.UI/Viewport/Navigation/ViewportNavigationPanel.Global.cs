@@ -36,6 +36,14 @@ internal sealed partial class ViewportNavigationPanel
         else Camera()?.Zoom(steps);
     }
 
+    private void PanActive(float dx, float dy)
+    {
+        uint height = Math.Max(1u, _viewportSize!().Height);
+        if (GeoCamera() is not null)
+            _workbench!.NavigateGeoTerrain(dx, dy, 0f, true, height);
+        else Camera()?.Pan(dx, dy, height);
+    }
+
     private void OrbitActive(float dx, float dy)
     {
         if (GeoCamera() is not null)

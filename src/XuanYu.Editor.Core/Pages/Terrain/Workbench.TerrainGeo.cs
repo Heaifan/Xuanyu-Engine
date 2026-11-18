@@ -46,4 +46,10 @@ public sealed partial class Workbench
         _geoPreview!.ResetCamera();
         Log.Write("G-03：已返回当前 NASADEM 地图中心");
     }
+
+    public void ToggleGeoTerrainNative()
+    {
+        _geoPreview!.ToggleNative();
+        Log.Write($"G-04/AB：Native={(_geoPreview.NativeEnabled ? "ON" : "OFF")}");
+    }
 }
