@@ -1,5 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\XuanYu.Core\XuanYu.Core.csproj" />
+    <ProjectReference Include="..\XuanYu.Map\XuanYu.Map.csproj" />
   </ItemGroup>
 </Project>
