@@ -24,6 +24,7 @@ internal sealed partial class RightTerrainInspector
             AddPair("水体着色", "待接入");
             if (_wb.TerrainGeoCoverage is { } coverage) AddBounds(coverage);
         }
+        AddContourControls();
         AddGroup("当前选中瓦片", _showSelectedDem, () => _showSelectedDem = !_showSelectedDem);
         if (!_showSelectedDem) return;
         if (_wb.SelectedTerrainDem is not { } entry)

@@ -10,6 +10,8 @@ public sealed partial class LogPanel
     private void SelectTab(string tab)
     {
         _activeTab = tab;
+        _timer.Interval = tab == "性能"
+            ? TimeSpan.FromMilliseconds(200) : TimeSpan.FromSeconds(1);
         foreach (var pair in _tabs)
             pair.Value.BorderBrush = pair.Key == tab
                 ? EditorTheme.Accent : Brushes.Transparent;
@@ -19,7 +21,7 @@ public sealed partial class LogPanel
         _follow.IsVisible = textTab;
         _body.Content = tab switch
         {
-            "性能" => _metricsView,
+            "性能" => _performanceView,
             "调试" => _debugView,
             _ => _list
         };

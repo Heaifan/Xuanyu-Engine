@@ -79,11 +79,10 @@ public sealed class test_G05DemSelection
     private static void CheckOriginalColor(RenderMesh mesh)
     {
         float[] v = mesh.Vertices.ToArray();
+        Vector3 expected = new(0x5C / 255f, 0xBB / 255f, 0x6F / 255f);
         for (int i = 0; i < v.Length; i += 7)
         {
-            Assert.InRange(v[i + 3], 0.2249f, 0.2251f);
-            Assert.InRange(v[i + 4], 0.3595f, 0.3598f);
-            Assert.InRange(v[i + 5], 0.2512f, 0.2515f);
+            Assert.InRange(Vector3.Distance(Point(v, i + 3), expected), 0f, 0.0001f);
             Assert.Equal(1f, v[i + 6]);
         }
     }

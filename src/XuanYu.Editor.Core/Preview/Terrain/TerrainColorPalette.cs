@@ -1,4 +1,3 @@
-
 using System.Numerics;
 
 namespace XuanYu.Editor.Preview.Terrain;
@@ -9,11 +8,13 @@ internal static class TerrainColorPalette
     private static readonly Vector3 Soil = new(0.60f, 0.45f, 0.25f);
     private static readonly Vector3 Rock = new(0.49f, 0.47f, 0.44f);
 
-    private static readonly Vector3 Low = new(0.13f, 0.33f, 0.20f);
-    private static readonly Vector3 LowMid = new(0.53f, 0.72f, 0.36f);
-    private static readonly Vector3 Mid = new(0.83f, 0.73f, 0.34f);
-    private static readonly Vector3 HighMid = new(0.58f, 0.42f, 0.30f);
-    private static readonly Vector3 High = new(0.85f, 0.86f, 0.83f);
+    private static readonly double[] ElevationMeters =
+        [0d, 200d, 800d, 1600d, 2800d, 4200d, 6000d];
+    private static readonly Vector3[] ElevationColors =
+    [
+        Rgb(0x5CBB6F), Rgb(0x72C96A), Rgb(0xA8D96D),
+        Rgb(0xD5DF83), Rgb(0xEDCF79), Rgb(0xBF9369), Rgb(0xA9A5A0)
+    ];
 
     public static Vector3 Standard(Vector3 normal, float height)
     {
@@ -26,17 +27,23 @@ internal static class TerrainColorPalette
         return color * (0.90f + height * 0.10f);
     }
 
-    public static Vector3 Elevation(float height)
+    public static Vector3 Elevation(double elevationMeters)
     {
-        float step = Math.Clamp(height, 0f, 1f) * 4f;
-        if (step < 1f)
-            return Vector3.Lerp(Low, LowMid, step);
-        if (step < 2f)
-            return Vector3.Lerp(LowMid, Mid, step - 1f);
-        if (step < 3f)
-            return Vector3.Lerp(Mid, HighMid, step - 2f);
-        return Vector3.Lerp(HighMid, High, step - 3f);
+        if (elevationMeters <= ElevationMeters[0]) return ElevationColors[0];
+        for (int i = 1; i < ElevationMeters.Length; i++)
+        {
+            if (elevationMeters > ElevationMeters[i]) continue;
+            float t = (float)((elevationMeters - ElevationMeters[i - 1]) /
+                (ElevationMeters[i] - ElevationMeters[i - 1]));
+            return Vector3.Lerp(ElevationColors[i - 1], ElevationColors[i], t);
+        }
+        return ElevationColors[^1];
     }
+
+    private static Vector3 Rgb(int hex) => new(
+        ((hex >> 16) & 255) / 255f,
+        ((hex >> 8) & 255) / 255f,
+        (hex & 255) / 255f);
 
     private static float Smooth(float min, float max, float value)
     {

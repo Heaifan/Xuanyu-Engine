@@ -1,4 +1,3 @@
-
 using System.Numerics;
 using XuanYu.Render;
 using XuanYu.World.Maps;
@@ -40,7 +39,7 @@ public static class TerrainRenderMeshAdapter
                 : coast ? new Vector3(0.68f, 0.61f, 0.43f)
                 : mode == TerrainDisplayMode.Standard
                     ? TerrainColorPalette.Standard(normal, height)
-                    : TerrainColorPalette.Elevation(height);
+                    : TerrainColorPalette.Elevation(point.Z);
             float light = 0.58f + 0.42f * MathF.Max(0f,
                 Vector3.Dot(normal, Sun));
             colors[vertex] = color * light;

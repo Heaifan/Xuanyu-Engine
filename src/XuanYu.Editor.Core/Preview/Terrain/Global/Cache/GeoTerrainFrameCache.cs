@@ -13,6 +13,7 @@ internal sealed class GeoTerrainFrameCache<TKey, TValue> where TKey : notnull
     private readonly Dictionary<TKey, Entry> _entries = [];
     private long _frame;
     public int Count => _entries.Count;
+    public IReadOnlyCollection<TKey> CachedKeys => _entries.Keys;
     public int ActiveCount { get; private set; }
     public long EvictedCount { get; private set; }
 

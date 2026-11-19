@@ -14,6 +14,8 @@ public sealed partial class Workbench
     public string? TerrainMultiSourceLabel => _geoPreview is { IsMultiSource: true } geo
         ? geo.SourceLabel : null;
     public int TerrainSourceCount => _geoPreview?.SourceCount ?? 0;
+    public bool TerrainContoursEnabled => _geoPreview?.ContoursEnabled ?? false;
+    public int TerrainContourInterval => _geoPreview?.ContourStyle.IntervalMeters ?? 0;
 
     public TerrainStats? TerrainStats => _geoPreview is { } geo ? new(
         geo.MeshCacheStats, geo.SourceResidency, geo.DrawCount,
@@ -59,5 +61,11 @@ public sealed partial class Workbench
     {
         _geoPreview!.ToggleNative();
         Log.Write($"G-04/AB：Native={(_geoPreview.NativeEnabled ? "ON" : "OFF")}");
+    }
+
+    public void SetTerrainContoursEnabled(bool enabled)
+    {
+        _geoPreview!.SetContoursEnabled(enabled);
+        Log.Write($"G-06 等高线：{(enabled ? "开启" : "关闭")}");
     }
 }

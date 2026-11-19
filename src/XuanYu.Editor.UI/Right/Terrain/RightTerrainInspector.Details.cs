@@ -36,6 +36,7 @@ internal sealed partial class RightTerrainInspector
             AddPair("水体掩膜", map.WaterMask is null ? "缺失 SWB" : "SWB 已加载");
         }
 
+        AddContourControls();
         AddGroup("NASADEM 数据源", _showSource,
             () => _showSource = !_showSource);
         if (!_showSource) return;
@@ -58,5 +59,4 @@ internal sealed partial class RightTerrainInspector
         AddPair("地理范围",
             $"{geo.WidthMeters / 1000:0.0} × {geo.LengthMeters / 1000:0.0} km");
     }
-
 }

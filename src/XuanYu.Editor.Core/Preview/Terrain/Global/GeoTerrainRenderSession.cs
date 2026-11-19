@@ -35,11 +35,13 @@ public sealed partial class GeoTerrainRenderSession
     public IReadOnlyList<RenderDraw> Draws(uint width, uint height)
     {
         if (width < 2 || height < 2) return [];
+        _monitorFrame++;
         if (StreamingEnabled) _source.PumpRawPrefetch();
         var view = new GeoTileView(Camera.PositionEcef, Camera.TargetEcef,
             Math.PI / 3d, (int)width, (int)height);
         IReadOnlyList<GeoTileId> targets = _selector.Select(view, _coverage, InCoverage,
             Camera.DistanceMeters <= 20_000d ? Camera.Target : null);
+        _monitorTargets = targets;
         SelectedCount = targets.Count;
         BeginMeshCacheFrame();
         UpdateVisibleCover(targets);
@@ -53,8 +55,10 @@ public sealed partial class GeoTerrainRenderSession
         }
         PendingCount = targets.Count(id => !_visibleMeshes.ContainsKey(id));
         Matrix4x4 projection = ViewProjection(width, height);
-        RenderDraw[] draws = CreateSelectionDraws(projection);
-        DrawCount = draws.Length;
+        RenderDraw[] surface = CreateSelectionDraws(projection);
+        RenderDraw[] contours = CreateContourDraws(projection);
+        RenderDraw[] draws = [..surface, ..contours];
+        DrawCount = surface.Length;
         TrimMeshCaches();
         if (!_firstSurfaceLogged && DrawCount > 0)
         {
@@ -62,6 +66,7 @@ public sealed partial class GeoTerrainRenderSession
             Notice?.Invoke("G-04-03B-R3：完整覆盖与局部父片兜底已启用");
             Notice?.Invoke($"G-04：首帧绘制 {DrawCount} 片，选片 {SelectedCount}，待细化 {PendingCount} 片");
         }
+        CaptureMonitorHistory();
         return draws;
     }
 }

@@ -72,6 +72,7 @@ public sealed partial class LogPanel : Border
         _list.KeyDown += OnListKeyDown;
         _metricsView.Content = _metrics;
         _metricsView.Padding = new Thickness(12, 8);
+        BuildTileMonitorLayout();
         var debugContent = new StackPanel { Spacing = 10,
             Margin = new Thickness(12, 8) };
         debugContent.Children.Add(_probe);

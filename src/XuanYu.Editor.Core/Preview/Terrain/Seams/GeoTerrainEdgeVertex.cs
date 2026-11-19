@@ -6,9 +6,7 @@ internal readonly record struct GeoTerrainEdgeVertex(Vector3 Position, Vector3 C
 {
     public static GeoTerrainEdgeVertex FromHeight(Vector3 position, double elevation)
     {
-        float t = Math.Clamp((float)((elevation + 100d) / 3000d), 0f, 1f);
-        return new(position, Vector3.Lerp(new(0.21f, 0.35f, 0.24f),
-            new(0.66f, 0.64f, 0.58f), t));
+        return new(position, TerrainColorPalette.Elevation(elevation));
     }
 
     public static GeoTerrainEdgeVertex Lerp(GeoTerrainEdgeVertex a,

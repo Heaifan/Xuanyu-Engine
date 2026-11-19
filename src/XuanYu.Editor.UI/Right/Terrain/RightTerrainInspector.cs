@@ -15,6 +15,7 @@ internal sealed partial class RightTerrainInspector : Border
     private bool _showMapInfo = true;
     private bool _showHeightField = true;
     private bool _showSource = true;
+    private bool _showContours = true;
 
     public RightTerrainInspector(Workbench wb)
     {

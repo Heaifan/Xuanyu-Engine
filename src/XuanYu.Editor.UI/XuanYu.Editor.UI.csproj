@@ -17,5 +17,6 @@
   </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets\Left\**\*.svg" />
+    <AvaloniaResource Include="Assets\Monitor\**\*.svg" />
   </ItemGroup>
 </Project>
