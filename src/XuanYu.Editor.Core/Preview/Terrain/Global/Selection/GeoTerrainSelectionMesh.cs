@@ -11,6 +11,9 @@ internal static partial class GeoTerrainSelectionMesh
         RenderMesh mesh, EnuFrame anchor, GeoTileBounds selected)
     {
         float[] data = mesh.Vertices.ToArray();
+        ReadOnlySpan<float> heights = mesh.TerrainElevations.Span;
+        for (int i = 0; i < heights.Length; i++)
+            data[i * 7 + 6] = heights[i];
         var inner = new List<float>();
         var outer = new List<float>();
         var points = new Dictionary<Vector3, GeoCoordinate>();
@@ -23,8 +26,11 @@ internal static partial class GeoTerrainSelectionMesh
         }
         if (inner.Count == 0) return (null, mesh);
         if (outer.Count == 0) return (mesh, null);
-        return (new RenderMesh(mesh.AssetId + "/dem-outline", inner.ToArray()),
-            new RenderMesh(mesh.AssetId + "/dem-rest", outer.ToArray()));
+        return (Part("/dem-outline", inner), Part("/dem-rest", outer));
+
+        RenderMesh Part(string suffix, List<float> packed) => mesh.TerrainElevations.IsEmpty
+            ? new RenderMesh(mesh.AssetId + suffix, System.Runtime.InteropServices.CollectionsMarshal.AsSpan(packed))
+            : RenderMesh.FromOpaqueTerrain(mesh.AssetId + suffix, System.Runtime.InteropServices.CollectionsMarshal.AsSpan(packed));
     }
 
     private static Vertex Read(float[] data, int i, EnuFrame anchor,

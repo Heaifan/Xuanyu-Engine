@@ -63,6 +63,7 @@ public sealed partial class GlobalCamera
     {
         if (!double.IsFinite(wheelSteps))
             throw new ArgumentOutOfRangeException(nameof(wheelSteps));
+        RestoreTerrainClearance();
         double previous = DistanceMeters;
         DistanceMeters = Math.Clamp(
             DistanceMeters * Math.Pow(0.85d, wheelSteps),
@@ -75,7 +76,7 @@ public sealed partial class GlobalCamera
         var frame = new EnuFrame(Target);
         EnuPosition point = frame.ToEnu(position);
         EnuPosition eye = frame.ToEnu(PositionEcef);
-        // 先以 double 相减，再转换 float，避免巨大 ECEF 坐标被截断。
+        // 先用 double 相减，再转 float，避免 ECEF 大坐标丢失精度。
         return new Vector3((float)(point.East - eye.East),
             (float)(point.North - eye.North),
             (float)(point.Up - eye.Up));

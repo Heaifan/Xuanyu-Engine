@@ -23,7 +23,10 @@ internal static class GeoTerrainFootprintMesh
             {
                 if (tile.TryBoundary(ys[y], xs[x], out GeoTerrainEdgeVertex? edge))
                     points[y * width + x] = edge;
-                else points[y * width + x] = GeoTerrainFootprintEdge.Sample(source, anchor, ys[y], xs[x]);
+                else if (GeoTerrainFootprintEdge.Sample(source, anchor, ys[y], xs[x]) is { } point)
+                    points[y * width + x] = native
+                        ? GeoTerrainFootprintTransition.Blend(tile, ys[y], xs[x], point)
+                        : point;
             }
         var data = new List<float>();
         for (int y = 0; y < height - 1; y++)
@@ -38,7 +41,7 @@ internal static class GeoTerrainFootprintMesh
             }
         if (data.Count == 0) return null;
         string asset = native ? $"terrain/g04/{sourceId}/{tile.Id}/footprint" : $"terrain/g02/{tile.Id}";
-        return new RenderMesh(asset, data.ToArray());
+        return RenderMesh.FromOpaqueTerrain(asset, System.Runtime.InteropServices.CollectionsMarshal.AsSpan(data));
     }
 
     private static void Triangle(List<float> output, GeoTerrainEdgeVertex? a,
@@ -51,6 +54,6 @@ internal static class GeoTerrainFootprintMesh
     private static void Write(List<float> output, GeoTerrainEdgeVertex v)
     {
         output.Add(v.Position.X); output.Add(v.Position.Y); output.Add(v.Position.Z);
-        output.Add(v.Color.X); output.Add(v.Color.Y); output.Add(v.Color.Z); output.Add(1f);
+        output.Add(v.Color.X); output.Add(v.Color.Y); output.Add(v.Color.Z); output.Add(v.Elevation);
     }
 }

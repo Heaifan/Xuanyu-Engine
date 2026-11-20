@@ -47,6 +47,17 @@ internal sealed unsafe class VkMeshBuffer : IDisposable
             fixed (float* source = mesh.Vertices.Span)
                 System.Buffer.MemoryCopy(
                     source, mapped, (long)bytes, (long)bytes);
+            // Opaque terrain uses the fourth GPU color component for DEM height.
+            // Other meshes keep their original RGBA values.
+            ReadOnlySpan<float> heights = mesh.TerrainElevations.Span;
+            for (int i = 0; i < heights.Length; i += 3)
+            {
+                // A level face has no contour crossing. Interpolating a nonzero
+                // constant can give fwidth a rounding-sized slope at isolated pixels.
+                bool level = heights[i] == heights[i + 1] && heights[i] == heights[i + 2];
+                for (int j = i; j < i + 3; j++)
+                    ((float*)mapped)[j * 7 + 6] = level ? 0f : heights[j];
+            }
             vk.UnmapMemory(device, _memory);
         }
         catch

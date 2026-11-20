@@ -39,6 +39,63 @@ public sealed class test_G05FootprintNative
         AssertSample(mesh!, anchor, right, 2300d);
     }
 
+    [Fact]
+    public void AdjacentNativeTiles_ShareRawRidgeOnTheirCommonEdge()
+    {
+        using var island = new G02BHgtFixture("N22E121");
+        using var north = new G02BHgtFixture("N23E121");
+        const int row = 273;
+        double latitude = 22d + row / 3600d;
+        var left = GeographicTileScheme.Find(new GeoCoordinate(latitude, 121.505d, 0d), 13);
+        double longitude = GeographicTileScheme.Bounds(left).EastLongitudeDegrees;
+        int column = (int)Math.Floor((longitude - 121d) * 3600d);
+        island.SetHeight(column, row, 700);
+        island.SetHeight(column + 1, row, 700);
+        var session = new GeoTerrainRenderSession(new NasademTileCatalog([island.Path, north.Path]),
+            16, useOverview: true);
+        var point = new GeoCoordinate(latitude, longitude, 0d);
+        session.Camera.FrameTop(point, 2000d);
+        var right = new GeoTileId(13, left.X + 1, left.Y);
+        RenderMesh[] pair = [];
+        for (int frame = 0; frame < 180 && pair.Length < 2; frame++)
+            pair = session.Draws(1280, 720).Select(d => d.Mesh).Where(m =>
+                m.AssetId.StartsWith("terrain/g04/", StringComparison.Ordinal) &&
+                (m.AssetId.Contains($"/{left}/") || m.AssetId.Contains($"/{right}/"))).ToArray();
+        Assert.Equal(2, pair.Length);
+        var anchor = new EnuFrame(new GeoCoordinate(23d, 121.5d, 0d));
+        foreach (var mesh in pair) AssertSample(mesh, anchor, point, 700d);
+    }
+
+    [Fact]
+    public void InheritedCoarseEdge_FirstNativeRowDoesNotFormSpur()
+    {
+        using var south = new G02BHgtFixture("N21E121");
+        using var island = new G02BHgtFixture("N22E121");
+        using var east = new G02BHgtFixture("N22E122");
+        GeoTileId id = new(13, 13724, 3091);
+        GeoTileBounds b = GeographicTileScheme.Bounds(id);
+        int column = (int)Math.Round((b.WestLongitudeDegrees + b.EastLongitudeDegrees - 242d) * 1800d);
+        island.SetHeight(column, 218, 100);
+        var session = new GeoTerrainRenderSession(south.Load(), island.Load(), east.Load());
+        session.Camera.FrameTop(new GeoCoordinate(b.SouthLatitudeDegrees + 0.001d,
+            (b.WestLongitudeDegrees + b.EastLongitudeDegrees) / 2d, 0d), 2000d);
+        RenderMesh? mesh = null;
+        for (int i = 0; i < 180 && mesh is null; i++)
+            mesh = session.Draws(1280, 720).Select(d => d.Mesh).FirstOrDefault(m =>
+                m.AssetId.StartsWith("terrain/g04/", StringComparison.Ordinal) && m.AssetId.Contains($"/{id}/"));
+        Assert.NotNull(mesh);
+        double steepest = 0d;
+        var v = mesh!.Vertices.Span;
+        for (int i = 0; i + 20 < v.Length; i += 21)
+            for (int e = 0; e < 3; e++)
+            {
+                int a = i + e * 7, c = i + ((e + 1) % 3) * 7;
+                double dx = v[a] - v[c], dy = v[a + 1] - v[c + 1];
+                steepest = Math.Max(steepest, Math.Abs(v[a + 2] - v[c + 2]) / Math.Max(Math.Sqrt(dx * dx + dy * dy), 0.01d));
+            }
+        Assert.True(steepest < 5d, $"Inherited edge creates a {steepest:F1}:1 slope.");
+    }
+
     private static void AssertSample(RenderMesh mesh, EnuFrame anchor, GeoCoordinate geo, double height)
     {
         EnuPosition flat = anchor.ToEnu(Wgs84.ToEcef(geo));

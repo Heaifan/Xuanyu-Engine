@@ -54,6 +54,7 @@ public sealed partial class GeoContourElevationTask
         return _row == _ys.Length - 1;
     }
 
-    public RenderMesh? Finish() => GeoContourPolyline.Build(
-        TileId, _segments, _anchor, _style);
+    public RenderMesh? Finish(RenderMesh? visibleSurface = null,
+        Action<string>? report = null) => GeoContourPolyline.Build(
+            TileId, _segments, _anchor, _style, visibleSurface, report);
 }

@@ -9,9 +9,12 @@ public static class GeoContourPolyline
     private readonly record struct Key(long Y, long X, int Level);
 
     public static RenderMesh? Build(GeoTileId tile, IReadOnlyList<GeoContourSegment> segments,
-        EnuFrame anchor, GeoContourStyle style)
+        EnuFrame anchor, GeoContourStyle style, RenderMesh? visibleSurface = null,
+        Action<string>? report = null)
     {
         if (segments.Count == 0) return null;
+        GeoContourSurface? surface = visibleSurface is null ? null : new(visibleSurface);
+        int paths = 0;
         var ends = new Dictionary<Key, List<int>>();
         for (int i = 0; i < segments.Count; i++)
         {
@@ -23,14 +26,19 @@ public static class GeoContourPolyline
         for (int i = 0; i < segments.Count; i++)
         {
             if (visited[i]) continue;
+            paths++;
             visited[i] = true;
             var path = new LinkedList<GeoContourCoordinate>();
             path.AddLast(segments[i].A);
             path.AddLast(segments[i].B);
             Extend(path, segments[i].Level, true, ends, segments, visited);
             Extend(path, segments[i].Level, false, ends, segments, visited);
-            GeoContourRibbon.Append(output, path.ToList(), segments[i].Level, anchor, style);
+            GeoContourRibbon.Append(output, path.ToList(), segments[i].Level,
+                anchor, style, surface);
         }
+        if (surface is not null && report is not null)
+            report(surface.DiagnosticSummary(tile.ToString(), segments.Count,
+                paths, output.Count / 21));
         return output.Count == 0 ? null : new RenderMesh(
             $"terrain/contour/{tile}/{style.IntervalMeters}/{style.WidthMeters}", output.ToArray());
     }

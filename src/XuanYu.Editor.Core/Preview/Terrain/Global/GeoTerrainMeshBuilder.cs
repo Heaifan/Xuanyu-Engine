@@ -38,7 +38,7 @@ public static partial class GeoTerrainMeshBuilder
         int side = tile.SamplesPerSide;
         var points = new Vector3[side * side];
         var valid = new bool[side * side];
-        var colors = new Vector3[side * side];
+        var colors = new Vector4[side * side];
         for (int row = 0; row < side; row++)
             for (int col = 0; col < side; col++)
             {
@@ -61,7 +61,7 @@ public static partial class GeoTerrainMeshBuilder
                     vertex = GeoTerrainEdgeSnap.Align(vertex, row, col,
                         tile.CellsPerEdge, bounds, neighbors, source, anchor, region);
                 points[index] = vertex.Position;
-                colors[index] = vertex.Color;
+                colors[index] = new(vertex.Color, vertex.Elevation);
                 valid[index] = true;
             }
 
@@ -77,6 +77,6 @@ public static partial class GeoTerrainMeshBuilder
                 AddTriangle(vertices, points, colors, valid, c, b, d);
             }
         return vertices.Count == 0 ? null :
-            new RenderMesh($"terrain/g02/{tile.Id}", vertices.ToArray());
+            RenderMesh.FromOpaqueTerrain($"terrain/g02/{tile.Id}", System.Runtime.InteropServices.CollectionsMarshal.AsSpan(vertices));
     }
 }

@@ -30,6 +30,16 @@ public sealed partial class ViewportSharedHost : Grid
     private bool _stopped;
     private Point _previous;
     public bool IsStopped => _stopped;
+    public async Task StopAsync()
+    {
+        _stopped = true;
+        _timer.Stop();
+        await _frame;
+        Console.WriteLine($"[G06/退出] {Environment.TickCount64} 最后一帧已结束");
+        await ReleaseTargetAsync(_image, _probe, _texture);
+        _image = null; _probe = null; _texture = null;
+        Console.WriteLine($"[G06/退出] {Environment.TickCount64} 共享目标已释放");
+    }
     public event Action<int, int>? Clicked;
 
     public (uint Width, uint Height) PixelSize

@@ -25,6 +25,7 @@ public sealed partial class GeoTerrainRenderSession
     {
         if (tiles.Length == 0) throw new ArgumentException("至少需要一张 HGT。", nameof(tiles));
         _source = source;
+        _collisionTiles = tiles;
         SourceCount = tiles.Length;
         _coverage = CreateCoverage(tiles);
         _regions = CreateRegions(tiles, _coverage);
@@ -42,7 +43,7 @@ public sealed partial class GeoTerrainRenderSession
         foreach (GeoTileId root in _coverRoots)
             _meshes.Add(root, BuildCoarseMesh(root));
         Camera = new GlobalCamera(center, InitialDistanceMeters);
-        Camera.SetTerrainCollision(SampleGroundHeight);
+        Camera.SetTerrainCollision(SampleGroundHeight, SampleFocusHeight, SweepZoom);
     }
 
     public NasademSourceResidency SourceResidency => _source.Residency;

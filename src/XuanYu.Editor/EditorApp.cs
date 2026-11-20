@@ -37,7 +37,12 @@ public sealed class EditorApp : Application
             desktop.MainWindow = probe
                 ? new WinSharedProbeWindow(_gpu!, workbench)
                 : new EditorWindow(workbench, _gpu);
-            desktop.Exit += (_, _) => _gpu?.Dispose();
+            desktop.Exit += (_, _) =>
+            {
+                Console.WriteLine($"[G06/退出] {Environment.TickCount64} 开始释放 Vulkan 设备");
+                _gpu?.Dispose();
+                Console.WriteLine($"[G06/退出] {Environment.TickCount64} Vulkan 设备已释放");
+            };
         }
         base.OnFrameworkInitializationCompleted();
     }

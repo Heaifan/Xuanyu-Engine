@@ -13,12 +13,17 @@ public sealed partial class EditorWindow
         {
             _sharedViewport = new ViewportSharedHost(vk, _wb);
             _sharedViewport.Clicked += OnViewportClicked;
+            bool closing = false, released = false;
             Closing += async (_, e) =>
             {
-                if (_sharedViewport.IsStopped) return;
+                if (released) return;
                 e.Cancel = true;
+                if (closing) return;
+                closing = true;
+                Console.WriteLine($"[G06/退出] {Environment.TickCount64} 收到关闭请求");
                 await _sharedViewport.StopAsync();
-                Close();
+                released = true;
+                Avalonia.Threading.Dispatcher.UIThread.Post(Close);
             };
             _wb.Log.Write("E3-06D：中央视口使用 Avalonia GPU 合成");
             return _sharedViewport;
