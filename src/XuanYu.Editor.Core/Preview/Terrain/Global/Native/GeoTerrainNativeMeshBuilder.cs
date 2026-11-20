@@ -33,7 +33,7 @@ public static partial class GeoTerrainNativeMeshBuilder
         double[] ys = Axis(south, north, ExtraLatitudes(bounds, edges));
         int width = xs.Length, height = ys.Length;
         var points = new Vector3[width * height];
-        var colors = new Vector3[width * height];
+        var colors = new Vector4[width * height];
         var valid = new bool[width * height];
         for (int y = 0; y < height; y++)
             for (int x = 0; x < width; x++)
@@ -50,7 +50,7 @@ public static partial class GeoTerrainNativeMeshBuilder
                     xs[x], ys[y], x, y, width, height);
                 if (border is not { } finalVertex) continue;
                 points[index] = finalVertex.Position;
-                colors[index] = finalVertex.Color;
+                colors[index] = new(finalVertex.Color, finalVertex.Elevation);
                 valid[index] = true;
             }
         var vertices = new List<float>();
@@ -63,7 +63,7 @@ public static partial class GeoTerrainNativeMeshBuilder
                 Triangle(vertices, points, colors, valid, a, d, c);
             }
         return vertices.Count == 0 ? null :
-            new RenderMesh($"terrain/g04/{sourceId}/{id}/{neighbors}",
-                vertices.ToArray());
+            RenderMesh.FromOpaqueTerrain($"terrain/g04/{sourceId}/{id}/{neighbors}",
+                System.Runtime.InteropServices.CollectionsMarshal.AsSpan(vertices));
     }
 }

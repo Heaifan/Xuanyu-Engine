@@ -8,19 +8,22 @@ internal sealed class GeoTerrainFootprintTile
     public GeoTileBounds Bounds { get; }
     // 北、南、西、东；横边从西到东，竖边从南到北。
     public GeoTerrainFootprintEdge[] Edges { get; }
+    public bool[] CoarseEdges { get; }
     public bool Adjusted { get; }
 
     public GeoTerrainFootprintTile(GeoTileId id, GeoTileBounds bounds,
-        GeoTerrainFootprintEdge[] edges, bool adjusted)
+        GeoTerrainFootprintEdge[] edges, bool[] coarseEdges, bool adjusted)
     {
         Id = id;
         Bounds = bounds;
         Edges = edges;
+        CoarseEdges = coarseEdges;
         Adjusted = adjusted;
     }
 
     public bool Matches(GeoTerrainFootprintTile other) => Id == other.Id &&
-        Adjusted == other.Adjusted && Edges.Zip(other.Edges).All(p => p.First.Matches(p.Second));
+        Adjusted == other.Adjusted && CoarseEdges.SequenceEqual(other.CoarseEdges) &&
+        Edges.Zip(other.Edges).All(p => p.First.Matches(p.Second));
 
     public bool TryBoundary(double latitude, double longitude, out GeoTerrainEdgeVertex? vertex)
     {

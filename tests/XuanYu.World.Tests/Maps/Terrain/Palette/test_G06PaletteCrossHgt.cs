@@ -47,6 +47,7 @@ public sealed class test_G06PaletteCrossHgt
             Vector3 color = new(data[i + 3], data[i + 4], data[i + 5]);
             Assert.InRange(Vector3.Distance(color, expected), 0f, 0.00002f);
             Assert.Equal(1f, data[i + 6]);
+            Assert.Equal((float)height, mesh.TerrainElevations.Span[i / 7], 2);
             return;
         }
         Assert.Fail($"未找到 HGT 原生采样顶点：{coordinate}");

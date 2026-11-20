@@ -6,24 +6,29 @@ namespace XuanYu.Editor.Preview.Terrain;
 public static class GeoContourRibbon
 {
     public static void Append(List<float> output, IReadOnlyList<GeoContourCoordinate> path,
-        int levelIndex, EnuFrame anchor, GeoContourStyle style)
+        int levelIndex, EnuFrame anchor, GeoContourStyle style,
+        GeoContourSurface? surface = null)
     {
         bool closed = path.Count > 2 && Near(path[0], path[^1]);
         int count = closed ? path.Count - 1 : path.Count;
         if (count < 2) return;
-        Vector3[] p = new Vector3[count];
+        Vector3[] projected = new Vector3[count];
         float level = levelIndex * style.IntervalMeters;
         for (int i = 0; i < count; i++)
         {
             var geo = path[i];
             EnuPosition enu = anchor.ToEnu(Wgs84.ToEcef(
                 new GeoCoordinate(geo.Latitude, geo.Longitude, 0d)));
-            p[i] = new((float)enu.East, (float)enu.North,
+            projected[i] = new((float)enu.East, (float)enu.North,
                 (float)(enu.Up + level) + style.LiftMeters);
         }
+        Vector3[] p = surface is null ? projected :
+            GeoContourSurfacePath.Densify(projected, closed, surface.SpacingMeters);
+        count = p.Length;
         bool major = levelIndex % 5 == 0;
         float radius = style.WidthMeters * (major ? 0.875f : 0.5f);
-        Vector2[] offsets = new Vector2[count];
+        Vector3?[] left = new Vector3?[count];
+        Vector3?[] right = new Vector3?[count];
         for (int i = 0; i < count; i++)
         {
             Vector2 incoming = Direction(p[(i - 1 + count) % count], p[i]);
@@ -36,7 +41,17 @@ public static class GeoContourRibbon
             if (miter.LengthSquared() < 1e-8f) miter = b;
             miter = Vector2.Normalize(miter);
             float dot = Vector2.Dot(miter, b);
-            offsets[i] = miter * (radius / MathF.Max(0.5f, dot));
+            Vector3 offset = new(miter * (radius / MathF.Max(0.5f, dot)), 0f);
+            Vector3 l = p[i] - offset, r = p[i] + offset;
+            if (surface is not null)
+            {
+                float? z = surface.HeightAt(p[i].X, p[i].Y, center: true);
+                if (z is not { } ground) continue;
+                l.Z = (surface.HeightAt(l.X, l.Y) ?? ground) + style.LiftMeters;
+                r.Z = (surface.HeightAt(r.X, r.Y) ?? ground) + style.LiftMeters;
+            }
+            left[i] = l;
+            right[i] = r;
         }
         Vector3 ink = new(0.12f, 0.16f, 0.14f);
         Vector3 baseColor = TerrainColorPalette.Elevation(
@@ -47,11 +62,15 @@ public static class GeoContourRibbon
         for (int i = 0; i < edges; i++)
         {
             int j = (i + 1) % count;
-            Vector3 a = p[i], b = p[j];
-            Vector3 oa = new(offsets[i], 0f), ob = new(offsets[j], 0f);
-            Write(output, a - oa, color); Write(output, b - ob, color);
-            Write(output, b + ob, color); Write(output, a - oa, color);
-            Write(output, b + ob, color); Write(output, a + oa, color);
+            if (left[i] is not { } a || right[i] is not { } b ||
+                left[j] is not { } c || right[j] is not { } d)
+            {
+                surface?.CountSkippedBand();
+                continue;
+            }
+            Write(output, a, color); Write(output, c, color);
+            Write(output, d, color); Write(output, a, color);
+            Write(output, d, color); Write(output, b, color);
         }
     }
 

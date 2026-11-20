@@ -27,6 +27,8 @@ internal static class GeoTerrainFootprintTopology
     {
         GeoTileBounds b = grid.Clip(id);
         var edges = new GeoTerrainFootprintEdge[4];
+        // 初始边统一来自 coarse 采样；仅 Native 邻接细化后才解除过渡。
+        var coarseEdges = new[] { true, true, true, true };
         bool adjusted = false;
         for (int side = 0; side < 4; side++)
         {
@@ -59,7 +61,7 @@ internal static class GeoTerrainFootprintTopology
             }
             edges[side] = new GeoTerrainFootprintEdge(knots, vertices);
         }
-        return new GeoTerrainFootprintTile(id, b, edges, adjusted);
+        return new GeoTerrainFootprintTile(id, b, edges, coarseEdges, adjusted);
     }
 
     private static GeoTerrainEdgeVertex? Corner(List<GeoTerrainFootprintTile> ready,

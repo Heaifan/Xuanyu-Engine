@@ -3,6 +3,12 @@ namespace XuanYu.Editor.Preview.Terrain;
 public readonly record struct GeoContourStyle(
     int IntervalMeters, float Opacity, float WidthMeters, float LiftMeters)
 {
+    public int NextIntervalMeters { get; init; } = IntervalMeters;
+    public float IntervalBlend { get; init; }
+
+    public float OpacityAtLod(int level) => Opacity *
+        Math.Clamp((level - 7f) / 2f, 0f, 1f);
+
     public static GeoContourStyle AtDistance(double distanceMeters)
     {
         int interval;
@@ -15,6 +21,22 @@ public readonly record struct GeoContourStyle(
         else (interval, opacity) = (1000, 0.18f);
         double raw = Math.Clamp(distanceMeters / 600d, 0.125d, 8192d);
         float width = (float)Math.Pow(2d, Math.Round(Math.Log2(raw)));
-        return new(interval, opacity, width, Math.Clamp(width * 0.22f, 0.25f, 12f));
+        var style = new GeoContourStyle(interval, opacity, width,
+            Math.Clamp(width * 0.22f, 0.25f, 12f));
+        (double threshold, int before, int after)[] transitions =
+        [
+            (2_500d, 20, 50), (7_500d, 50, 100), (20_000d, 100, 200),
+            (60_000d, 200, 500), (2_000_000d, 500, 1000)
+        ];
+        foreach (var (threshold, before, after) in transitions)
+        {
+            double start = threshold * 0.9d, end = threshold * 1.1d;
+            if (distanceMeters < start || distanceMeters > end) continue;
+            float t = (float)Math.Clamp((distanceMeters - start) / (end - start), 0d, 1d);
+            t = t * t * (3f - 2f * t);
+            return style with { IntervalMeters = before,
+                NextIntervalMeters = after, IntervalBlend = t };
+        }
+        return style with { NextIntervalMeters = interval };
     }
 }

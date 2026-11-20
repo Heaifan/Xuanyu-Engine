@@ -6,10 +6,13 @@ namespace XuanYu.Editor.Preview.Terrain;
 
 public sealed partial class GeoTerrainRenderSession
 {
+    private static readonly bool G06ShortNear =
+        Environment.GetEnvironmentVariable("XYE_G06_NEAR_TEST") == "1";
+
     public void ResetCamera()
     {
         Camera = new GlobalCamera(_anchor.Origin, InitialDistanceMeters);
-        Camera.SetTerrainCollision(SampleGroundHeight);
+        Camera.SetTerrainCollision(SampleGroundHeight, SampleFocusHeight, SweepZoom);
     }
 
     public void Navigate(float dx, float dy, float wheel, bool pan,
@@ -27,7 +30,7 @@ public sealed partial class GeoTerrainRenderSession
             var origin = new EnuFrame(Camera.Target);
             GeoCoordinate geo = Wgs84.ToGeo(origin.ToEcef(
                 new EnuPosition(east, north, 0d)));
-            Camera.Focus(new GeoCoordinate(geo.LatitudeDegrees,
+            Camera.FocusForCursorZoom(new GeoCoordinate(geo.LatitudeDegrees,
                 geo.LongitudeDegrees, 0d));
         }
         else
@@ -39,7 +42,7 @@ public sealed partial class GeoTerrainRenderSession
         get
         {
             GeoCoordinate eye = Wgs84.ToGeo(Camera.PositionEcef);
-            // 流式远景裁剪面只需派生高程，禁止每帧同步解码完整 HGT。
+            // 远景只取分级高程，禁止诊断时触发每帧同步解码 HGT。
             var sampler = StreamingEnabled && Camera.DistanceMeters > 20_000d
                 ? _source.CoarseFor(9) : _source;
             double ground = sampler.Sample(eye.LatitudeDegrees,
@@ -47,7 +50,8 @@ public sealed partial class GeoTerrainRenderSession
             double clearance = Math.Max(0d, eye.HeightMeters - ground);
             double near = Math.Min(Camera.DistanceMeters * 0.01d,
                 clearance * 0.25d);
-            return (float)Math.Max(0.5d, near);
+            float baseline = (float)Math.Max(0.5d, near);
+            return G06ShortNear ? Math.Max(0.05f, baseline * 0.1f) : baseline;
         }
     }
 

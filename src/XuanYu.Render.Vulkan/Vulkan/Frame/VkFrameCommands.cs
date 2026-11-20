@@ -56,16 +56,20 @@ internal static unsafe class VkFrameCommands
         ulong offset = 0;
         vk.CmdBindVertexBuffers(cmd, 0, 1, &buffer, &offset);
         var m = draw.ModelToClip;
-        float* push = stackalloc float[20]
+        float* push = stackalloc float[24]
         {
             m.M11, m.M12, m.M13, m.M14,
             m.M21, m.M22, m.M23, m.M24,
             m.M31, m.M32, m.M33, m.M34,
             m.M41, m.M42, m.M43, m.M44,
-            1f, 0.722f, 0.188f, outline ? 1f : 0f
+            1f, 0.722f, 0.188f, outline ? 1f : 0f,
+            outline ? 0f : draw.ContourIntervalMeters, draw.ContourOpacity,
+            draw.Mesh.TerrainElevations.IsEmpty ? 0f : 1f + draw.ContourIntervalBlend,
+            outline ? 0f : (draw.ContourNextIntervalMeters > 0f
+                ? draw.ContourNextIntervalMeters : draw.ContourIntervalMeters)
         };
         vk.CmdPushConstants(cmd, scene.Layout, ShaderStageFlags.VertexBit,
-            0, 80, push);
+            0, 96, push);
         vk.CmdDraw(cmd, (uint)draw.Mesh.VertexCount, 1, 0, 0);
     }
 

@@ -9,4 +9,8 @@ public readonly record struct RenderDraw(
     bool Selected)
 {
     public bool OutlineThroughOcclusion { get; init; }
+    public float ContourIntervalMeters { get; init; }
+    public float ContourNextIntervalMeters { get; init; }
+    public float ContourIntervalBlend { get; init; }
+    public float ContourOpacity { get; init; }
 }

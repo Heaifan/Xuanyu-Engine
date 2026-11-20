@@ -86,15 +86,11 @@ public sealed partial class ViewportSharedHost
         ICompositionImportedGpuImage? image, VkSharedColorProbe? probe,
         WinSharedTexture? texture)
     {
+        Console.WriteLine($"[G06/退出] {Environment.TickCount64} 开始释放合成图像");
         if (image is not null) await image.DisposeAsync();
+        Console.WriteLine($"[G06/退出] {Environment.TickCount64} 合成图像已释放，开始释放 Vulkan 目标");
         await Task.Run(() => { probe?.Dispose(); texture?.Dispose(); });
+        Console.WriteLine($"[G06/退出] {Environment.TickCount64} Vulkan 与 D3D 目标已释放");
     }
 
-    public async Task StopAsync()
-    {
-        _stopped = true; _timer.Stop();
-        await _frame;
-        await ReleaseTargetAsync(_image, _probe, _texture);
-        _image = null; _probe = null; _texture = null;
-    }
 }

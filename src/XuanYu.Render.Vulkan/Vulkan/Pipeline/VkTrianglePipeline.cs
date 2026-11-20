@@ -20,7 +20,7 @@ internal sealed unsafe class VkTrianglePipeline : IDisposable
         var range = new PushConstantRange
         {
             StageFlags = ShaderStageFlags.VertexBit,
-            Offset = 0, Size = 80
+            Offset = 0, Size = 96
         };
         var info = new PipelineLayoutCreateInfo
         {

@@ -7,6 +7,7 @@ public sealed class RenderMesh
 
     public string AssetId { get; }
     public ReadOnlyMemory<float> Vertices => _vertices;
+    public ReadOnlyMemory<float> TerrainElevations { get; private init; }
     public int VertexCount => _vertices.Length / 7;
     public int TriangleCount => VertexCount / 3;
 
@@ -23,5 +24,19 @@ public sealed class RenderMesh
 
         AssetId = assetId;
         _vertices = vertices.ToArray();
+    }
+
+    // Terrain builders submit opaque RGB vertices with the sampled elevation in slot seven.
+    // Keep the public RGBA layout intact for picking, selection and non-Vulkan consumers.
+    public static RenderMesh FromOpaqueTerrain(string assetId, ReadOnlySpan<float> packed)
+    {
+        var heights = new float[packed.Length / 7];
+        var mesh = new RenderMesh(assetId, packed) { TerrainElevations = heights };
+        for (int i = 0; i < heights.Length; i++)
+        {
+            heights[i] = mesh._vertices[i * 7 + 6];
+            mesh._vertices[i * 7 + 6] = 1f;
+        }
+        return mesh;
     }
 }
