@@ -43,6 +43,7 @@ internal sealed unsafe class VkFrameRenderer : IDisposable
         Check(wait, "等待上一帧");
         _scene.SyncMeshes(draws);
         _scene.SyncDem(draws, _queue, _family);
+        _scene.SyncWater(draws, _queue, _family);
         uint index = 0;
         Result acquired = _swapchain.Api.AcquireNextImage(
             _device, _swapchain.Handle, 0,

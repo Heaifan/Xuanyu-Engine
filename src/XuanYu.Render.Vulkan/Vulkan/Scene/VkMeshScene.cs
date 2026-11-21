@@ -84,6 +84,7 @@ internal sealed partial class VkMeshScene : IDisposable
 
     public void Dispose()
     {
+        DisposeWater();
         DisposeDem();
         foreach (VkMeshBuffer buffer in _buffers.Values) buffer.Dispose();
         _buffers.Clear();

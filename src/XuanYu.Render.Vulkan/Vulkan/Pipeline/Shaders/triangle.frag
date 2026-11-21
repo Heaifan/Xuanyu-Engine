@@ -1,4 +1,6 @@
 #version 450
+#extension GL_GOOGLE_include_directive : require
+#include "water.glsl"
 layout(set = 0, binding = 0) uniform isampler2D rawElevation;
 layout(location = 0) in vec4 shadedColor;
 layout(location = 1) in float elevation;
@@ -61,8 +63,7 @@ float legacyInk(float heightMeters, float intervalMeters) {
     return contourInk(level, fwidth(level));
 }
 
-void main() {
-    outColor = shadedColor;
+void shadeContours() {
     if (contourStyle.x <= 0.0 || contourStyle.y <= 0.0) return;
     bool next = contourStyle.z > 0.0 && contourStyle.w > 0.0;
     float ink;
@@ -80,4 +81,10 @@ void main() {
     }
     ink = clamp(ink * contourStyle.y, 0.0, 1.0);
     outColor.rgb = mix(shadedColor.rgb, ContourColor, ink);
+}
+
+void main() {
+    outColor = shadedColor;
+    shadeContours();
+    if (isSwbWater(waterUv)) outColor.rgb = WaterColor;
 }

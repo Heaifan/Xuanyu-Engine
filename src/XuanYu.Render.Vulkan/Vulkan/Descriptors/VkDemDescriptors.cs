@@ -30,12 +30,12 @@ internal sealed unsafe class VkDemDescriptors : IDisposable
             };
             Check(vk.CreateDescriptorSetLayout(device, &layout, null, out _layout));
             var size = new DescriptorPoolSize
-                { Type = DescriptorType.CombinedImageSampler, DescriptorCount = 13 };
+                { Type = DescriptorType.CombinedImageSampler, DescriptorCount = 14 };
             var pool = new DescriptorPoolCreateInfo
             {
                 SType = StructureType.DescriptorPoolCreateInfo,
                 Flags = DescriptorPoolCreateFlags.FreeDescriptorSetBit,
-                MaxSets = 13, PoolSizeCount = 1, PPoolSizes = &size
+                MaxSets = 14, PoolSizeCount = 1, PPoolSizes = &size
             };
             Check(vk.CreateDescriptorPool(device, &pool, null, out _pool));
         }

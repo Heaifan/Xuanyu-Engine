@@ -55,9 +55,16 @@ internal static unsafe class VkFrameCommands
         Silk.NET.Vulkan.Buffer buffer = scene.BufferFor(draw.Mesh);
         ulong offset = 0;
         vk.CmdBindVertexBuffers(cmd, 0, 1, &buffer, &offset);
-        bool raw = !outline && scene.BindDem(cmd, draw);
+        bool raw = scene.BindDem(cmd, draw) && !outline;
+        bool water = scene.BindWater(cmd, draw) && !outline;
+        float dx = 0f, dy = 0f;
+        if (raw && draw.WaterAtlas is { } atlas && draw.ResidentDem is { } dem)
+        {
+            dx = dem.WestLongitude - atlas.WestLongitude;
+            dy = atlas.SouthLatitude - dem.SouthLatitude;
+        }
         var m = draw.ModelToClip;
-        float* push = stackalloc float[24]
+        float* push = stackalloc float[28]
         {
             m.M11, m.M12, m.M13, m.M14,
             m.M21, m.M22, m.M23, m.M24,
@@ -68,10 +75,11 @@ internal static unsafe class VkFrameCommands
             draw.Mesh.TerrainElevations.IsEmpty ? 0f :
                 (raw ? 3f : 1f) + draw.ContourIntervalBlend,
             outline ? 0f : (draw.ContourNextIntervalMeters > 0f
-                ? draw.ContourNextIntervalMeters : draw.ContourIntervalMeters)
+                ? draw.ContourNextIntervalMeters : draw.ContourIntervalMeters),
+            dx, dy, water ? 1f : 0f, 0f
         };
         vk.CmdPushConstants(cmd, scene.Layout, ShaderStageFlags.VertexBit,
-            0, 96, push);
+            0, 112, push);
         vk.CmdDraw(cmd, (uint)draw.Mesh.VertexCount, 1, 0, 0);
     }
 

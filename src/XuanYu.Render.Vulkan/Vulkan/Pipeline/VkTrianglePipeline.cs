@@ -21,15 +21,16 @@ internal sealed unsafe class VkTrianglePipeline : IDisposable
         var range = new PushConstantRange
         {
             StageFlags = ShaderStageFlags.VertexBit,
-            Offset = 0, Size = 96
+            Offset = 0, Size = 112
         };
+        DescriptorSetLayout* layouts = stackalloc DescriptorSetLayout[2] { demLayout, demLayout };
         var info = new PipelineLayoutCreateInfo
         {
             SType = StructureType.PipelineLayoutCreateInfo,
             PushConstantRangeCount = 1,
             PPushConstantRanges = &range,
-            SetLayoutCount = 1,
-            PSetLayouts = &demLayout
+            SetLayoutCount = 2,
+            PSetLayouts = layouts
         };
         Result result = vk.CreatePipelineLayout(device, &info, null, out var layout);
         if (result != Result.Success)

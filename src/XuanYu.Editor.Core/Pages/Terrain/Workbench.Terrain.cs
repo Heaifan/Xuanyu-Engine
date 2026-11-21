@@ -34,12 +34,11 @@ public sealed partial class Workbench
         NasademTile tile = NasademHgtFile.Load(path);
         TerrainWaterMask? water = NasademWaterFile.Load(path, tile);
         MapDocument map = NasademPreviewBuilder.Create(tile, water);
-        SetTerrain(map, tile, path, null);
+        var geo = new GeoTerrainRenderSession(tile);
+        geo.LoadWater(tile, water);
+        SetTerrain(map, tile, path, null, geo);
         Log.Write($"G-03 NASADEM：{tile.TileId}，原始数据 {map.HeightField.SamplesX}×{map.HeightField.SamplesY}");
-        if (water is not null)
-            Log.Write("G-03：SWB 已导入地图文档，全球瓦片视口水体着色待接入");
-        else
-            Log.Write("G-03：未发现 SWB 数据，不猜测海洋");
+        Log.Write($"[G06/SWB] {geo.WaterStatus}");
     }
 
     public void OpenTerrainMap(string path)

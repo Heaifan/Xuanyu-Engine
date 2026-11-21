@@ -21,7 +21,7 @@ internal sealed partial class RightTerrainInspector
             AddPair("数据集", label);
             AddPair("原始栅格", "每片 3601 × 3601");
             AddPair("采样间距", "1 角秒（原始栅格）");
-            AddPair("水体着色", "待接入");
+            AddPair("水体着色", _wb.TerrainWaterStatus);
             AddPair("SWB 数据", $"已发现 {_wb.TerrainDemEntries.Count(t => t.HasWaterMask)}/{_wb.TerrainSourceCount} 片");
             if (_wb.TerrainGeoCoverage is { } coverage) AddBounds(coverage);
         }
@@ -45,7 +45,7 @@ internal sealed partial class RightTerrainInspector
             AddPair("最大高程", $"{summary.MaxElevation} m");
             AddPair("NoData", $"{summary.NoDataCount}");
         }
-        AddPair("SWB", entry.HasWaterMask ? "已发现（未加载）" : "未发现");
+        AddPair("SWB", entry.HasWaterMask ? "已发现" : "未发现");
     }
 
     private void AddBounds(GeoTileBounds bounds)

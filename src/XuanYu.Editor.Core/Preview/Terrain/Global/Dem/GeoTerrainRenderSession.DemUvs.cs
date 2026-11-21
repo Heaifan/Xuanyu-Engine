@@ -6,26 +6,30 @@ namespace XuanYu.Editor.Preview.Terrain;
 public sealed partial class GeoTerrainRenderSession
 {
     private readonly Dictionary<(RenderMesh Mesh, int South, int West), float[]> _demUvs = [];
-    private static readonly bool DemUvEnabled =
-        Environment.GetEnvironmentVariable("XYE_G06_DEM_CONTOUR") == "1";
 
     private void BindDemUvs(RenderDraw[] draws)
     {
-        if (Camera.DistanceMeters > 20_000d)
+        if (_waterAtlas is null && Camera.DistanceMeters > 20_000d)
         {
             _demUvs.Clear();
             return;
         }
         for (int i = 0; i < draws.Length; i++)
-            if (draws[i].ResidentDem is { } dem)
-                draws[i] = draws[i] with
-                    { DemUV = GetDemUvs(draws[i].Mesh, dem) };
+        {
+            RenderDraw draw = draws[i];
+            if (draw.Mesh.TerrainElevations.IsEmpty) continue;
+            if (_waterAtlas is { } water)
+                draws[i] = draw with { WaterAtlas = water,
+                    DemUV = GetDemUvs(draw.Mesh, water.SouthLatitude, water.WestLongitude) };
+            else if (draw.ResidentDem is { } dem)
+                draws[i] = draw with { DemUV = GetDemUvs(draw.Mesh, dem.SouthLatitude, dem.WestLongitude) };
+        }
         TrimDemUvs(draws);
     }
 
-    private ReadOnlyMemory<float> GetDemUvs(RenderMesh mesh, RenderDemTile tile)
+    private ReadOnlyMemory<float> GetDemUvs(RenderMesh mesh, int south, int west)
     {
-        var key = (mesh, tile.SouthLatitude, tile.WestLongitude);
+        var key = (mesh, south, west);
         if (_demUvs.TryGetValue(key, out float[]? saved)) return saved;
         ReadOnlySpan<float> vertices = mesh.Vertices.Span;
         ReadOnlySpan<float> elevations = mesh.TerrainElevations.Span;
@@ -41,8 +45,8 @@ public sealed partial class GeoTerrainRenderSession
                     vertices[p], vertices[p + 1], zeroUp)));
                 zeroUp -= geo.HeightMeters;
             }
-            uv[i * 2] = (float)(geo.LongitudeDegrees - tile.WestLongitude);
-            uv[i * 2 + 1] = (float)(tile.SouthLatitude + 1d - geo.LatitudeDegrees);
+            uv[i * 2] = (float)(geo.LongitudeDegrees - west);
+            uv[i * 2 + 1] = (float)(south + 1d - geo.LatitudeDegrees);
         }
         _demUvs.Add(key, uv);
         return uv;

@@ -15,4 +15,5 @@ public readonly record struct RenderDraw(
     public float ContourOpacity { get; init; }
     public RenderDemTile? ResidentDem { get; init; }
     public ReadOnlyMemory<float> DemUV { get; init; }
+    public RenderWaterAtlas? WaterAtlas { get; init; }
 }

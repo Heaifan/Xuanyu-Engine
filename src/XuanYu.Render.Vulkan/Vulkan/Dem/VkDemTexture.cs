@@ -24,6 +24,10 @@ internal sealed unsafe partial class VkDemTexture : IDisposable
         Queue queue, uint family) =>
         new(vk, gpu, device, queue, family, new short[1], 1);
 
+    public static VkDemTexture FromWaterAtlas(Vk vk, PhysicalDevice gpu, Device device,
+        Queue queue, uint family, RenderWaterAtlas atlas) =>
+        new(vk, gpu, device, queue, family, atlas.PackedSamples, (uint)atlas.Side);
+
     private VkDemTexture(Vk vk, PhysicalDevice gpu, Device device,
         Queue queue, uint family, ReadOnlyMemory<short> samples, uint side)
     {

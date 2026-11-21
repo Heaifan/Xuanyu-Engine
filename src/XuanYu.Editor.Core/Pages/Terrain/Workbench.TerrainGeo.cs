@@ -14,6 +14,7 @@ public sealed partial class Workbench
     public string? TerrainMultiSourceLabel => _geoPreview is { IsMultiSource: true } geo
         ? geo.SourceLabel : null;
     public int TerrainSourceCount => _geoPreview?.SourceCount ?? 0;
+    public string TerrainWaterStatus => _geoPreview?.WaterStatus ?? "未导入";
     public bool TerrainContoursEnabled => _geoPreview?.ContoursEnabled ?? false;
     public int TerrainContourInterval => _geoPreview?.ContourStyle.IntervalMeters ?? 0;
 
