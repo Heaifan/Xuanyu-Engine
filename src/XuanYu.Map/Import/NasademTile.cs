@@ -1,4 +1,3 @@
-
 namespace XuanYu.World.Maps;
 
 public sealed class NasademTile
@@ -15,6 +14,9 @@ public sealed class NasademTile
     public int NoDataCount { get; }
     public short MinElevation { get; }
     public short MaxElevation { get; }
+
+    // 内存从北向南排列；short.MinValue 为 NoData。
+    public ReadOnlyMemory<short> SamplesNorthToSouth => _samples;
 
     internal NasademTile(string id, int latitude, int longitude,
         short[] samples, int noData, short min, short max)

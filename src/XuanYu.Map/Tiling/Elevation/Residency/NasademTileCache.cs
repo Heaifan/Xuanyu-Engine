@@ -17,6 +17,7 @@ internal sealed partial class NasademTileCache
     }
 
     public NasademSourceResidency Stats => new(true, _capacity, _tiles.Count, _loaded, _evicted);
+    public NasademTile? FindResident(int south, int west) => Find((south, west));
 
     public NasademTile? Get(int south, int west)
     {

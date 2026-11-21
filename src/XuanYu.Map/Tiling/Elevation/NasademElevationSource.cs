@@ -32,6 +32,11 @@ public sealed partial class NasademElevationSource
         GetTile(south, west) is { } tile
             ? new NasademTileSummary(tile.MinElevation, tile.MaxElevation, tile.NoDataCount) : null;
 
+    // 缓存未命中时返回 null，绝不为渲染纹理同步读取 HGT。
+    public NasademTile? TryGetResidentTile(int south, int west) =>
+        _cache is null ? _tiles.GetValueOrDefault((south, west))
+            : _cache.FindResident(south, west);
+
     private NasademTile? GetTile(int south, int west) => _cache is not null
         ? _cache.Get(south, west) : _tiles.GetValueOrDefault((south, west));
 }
