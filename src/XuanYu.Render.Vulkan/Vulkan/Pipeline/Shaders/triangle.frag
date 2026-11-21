@@ -84,7 +84,8 @@ void shadeContours() {
 }
 
 void main() {
+    float water = swbWaterCoverage(waterUv);
     outColor = shadedColor;
     shadeContours();
-    if (isSwbWater(waterUv)) outColor.rgb = WaterColor;
+    outColor.rgb = mix(outColor.rgb, WaterColor, water);
 }
