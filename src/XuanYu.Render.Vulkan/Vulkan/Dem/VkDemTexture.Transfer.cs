@@ -55,7 +55,7 @@ internal sealed unsafe partial class VkDemTexture
             {
                 ImageSubresource = new ImageSubresourceLayers
                     { AspectMask = ImageAspectFlags.ColorBit, LayerCount = 1 },
-                ImageExtent = new Extent3D(3601, 3601, 1)
+                ImageExtent = new Extent3D(_side, _side, 1)
             };
             _vk.CmdCopyBufferToImage(cmd, staging, _image,
                 ImageLayout.TransferDstOptimal, 1, &region);
@@ -73,7 +73,7 @@ internal sealed unsafe partial class VkDemTexture
                 PCommandBuffers = &cmd
             };
             Check(_vk.QueueSubmit(queue, 1, &submit, default), "提交 DEM 纹理传输");
-            // 传输阶段使用一次性命令池，等待完成后才释放 Staging。
+            // 传输完成后再释放一次性命令池及 Staging。
             Check(_vk.QueueWaitIdle(queue), "等待 DEM 纹理传输完成");
         }
         finally

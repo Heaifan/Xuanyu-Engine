@@ -1,5 +1,4 @@
 using Silk.NET.Vulkan;
-using XuanYu.Render;
 
 namespace XuanYu.Render.Vulkan;
 
@@ -15,7 +14,7 @@ internal sealed unsafe partial class VkDemTexture
             SType = StructureType.ImageCreateInfo,
             ImageType = ImageType.Type2D,
             Format = Format.R16Sint,
-            Extent = new Extent3D(RenderDemTile.Side, RenderDemTile.Side, 1),
+            Extent = new Extent3D(_side, _side, 1),
             MipLevels = 1,
             ArrayLayers = 1,
             Samples = SampleCountFlags.Count1Bit,

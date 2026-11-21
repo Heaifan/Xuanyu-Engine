@@ -12,6 +12,7 @@ internal sealed partial class VkMeshScene : IDisposable
     private readonly VkTrianglePass _pass;
     private readonly VkTriangleTargets _targets;
     private readonly VkTrianglePipeline _pipeline;
+    private readonly VkDemDescriptors _descriptors;
     private readonly Dictionary<RenderMesh, VkMeshBuffer> _buffers = [];
     public RenderPass RenderPass => _pass.Handle;
     public Pipeline Pipeline => _pipeline.Handle;
@@ -36,20 +37,24 @@ internal sealed partial class VkMeshScene : IDisposable
         VkTrianglePass? pass = null;
         VkTriangleTargets? targets = null;
         VkTrianglePipeline? pipeline = null;
+        VkDemDescriptors? descriptors = null;
         try
         {
+            descriptors = new VkDemDescriptors(vk, device);
             pass = new VkTrianglePass(vk, device, format, offscreen);
             targets = new VkTriangleTargets(vk, gpu, device, extent, format, images, pass.Handle);
-            pipeline = new VkTrianglePipeline(vk, device, pass.Handle, extent);
+            pipeline = new VkTrianglePipeline(vk, device, pass.Handle, extent, descriptors.Layout);
             _pass = pass;
             _targets = targets;
             _pipeline = pipeline;
+            _descriptors = descriptors;
         }
         catch
         {
             pipeline?.Dispose();
             targets?.Dispose();
             pass?.Dispose();
+            descriptors?.Dispose();
             throw;
         }
     }
@@ -64,18 +69,26 @@ internal sealed partial class VkMeshScene : IDisposable
                 _buffers.Remove(old);
             }
         foreach (RenderDraw draw in draws)
-            if (draw.Visible && !_buffers.ContainsKey(draw.Mesh))
-                _buffers.Add(draw.Mesh,
-                    new VkMeshBuffer(_vk, _gpu, _device, draw.Mesh));
+        {
+            if (!draw.Visible) continue;
+            if (_buffers.TryGetValue(draw.Mesh, out var old))
+            {
+                if (old.Matches(draw.DemUV)) continue;
+                old.Dispose();
+                _buffers.Remove(draw.Mesh);
+            }
+            _buffers.Add(draw.Mesh,
+                new VkMeshBuffer(_vk, _gpu, _device, draw.Mesh, draw.DemUV));
+        }
     }
 
     public void Dispose()
     {
         DisposeDem();
-        foreach (VkMeshBuffer buffer in _buffers.Values)
-            buffer.Dispose();
+        foreach (VkMeshBuffer buffer in _buffers.Values) buffer.Dispose();
         _buffers.Clear();
         _pipeline.Dispose();
+        _descriptors.Dispose();
         _targets.Dispose();
         _pass.Dispose();
     }

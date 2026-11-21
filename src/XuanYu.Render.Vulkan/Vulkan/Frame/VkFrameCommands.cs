@@ -55,6 +55,7 @@ internal static unsafe class VkFrameCommands
         Silk.NET.Vulkan.Buffer buffer = scene.BufferFor(draw.Mesh);
         ulong offset = 0;
         vk.CmdBindVertexBuffers(cmd, 0, 1, &buffer, &offset);
+        bool raw = !outline && scene.BindDem(cmd, draw);
         var m = draw.ModelToClip;
         float* push = stackalloc float[24]
         {
@@ -64,7 +65,8 @@ internal static unsafe class VkFrameCommands
             m.M41, m.M42, m.M43, m.M44,
             1f, 0.722f, 0.188f, outline ? 1f : 0f,
             outline ? 0f : draw.ContourIntervalMeters, draw.ContourOpacity,
-            draw.Mesh.TerrainElevations.IsEmpty ? 0f : 1f + draw.ContourIntervalBlend,
+            draw.Mesh.TerrainElevations.IsEmpty ? 0f :
+                (raw ? 3f : 1f) + draw.ContourIntervalBlend,
             outline ? 0f : (draw.ContourNextIntervalMeters > 0f
                 ? draw.ContourNextIntervalMeters : draw.ContourIntervalMeters)
         };

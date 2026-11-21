@@ -1,23 +1,27 @@
-
 using Silk.NET.Vulkan;
 using XuanYu.Render;
 using VkBuffer = Silk.NET.Vulkan.Buffer;
 
 namespace XuanYu.Render.Vulkan;
 
-internal sealed unsafe class VkMeshBuffer : IDisposable
+internal sealed unsafe partial class VkMeshBuffer : IDisposable
 {
     private readonly Vk _vk;
     private readonly Device _device;
+    private readonly ReadOnlyMemory<float> _demUv;
     private VkBuffer _buffer;
     private DeviceMemory _memory;
     public VkBuffer Handle => _buffer;
+    public bool Matches(ReadOnlyMemory<float> next) =>
+        next.IsEmpty || _demUv.Equals(next);
 
-    public VkMeshBuffer(Vk vk, PhysicalDevice gpu, Device device, RenderMesh mesh)
+    public VkMeshBuffer(Vk vk, PhysicalDevice gpu, Device device,
+        RenderMesh mesh, ReadOnlyMemory<float> demUv)
     {
         _vk = vk;
         _device = device;
-        ulong bytes = (ulong)mesh.Vertices.Length * sizeof(float);
+        _demUv = demUv;
+        ulong bytes = (ulong)mesh.VertexCount * 9ul * sizeof(float);
         try
         {
             var info = new BufferCreateInfo
@@ -34,8 +38,7 @@ internal sealed unsafe class VkMeshBuffer : IDisposable
             {
                 SType = StructureType.MemoryAllocateInfo,
                 AllocationSize = requirements.Size,
-                MemoryTypeIndex = FindMemoryType(
-                    vk, gpu, requirements.MemoryTypeBits)
+                MemoryTypeIndex = FindMemoryType(vk, gpu, requirements.MemoryTypeBits)
             };
             Check(vk.AllocateMemory(device, &allocate, null, out _memory),
                 "分配顶点显存");
@@ -44,43 +47,22 @@ internal sealed unsafe class VkMeshBuffer : IDisposable
             void* mapped = null;
             Check(vk.MapMemory(device, _memory, 0, bytes, 0, &mapped),
                 "映射顶点显存");
-            fixed (float* source = mesh.Vertices.Span)
-                System.Buffer.MemoryCopy(
-                    source, mapped, (long)bytes, (long)bytes);
-            // Opaque terrain uses the fourth GPU color component for DEM height.
-            // Other meshes keep their original RGBA values.
-            ReadOnlySpan<float> heights = mesh.TerrainElevations.Span;
-            for (int i = 0; i < heights.Length; i += 3)
-            {
-                // A level face has no contour crossing. Interpolating a nonzero
-                // constant can give fwidth a rounding-sized slope at isolated pixels.
-                bool level = heights[i] == heights[i + 1] && heights[i] == heights[i + 2];
-                for (int j = i; j < i + 3; j++)
-                    ((float*)mapped)[j * 7 + 6] = level ? 0f : heights[j];
-            }
+            CopyVertices(mapped, mesh, demUv);
             vk.UnmapMemory(device, _memory);
         }
-        catch
-        {
-            Dispose();
-            throw;
-        }
+        catch { Dispose(); throw; }
     }
 
-    private static uint FindMemoryType(
-        Vk vk, PhysicalDevice gpu, uint allowed)
+    private static uint FindMemoryType(Vk vk, PhysicalDevice gpu, uint allowed)
     {
         vk.GetPhysicalDeviceMemoryProperties(gpu, out var props);
         const MemoryPropertyFlags wanted =
             MemoryPropertyFlags.HostVisibleBit | MemoryPropertyFlags.HostCoherentBit;
         for (uint i = 0; i < props.MemoryTypeCount; i++)
-        {
             if ((allowed & (1u << (int)i)) != 0 &&
                 (props.MemoryTypes[(int)i].PropertyFlags & wanted) == wanted)
                 return i;
-        }
-        throw new NotSupportedException(
-            "没有可用的 HostVisible/HostCoherent 顶点内存。");
+        throw new NotSupportedException("没有可用的 HostVisible/HostCoherent 顶点内存。");
     }
 
     private static void Check(Result result, string action)
@@ -91,10 +73,8 @@ internal sealed unsafe class VkMeshBuffer : IDisposable
 
     public void Dispose()
     {
-        if (_buffer.Handle != 0)
-            _vk.DestroyBuffer(_device, _buffer, null);
-        if (_memory.Handle != 0)
-            _vk.FreeMemory(_device, _memory, null);
+        if (_buffer.Handle != 0) _vk.DestroyBuffer(_device, _buffer, null);
+        if (_memory.Handle != 0) _vk.FreeMemory(_device, _memory, null);
         _buffer = default;
         _memory = default;
     }

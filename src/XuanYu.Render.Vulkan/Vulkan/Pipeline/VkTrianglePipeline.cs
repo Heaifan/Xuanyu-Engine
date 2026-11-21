@@ -13,7 +13,8 @@ internal sealed unsafe class VkTrianglePipeline : IDisposable
     public Pipeline OverlayMask { get; private set; }
     public Pipeline OverlayOutline { get; private set; }
 
-    public VkTrianglePipeline(Vk vk, Device device, RenderPass pass, Extent2D extent)
+    public VkTrianglePipeline(Vk vk, Device device, RenderPass pass,
+        Extent2D extent, DescriptorSetLayout demLayout)
     {
         _vk = vk;
         _device = device;
@@ -26,7 +27,9 @@ internal sealed unsafe class VkTrianglePipeline : IDisposable
         {
             SType = StructureType.PipelineLayoutCreateInfo,
             PushConstantRangeCount = 1,
-            PPushConstantRanges = &range
+            PPushConstantRanges = &range,
+            SetLayoutCount = 1,
+            PSetLayouts = &demLayout
         };
         Result result = vk.CreatePipelineLayout(device, &info, null, out var layout);
         if (result != Result.Success)

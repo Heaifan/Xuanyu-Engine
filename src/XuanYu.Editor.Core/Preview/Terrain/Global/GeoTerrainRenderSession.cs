@@ -57,6 +57,7 @@ public sealed partial class GeoTerrainRenderSession
         Matrix4x4 projection = ViewProjection(width, height);
         RenderDraw[] surface = CreateSelectionDraws(projection);
         BindResidentDem(surface);
+        BindDemUvs(surface);
         RenderDraw[] contours = CreateContourDraws(projection, surface);
         RenderDraw[] seams = CreateSeamDebugDraws(projection);
         RenderDraw[] draws = [..surface, ..contours, ..seams];
