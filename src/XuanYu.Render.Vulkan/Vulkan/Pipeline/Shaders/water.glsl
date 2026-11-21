@@ -29,33 +29,35 @@ float swbNeighbor(ivec2 p, ivec2 tile, ivec2 extent, int offset, int side) {
     return next >= 0 ? swbSample(p - shift * SwbCells, next, side)
                      : swbSample(clamp(p, ivec2(0), ivec2(SwbCells)), offset, side);
 }
-void swbWeights(float t, out vec4 w, out vec4 dw) {
-    float u = 1.0 - t, t2 = t * t, u2 = u * u;
-    float s = t2 * (3.0 - 2.0 * t), ds = 6.0 * t * u;
-    vec4 cubic = vec4(u2*u, 4.0 - 6.0*t2 + 3.0*t2*t,
-                      4.0 - 6.0*u2 + 3.0*u2*u, t2*t) / 6.0;
-    vec4 deriv = vec4(-3.0*u2, -12.0*t + 9.0*t2,
-                       12.0*u - 9.0*u2, 3.0*t2) / 6.0;
-    w = mix(vec4(0.0, 1.0-s, s, 0.0), cubic, 0.5);
-    dw = mix(vec4(0.0, -ds, ds, 0.0), deriv, 0.5);
+void swbWeights(float t, out vec2 w[6]) {
+    float u = 1.0 - t, t2 = t*t, u2 = u*u;
+    vec4 b = vec4(u2*u, 4.0 - 6.0*t2 + 3.0*t2*t,
+                  4.0 - 6.0*u2 + 3.0*u2*u, t2*t) / 6.0;
+    vec4 d = vec4(-3.0*u2, -12.0*t + 9.0*t2,
+                   12.0*u - 9.0*u2, 3.0*t2) / 6.0;
+    // Convolve the cubic basis with [1, 2, 1]/4; x is weight, y is derivative.
+    for (int i = 0; i < 6; ++i) w[i] = vec2(0.0);
+    for (int i = 0; i < 4; ++i) {
+        vec2 v = vec2(b[i], d[i]) * 0.25;
+        w[i] += v;
+        w[i + 1] += v * 2.0;
+        w[i + 2] += v;
+    }
 }
-vec3 swbField(vec4 center, ivec2 cell, vec2 t, ivec2 tile,
+vec3 swbField(vec4 core[4], ivec2 cell, vec2 t, ivec2 tile,
               ivec2 extent, int offset, int side) {
-    vec4 wx, wy, gx, gy;
-    swbWeights(t.x, wx, gx);
-    swbWeights(t.y, wy, gy);
+    vec2 wx[6], wy[6];
+    swbWeights(t.x, wx); swbWeights(t.y, wy);
     vec3 field = vec3(0.0);
-    for (int j = 0; j < 4; ++j) {
-        ivec2 p = cell + ivec2(-1, j - 1);
-        vec4 values;
-        values.x = swbNeighbor(p, tile, extent, offset, side);
-        values.w = swbNeighbor(p + ivec2(3, 0), tile, extent, offset, side);
-        if (j == 1) values.yz = center.xy;
-        else if (j == 2) values.yz = center.zw;
-        else values.yz = vec2(swbNeighbor(p + ivec2(1, 0), tile, extent, offset, side),
-                              swbNeighbor(p + ivec2(2, 0), tile, extent, offset, side));
-        float rowValue = dot(values, wx);
-        field += vec3(rowValue * wy[j], dot(values, gx) * wy[j], rowValue * gy[j]);
+    for (int j = 0; j < 6; ++j) {
+        vec2 rowField = vec2(0.0);
+        for (int i = 0; i < 6; ++i) {
+            float v;
+            if (i > 0 && i < 5 && j > 0 && j < 5) v = core[j - 1][i - 1];
+            else v = swbNeighbor(cell + ivec2(i - 2, j - 2), tile, extent, offset, side);
+            rowField += v * wx[i];
+        }
+        field += vec3(rowField * wy[j].x, rowField.x * wy[j].y);
     }
     return field;
 }
@@ -66,7 +68,7 @@ vec2 swbStyle(vec3 field, vec2 dx, vec2 dy) {
     float water = smoothstep(0.5 - width, 0.5 + width, field.x);
     float distancePx = delta / max(slope, 1e-5);
     float ink = 1.0 - smoothstep(0.15, 1.05, distancePx);
-    // Bound ink to mixed cells; fade subpixel shoreline detail in distant views.
+    // Bound ink to the shoreline field; fade subpixel detail in distant views.
     ink *= 1.0 - smoothstep(0.24, 0.32, delta);
     ink *= 1.0 - smoothstep(0.75, 2.0, max(length(dx), length(dy)));
     ink *= smoothstep(1e-6, 1e-5, slope);
@@ -84,10 +86,12 @@ vec2 swbWaterStyle(vec2 uv) {
     if (offset < 0) return vec2(0.0);
     vec2 grid = clamp(uv - vec2(tile), 0.0, 1.0) * float(SwbCells);
     ivec2 cell = min(ivec2(floor(grid)), ivec2(SwbCells - 1));
-    vec4 center = vec4(swbSample(cell, offset, side),
-                       swbSample(cell + ivec2(1,0), offset, side),
-                       swbSample(cell + ivec2(0,1), offset, side),
-                       swbSample(cell + ivec2(1,1), offset, side));
-    if (all(equal(center, vec4(center.x)))) return vec2(center.x, 0.0);
-    return swbStyle(swbField(center, cell, grid - vec2(cell), tile, extent, offset, side), dx, dy);
+    vec4 core[4];
+    for (int j = 0; j < 4; ++j)
+        for (int i = 0; i < 4; ++i)
+            core[j][i] = swbNeighbor(cell + ivec2(i - 1, j - 1), tile, extent, offset, side);
+    vec4 first = vec4(core[0].x);
+    if (all(equal(core[0], first)) && all(equal(core[1], first)) &&
+        all(equal(core[2], first)) && all(equal(core[3], first))) return vec2(first.x, 0.0);
+    return swbStyle(swbField(core, cell, grid - vec2(cell), tile, extent, offset, side), dx, dy);
 }
