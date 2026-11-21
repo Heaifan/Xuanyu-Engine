@@ -4,30 +4,37 @@ layout(location = 1) in float elevation;
 layout(location = 2) flat in vec4 contourStyle;
 layout(location = 0) out vec4 outColor;
 
+const float MinorWidthPx = 1.2;
+const float MajorWidthPx = 2.0;
+const float EdgeFeatherPx = 0.55;
+const vec3 ContourColor = vec3(0.12, 0.16, 0.14);
+
 float coverage(float level, float levelsPerPixel, float widthPixels) {
-    float distancePixels = abs(fract(level + 0.5) - 0.5) / max(levelsPerPixel, 1e-8);
+    float distancePixels = abs(fract(level + 0.5) - 0.5)
+        / max(levelsPerPixel, 1e-8);
     float halfWidth = widthPixels * 0.5;
-    float ink = 1.0 - smoothstep(halfWidth - 0.5, halfWidth + 0.5, distancePixels);
+    float ink = 1.0 - smoothstep(halfWidth - EdgeFeatherPx,
+        halfWidth + EdgeFeatherPx, distancePixels);
     return ink * (1.0 - smoothstep(0.20, 0.45, levelsPerPixel));
+}
+
+float contourInk(float heightMeters, float intervalMeters) {
+    float level = heightMeters / intervalMeters;
+    float slope = fwidth(level);
+    if (slope < 1e-7) return 0.0;
+    float minor = coverage(level, slope, MinorWidthPx);
+    float major = coverage(level / 5.0, slope / 5.0, MajorWidthPx);
+    return max(minor, min(major * 1.35, 1.0));
 }
 
 void main() {
     outColor = shadedColor;
     if (contourStyle.x <= 0.0 || contourStyle.y <= 0.0) return;
-    float level = elevation / contourStyle.x;
-    float slope = fwidth(level);
-    if (slope < 1e-7) return;
-    float minor = coverage(level, slope, 1.0);
-    float major = coverage(level / 5.0, slope / 5.0, 1.5);
-    float ink = max(minor, major * 1.8);
+    float ink = contourInk(elevation, contourStyle.x);
     if (contourStyle.z > 0.0 && contourStyle.w > 0.0) {
-        float nextLevel = elevation / contourStyle.z;
-        float nextSlope = fwidth(nextLevel);
-        float nextMinor = coverage(nextLevel, nextSlope, 1.0);
-        float nextMajor = coverage(nextLevel / 5.0, nextSlope / 5.0, 1.5);
-        float nextInk = max(nextMinor, nextMajor * 1.8);
-        ink = mix(ink, nextInk, contourStyle.w);
+        float nextInk = contourInk(elevation, contourStyle.z);
+        ink = mix(ink, nextInk, clamp(contourStyle.w, 0.0, 1.0));
     }
-    ink *= contourStyle.y;
-    outColor.rgb = mix(shadedColor.rgb, vec3(0.12, 0.16, 0.14), ink);
+    ink = clamp(ink * contourStyle.y, 0.0, 1.0);
+    outColor.rgb = mix(shadedColor.rgb, ContourColor, ink);
 }
