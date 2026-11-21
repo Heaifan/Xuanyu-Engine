@@ -56,6 +56,7 @@ public sealed partial class GeoTerrainRenderSession
         PendingCount = targets.Count(id => !_visibleMeshes.ContainsKey(id));
         Matrix4x4 projection = ViewProjection(width, height);
         RenderDraw[] surface = CreateSelectionDraws(projection);
+        BindResidentDem(surface);
         RenderDraw[] contours = CreateContourDraws(projection, surface);
         RenderDraw[] seams = CreateSeamDebugDraws(projection);
         RenderDraw[] draws = [..surface, ..contours, ..seams];

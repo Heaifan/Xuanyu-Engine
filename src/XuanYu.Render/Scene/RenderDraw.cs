@@ -13,4 +13,5 @@ public readonly record struct RenderDraw(
     public float ContourNextIntervalMeters { get; init; }
     public float ContourIntervalBlend { get; init; }
     public float ContourOpacity { get; init; }
+    public RenderDemTile? ResidentDem { get; init; }
 }
