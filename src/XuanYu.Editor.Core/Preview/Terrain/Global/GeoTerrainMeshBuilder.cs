@@ -36,9 +36,7 @@ public static partial class GeoTerrainMeshBuilder
                 return null;
         }
         int side = tile.SamplesPerSide;
-        var points = new Vector3[side * side];
-        var valid = new bool[side * side];
-        var colors = new Vector4[side * side];
+        var points = new GeoTerrainEdgeVertex?[side * side];
         for (int row = 0; row < side; row++)
             for (int col = 0; col < side; col++)
             {
@@ -53,16 +51,14 @@ public static partial class GeoTerrainMeshBuilder
                 if (height is not { } elevation) continue;
                 EnuPosition local = anchor.ToEnu(Wgs84.ToEcef(
                     new GeoCoordinate(latitude, longitude, 0d)));
-                int index = row * side + col;
                 Vector3 position = new((float)local.East, (float)local.North,
                     (float)(local.Up + elevation));
-                var vertex = GeoTerrainEdgeVertex.FromHeight(position, elevation);
+                var vertex = GeoTerrainEdgeVertex.FromHeight(position, elevation,
+                    source?.SampleSurfaceNormal(latitude, longitude));
                 if (source is not null && coverage is { } region && !neighbors.IsEmpty)
                     vertex = GeoTerrainEdgeSnap.Align(vertex, row, col,
                         tile.CellsPerEdge, bounds, neighbors, source, anchor, region);
-                points[index] = vertex.Position;
-                colors[index] = new(vertex.Color, vertex.Elevation);
-                valid[index] = true;
+                points[row * side + col] = vertex;
             }
 
         var vertices = new List<float>();
@@ -73,10 +69,10 @@ public static partial class GeoTerrainMeshBuilder
                 int b = (y + 1) * side + x;
                 int c = a + 1;
                 int d = b + 1;
-                AddTriangle(vertices, points, colors, valid, a, b, c);
-                AddTriangle(vertices, points, colors, valid, c, b, d);
+                AddTriangle(vertices, points, a, b, c);
+                AddTriangle(vertices, points, c, b, d);
             }
         return vertices.Count == 0 ? null :
-            RenderMesh.FromOpaqueTerrain($"terrain/g02/{tile.Id}", System.Runtime.InteropServices.CollectionsMarshal.AsSpan(vertices));
+            RenderMesh.FromLitTerrain($"terrain/g02/{tile.Id}", System.Runtime.InteropServices.CollectionsMarshal.AsSpan(vertices));
     }
 }

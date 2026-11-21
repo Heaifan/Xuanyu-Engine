@@ -32,9 +32,7 @@ public static partial class GeoTerrainNativeMeshBuilder
         double[] xs = Axis(west, east, ExtraLongitudes(bounds, edges));
         double[] ys = Axis(south, north, ExtraLatitudes(bounds, edges));
         int width = xs.Length, height = ys.Length;
-        var points = new Vector3[width * height];
-        var colors = new Vector4[width * height];
-        var valid = new bool[width * height];
+        var points = new GeoTerrainEdgeVertex?[width * height];
         for (int y = 0; y < height; y++)
             for (int x = 0; x < width; x++)
             {
@@ -44,14 +42,10 @@ public static partial class GeoTerrainNativeMeshBuilder
                     new GeoCoordinate(ys[y], xs[x], 0d)));
                 Vector3 position = new((float)p.East, (float)p.North,
                     (float)(p.Up + elevation));
-                int index = y * width + x;
-                var vertex = GeoTerrainEdgeVertex.FromHeight(position, elevation);
-                GeoTerrainEdgeVertex? border = BorderVertex(vertex, bounds, edges,
+                var vertex = GeoTerrainEdgeVertex.FromHeight(position, elevation,
+                    source.SampleSurfaceNormal(ys[y], xs[x]));
+                points[y * width + x] = BorderVertex(vertex, bounds, edges,
                     xs[x], ys[y], x, y, width, height);
-                if (border is not { } finalVertex) continue;
-                points[index] = finalVertex.Position;
-                colors[index] = new(finalVertex.Color, finalVertex.Elevation);
-                valid[index] = true;
             }
         var vertices = new List<float>();
         for (int y = 0; y < height - 1; y++)
@@ -59,11 +53,11 @@ public static partial class GeoTerrainNativeMeshBuilder
             {
                 int a = y * width + x, b = a + 1;
                 int c = a + width, d = c + 1;
-                Triangle(vertices, points, colors, valid, a, b, d);
-                Triangle(vertices, points, colors, valid, a, d, c);
+                Triangle(vertices, points, a, b, d);
+                Triangle(vertices, points, a, d, c);
             }
         return vertices.Count == 0 ? null :
-            RenderMesh.FromOpaqueTerrain($"terrain/g04/{sourceId}/{id}/{neighbors}",
+            RenderMesh.FromLitTerrain($"terrain/g04/{sourceId}/{id}/{neighbors}",
                 System.Runtime.InteropServices.CollectionsMarshal.AsSpan(vertices));
     }
 }

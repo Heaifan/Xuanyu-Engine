@@ -11,11 +11,12 @@ public sealed partial class NasademElevationSource
     public bool PrepareNativeRegion(GeoTileBounds bounds)
     {
         if (_cache is null) return true;
-        int south = Math.Max(-90, (int)Math.Ceiling(bounds.SouthLatitudeDegrees) - 1);
-        int north = Math.Min(89, (int)Math.Floor(bounds.NorthLatitudeDegrees));
-        int west = (int)Math.Ceiling(bounds.WestLongitudeDegrees) - 1;
-        int east = (int)Math.Floor(bounds.EastLongitudeDegrees);
-        // 边界点优先东/北源，缺失时回退西/南源；因此包含恰好接触的源片。
+        const double normalStep = 1d / 3600d;
+        int south = Math.Max(-90, (int)Math.Ceiling(bounds.SouthLatitudeDegrees - normalStep) - 1);
+        int north = Math.Min(89, (int)Math.Floor(bounds.NorthLatitudeDegrees + normalStep));
+        int west = (int)Math.Ceiling(bounds.WestLongitudeDegrees - normalStep) - 1;
+        int east = (int)Math.Floor(bounds.EastLongitudeDegrees + normalStep);
+        // 原始法线差分要读取边界外一角秒，沿用现有预取与日期变更线回绕。
         for (int y = south; y <= north; y++)
             for (int x = west; x <= east; x++)
             {

@@ -12,6 +12,7 @@ internal static partial class GeoTerrainSelectionMesh
     {
         float[] data = mesh.Vertices.ToArray();
         ReadOnlySpan<float> heights = mesh.TerrainElevations.Span;
+        ReadOnlySpan<float> shaded = mesh.TerrainShadedColors.Span;
         for (int i = 0; i < heights.Length; i++)
             data[i * 7 + 6] = heights[i];
         var inner = new List<float>();
@@ -19,21 +20,26 @@ internal static partial class GeoTerrainSelectionMesh
         var points = new Dictionary<Vector3, GeoCoordinate>();
         for (int i = 0; i < data.Length; i += 21)
         {
-            Vertex a = Read(data, i, anchor, points);
-            Vertex b = Read(data, i + 7, anchor, points);
-            Vertex c = Read(data, i + 14, anchor, points);
+            Vertex a = Read(data, shaded, i, anchor, points);
+            Vertex b = Read(data, shaded, i + 7, anchor, points);
+            Vertex c = Read(data, shaded, i + 14, anchor, points);
             ClipTriangle(inner, outer, a, b, c, selected);
         }
         if (inner.Count == 0) return (null, mesh);
         if (outer.Count == 0) return (mesh, null);
         return (Part("/dem-outline", inner), Part("/dem-rest", outer));
 
-        RenderMesh Part(string suffix, List<float> packed) => mesh.TerrainElevations.IsEmpty
-            ? new RenderMesh(mesh.AssetId + suffix, System.Runtime.InteropServices.CollectionsMarshal.AsSpan(packed))
-            : RenderMesh.FromOpaqueTerrain(mesh.AssetId + suffix, System.Runtime.InteropServices.CollectionsMarshal.AsSpan(packed));
+        RenderMesh Part(string suffix, List<float> packed)
+        {
+            var span = System.Runtime.InteropServices.CollectionsMarshal.AsSpan(packed);
+            string id = mesh.AssetId + suffix;
+            if (!mesh.TerrainShadedColors.IsEmpty) return RenderMesh.FromLitTerrain(id, span);
+            return mesh.TerrainElevations.IsEmpty ? new RenderMesh(id, span) :
+                RenderMesh.FromOpaqueTerrain(id, span);
+        }
     }
 
-    private static Vertex Read(float[] data, int i, EnuFrame anchor,
+    private static Vertex Read(float[] data, ReadOnlySpan<float> shaded, int i, EnuFrame anchor,
         Dictionary<Vector3, GeoCoordinate> points)
     {
         Vector3 p = new(data[i], data[i + 1], data[i + 2]);
@@ -48,24 +54,30 @@ internal static partial class GeoTerrainSelectionMesh
             }
             points.Add(p, geo);
         }
+        int s = i / 7 * 3;
+        Vector3? shade = shaded.IsEmpty ? null : new Vector3(shaded[s], shaded[s + 1], shaded[s + 2]);
         return new(p, new(data[i + 3], data[i + 4], data[i + 5]), data[i + 6],
-            geo.LatitudeDegrees, geo.LongitudeDegrees);
+            geo.LatitudeDegrees, geo.LongitudeDegrees, shade);
     }
 
     private static void Write(List<float> output, Vertex v)
     {
         output.Add(v.Position.X); output.Add(v.Position.Y); output.Add(v.Position.Z);
         output.Add(v.Color.X); output.Add(v.Color.Y); output.Add(v.Color.Z); output.Add(v.Alpha);
+        if (v.ShadedColor is { } shade)
+        { output.Add(shade.X); output.Add(shade.Y); output.Add(shade.Z); }
     }
 
     private readonly record struct Vertex(Vector3 Position, Vector3 Color,
-        float Alpha, double Latitude, double Longitude)
+        float Alpha, double Latitude, double Longitude, Vector3? ShadedColor)
     {
         public static Vertex Lerp(Vertex a, Vertex b, double t) => new(
             Vector3.Lerp(a.Position, b.Position, (float)t),
             Vector3.Lerp(a.Color, b.Color, (float)t),
             a.Alpha + (b.Alpha - a.Alpha) * (float)t,
             a.Latitude + (b.Latitude - a.Latitude) * t,
-            a.Longitude + (b.Longitude - a.Longitude) * t);
+            a.Longitude + (b.Longitude - a.Longitude) * t,
+            a.ShadedColor is { } left && b.ShadedColor is { } right
+                ? Vector3.Lerp(left, right, (float)t) : null);
     }
 }

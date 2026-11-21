@@ -15,6 +15,7 @@ internal static class GeoTerrainFootprintTransition
         double nearest = double.PositiveInfinity;
         double width = 0d;
         float inheritedHeight = point.Elevation;
+        Vector3 inheritedShade = point.ShadedColor;
         for (int side = 0; side < tile.CoarseEdges.Length; side++)
         {
             if (!tile.CoarseEdges[side]) continue;
@@ -29,12 +30,14 @@ internal static class GeoTerrainFootprintTransition
             nearest = distance;
             width = spacing;
             inheritedHeight = boundary.Elevation;
+            inheritedShade = boundary.ShadedColor;
         }
         if (!double.IsFinite(nearest)) return point;
         float t = (float)Math.Clamp(nearest / width, 0d, 1d);
         float elevation = float.Lerp(inheritedHeight, point.Elevation, t);
         Vector3 position = new(point.Position.X, point.Position.Y,
             point.Position.Z - point.Elevation + elevation);
-        return GeoTerrainEdgeVertex.FromHeight(position, elevation);
+        return GeoTerrainEdgeVertex.FromHeight(position, elevation) with
+        { ShadedColor = Vector3.Lerp(inheritedShade, point.ShadedColor, t) };
     }
 }

@@ -35,6 +35,7 @@ internal sealed class GeoTerrainFootprintEdge
         if (source.Sample(latitude, longitude) is not { } height) return null;
         EnuPosition p = anchor.ToEnu(Wgs84.ToEcef(new GeoCoordinate(latitude, longitude, 0d)));
         return GeoTerrainEdgeVertex.FromHeight(
-            new Vector3((float)p.East, (float)p.North, (float)(p.Up + height)), height);
+            new Vector3((float)p.East, (float)p.North, (float)(p.Up + height)), height,
+            source.SampleSurfaceNormal(latitude, longitude));
     }
 }

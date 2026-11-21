@@ -46,7 +46,7 @@ internal static class GeoTerrainEdgeSnap
         float fraction = (float)(scaled - first);
         GeoTerrainEdgeVertex? a = Sample(first);
         GeoTerrainEdgeVertex? b = Sample(first + 1);
-        // 贴边顶点必须沿同一粗边同时插值位置与已映射的颜色。
+        // 共边颜色包含原色与最终晕渲色，必须与几何共同插值。
         return a is { } left && b is { } right
             ? GeoTerrainEdgeVertex.Lerp(left, right, fraction) : point;
 
@@ -61,7 +61,8 @@ internal static class GeoTerrainEdgeSnap
                 new GeoCoordinate(lat, lon, 0d)));
             var vertex = new Vector3((float)p.East, (float)p.North,
                 (float)(p.Up + elevation.Value));
-            return GeoTerrainEdgeVertex.FromHeight(vertex, elevation.Value);
+            return GeoTerrainEdgeVertex.FromHeight(vertex, elevation.Value,
+                source.SampleSurfaceNormal(lat, lon));
         }
     }
 }

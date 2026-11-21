@@ -41,19 +41,13 @@ internal static class GeoTerrainFootprintMesh
             }
         if (data.Count == 0) return null;
         string asset = native ? $"terrain/g04/{sourceId}/{tile.Id}/footprint" : $"terrain/g02/{tile.Id}";
-        return RenderMesh.FromOpaqueTerrain(asset, System.Runtime.InteropServices.CollectionsMarshal.AsSpan(data));
+        return RenderMesh.FromLitTerrain(asset, System.Runtime.InteropServices.CollectionsMarshal.AsSpan(data));
     }
 
     private static void Triangle(List<float> output, GeoTerrainEdgeVertex? a,
         GeoTerrainEdgeVertex? b, GeoTerrainEdgeVertex? c)
     {
         if (a is not { } va || b is not { } vb || c is not { } vc) return;
-        Write(output, va); Write(output, vb); Write(output, vc);
-    }
-
-    private static void Write(List<float> output, GeoTerrainEdgeVertex v)
-    {
-        output.Add(v.Position.X); output.Add(v.Position.Y); output.Add(v.Position.Z);
-        output.Add(v.Color.X); output.Add(v.Color.Y); output.Add(v.Color.Z); output.Add(v.Elevation);
+        va.AppendTo(output); vb.AppendTo(output); vc.AppendTo(output);
     }
 }

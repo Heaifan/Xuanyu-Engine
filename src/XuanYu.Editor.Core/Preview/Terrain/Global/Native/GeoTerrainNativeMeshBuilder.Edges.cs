@@ -55,7 +55,8 @@ public static partial class GeoTerrainNativeMeshBuilder
                     new GeoCoordinate(latitude, longitude, 0d)));
                 var position = new Vector3((float)p.East,
                     (float)p.North, (float)(p.Up + elevation));
-                var vertex = GeoTerrainEdgeVertex.FromHeight(position, elevation);
+                var vertex = GeoTerrainEdgeVertex.FromHeight(position, elevation,
+                    source.SampleSurfaceNormal(latitude, longitude));
                 vertices[i] = GeoTerrainEdgeSnap.Align(vertex, row, col,
                     16, bounds, neighbors, source, anchor, coverage);
             }
