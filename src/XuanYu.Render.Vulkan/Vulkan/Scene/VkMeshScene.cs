@@ -4,7 +4,7 @@ using VkBuffer = Silk.NET.Vulkan.Buffer;
 
 namespace XuanYu.Render.Vulkan;
 
-internal sealed class VkMeshScene : IDisposable
+internal sealed partial class VkMeshScene : IDisposable
 {
     private readonly Vk _vk;
     private readonly Device _device;
@@ -71,6 +71,7 @@ internal sealed class VkMeshScene : IDisposable
 
     public void Dispose()
     {
+        DisposeDem();
         foreach (VkMeshBuffer buffer in _buffers.Values)
             buffer.Dispose();
         _buffers.Clear();

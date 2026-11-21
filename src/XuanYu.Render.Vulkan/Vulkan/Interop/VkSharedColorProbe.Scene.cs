@@ -13,6 +13,7 @@ public sealed unsafe partial class VkSharedColorProbe
             Format.R8G8B8A8Unorm, new Extent2D(width, height),
             new[] { _image }, true);
         _scene.SyncMeshes(draws);
+        _scene.SyncDem(draws, _queue, _family);
         VkFrameCommands.Record(_vk, _command, _scene, 0,
             new Extent2D(width, height), draws);
         Fence fence = _fence;

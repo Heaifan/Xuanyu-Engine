@@ -9,6 +9,7 @@ public sealed unsafe partial class VkSharedColorProbe : IDisposable
     private readonly PhysicalDevice _gpu;
     private readonly Device _device;
     private readonly Queue _queue;
+    private readonly uint _family;
     private Image _image;
     private DeviceMemory _memory;
     private CommandPool _pool;
@@ -18,7 +19,7 @@ public sealed unsafe partial class VkSharedColorProbe : IDisposable
     internal VkSharedColorProbe(Vk vk, Instance instance, PhysicalDevice gpu,
         Device device, Queue queue, uint family, nint handle, uint width, uint height)
     {
-        _vk = vk; _gpu = gpu; _device = device; _queue = queue;
+        _vk = vk; _gpu = gpu; _device = device; _queue = queue; _family = family;
         if (!vk.TryGetDeviceExtension<KhrExternalMemoryWin32>(instance, device, out var api))
             throw new NotSupportedException("VK_KHR_external_memory_win32 不可用");
         var external = new ExternalMemoryImageCreateInfo

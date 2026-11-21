@@ -1,4 +1,3 @@
-
 using Silk.NET.Vulkan;
 using XuanYu.Render;
 
@@ -9,6 +8,7 @@ internal sealed unsafe class VkFrameRenderer : IDisposable
     private readonly Vk _vk;
     private readonly Device _device;
     private readonly Queue _queue;
+    private readonly uint _family;
     private readonly VkSwapchain _swapchain;
     private readonly VkFrameResources _resources;
     private readonly VkMeshScene _scene;
@@ -19,6 +19,7 @@ internal sealed unsafe class VkFrameRenderer : IDisposable
         _vk = vk;
         _device = device;
         _queue = queue;
+        _family = family;
         _swapchain = swapchain;
         _scene = new VkMeshScene(vk, gpu, device, swapchain);
         try
@@ -41,6 +42,7 @@ internal sealed unsafe class VkFrameRenderer : IDisposable
             return Result.NotReady;
         Check(wait, "等待上一帧");
         _scene.SyncMeshes(draws);
+        _scene.SyncDem(draws, _queue, _family);
         uint index = 0;
         Result acquired = _swapchain.Api.AcquireNextImage(
             _device, _swapchain.Handle, 0,
