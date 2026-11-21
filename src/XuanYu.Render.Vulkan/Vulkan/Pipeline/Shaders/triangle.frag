@@ -84,8 +84,9 @@ void shadeContours() {
 }
 
 void main() {
-    float water = swbWaterCoverage(waterUv);
+    vec2 water = swbWaterStyle(waterUv);
     outColor = shadedColor;
     shadeContours();
-    outColor.rgb = mix(outColor.rgb, WaterColor, water);
+    outColor.rgb = mix(outColor.rgb, WaterColor, water.x);
+    outColor.rgb = mix(outColor.rgb, ShoreColor, water.y);
 }
