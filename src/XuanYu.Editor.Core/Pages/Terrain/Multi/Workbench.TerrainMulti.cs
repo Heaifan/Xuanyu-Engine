@@ -33,7 +33,8 @@ public sealed partial class Workbench
         Log.Write($"G-05D-03：流式原始高程已启用，Middle {geo.OverviewMiddleCount}/{geo.OverviewMiddleCapacity} 片，后台最多 1 个解码");
         Log.Write($"G-05D-02：首屏准备，高程驻留 {s.ResidentCount}/{s.Capacity} 片，数组 {s.ResidentBytes / 1048576d:F1} MiB，解码 {s.LoadCount} 次，淘汰 {s.EvictedCount} 次");
         Log.Write($"G-05BR：瓦片 {string.Join(", ", entries.Select(t => t.TileId))}");
-        Log.Write("G-05BR：仅预览已导入范围；多 HGT 暂不保存 XYMAP。");
+        Log.Write($"[G06/SWB] 已发现掩膜={entries.Count(t => t.HasWaterMask)}/{entries.Count}；仅索引，尚未着色");
+        Log.Write("G-05BR：仅预览已导入范围；多 HGT 暂不支持保存 XYMAP。");
         var report = TerrainDemCoverageReport.Check(catalog.Coordinates);
         Log.Write($"G-05BR2：外包矩形内未导入 {report.MissingCount} 片（不等于渲染缺片）");
         Log.Write(report.Holes.Count == 0 ? "G-05BR2：未发现被包围的内部缺口" :

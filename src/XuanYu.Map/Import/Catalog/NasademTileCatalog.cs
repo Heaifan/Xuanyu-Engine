@@ -34,6 +34,10 @@ public sealed class NasademTileCatalog
         return tile;
     }
 
+    public TerrainWaterMask? LoadWaterMask(int south, int west) =>
+        _entries.TryGetValue((south, west), out var entry)
+            ? NasademWaterFile.Load(entry.Path, entry.Info) : null;
+
     private static bool IsSupported(string path)
     {
         string extension = Path.GetExtension(path);

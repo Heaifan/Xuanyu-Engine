@@ -22,6 +22,7 @@ internal sealed partial class RightTerrainInspector
             AddPair("原始栅格", "每片 3601 × 3601");
             AddPair("采样间距", "1 角秒（原始栅格）");
             AddPair("水体着色", "待接入");
+            AddPair("SWB 数据", $"已发现 {_wb.TerrainDemEntries.Count(t => t.HasWaterMask)}/{_wb.TerrainSourceCount} 片");
             if (_wb.TerrainGeoCoverage is { } coverage) AddBounds(coverage);
         }
         AddContourControls();
