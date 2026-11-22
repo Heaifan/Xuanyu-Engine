@@ -60,6 +60,7 @@ public sealed partial class ViewportSharedHost : Grid
         ClipToBounds = true;
         Focusable = true;
         Children.Add(_scene);
+        Children.Add(_contourLabels);
         var navigation = new ViewportNavigationPanel
         {
             HorizontalAlignment = HorizontalAlignment.Right,

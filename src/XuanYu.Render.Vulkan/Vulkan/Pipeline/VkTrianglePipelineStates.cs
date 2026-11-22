@@ -17,19 +17,21 @@ internal static unsafe class VkTrianglePipelineStates
                 { SType = StructureType.PipelineShaderStageCreateInfo,
                   Stage = ShaderStageFlags.FragmentBit, Module = frag, PName = name };
             var binding = new VertexInputBindingDescription
-                { Binding = 0, Stride = 36, InputRate = VertexInputRate.Vertex };
-            VertexInputAttributeDescription* attrs = stackalloc VertexInputAttributeDescription[3];
+                { Binding = 0, Stride = VkMeshBuffer.VertexFloatCount * sizeof(float), InputRate = VertexInputRate.Vertex };
+            VertexInputAttributeDescription* attrs = stackalloc VertexInputAttributeDescription[4];
             attrs[0] = new VertexInputAttributeDescription
                 { Location = 0, Binding = 0, Format = Format.R32G32B32Sfloat, Offset = 0 };
             attrs[1] = new VertexInputAttributeDescription
                 { Location = 1, Binding = 0, Format = Format.R32G32B32A32Sfloat, Offset = 12 };
             attrs[2] = new VertexInputAttributeDescription
                 { Location = 2, Binding = 0, Format = Format.R32G32Sfloat, Offset = 28 };
+            attrs[3] = new VertexInputAttributeDescription
+                { Location = 3, Binding = 0, Format = Format.R32G32B32Sfloat, Offset = 36 };
             var input = new PipelineVertexInputStateCreateInfo
             {
                 SType = StructureType.PipelineVertexInputStateCreateInfo,
                 VertexBindingDescriptionCount = 1, PVertexBindingDescriptions = &binding,
-                VertexAttributeDescriptionCount = 3, PVertexAttributeDescriptions = attrs
+                VertexAttributeDescriptionCount = 4, PVertexAttributeDescriptions = attrs
             };
             var assembly = new PipelineInputAssemblyStateCreateInfo
                 { SType = StructureType.PipelineInputAssemblyStateCreateInfo,

@@ -32,7 +32,7 @@ internal static class VkFrameSelection
         if (selected.Length == 0) return;
         vk.CmdBindPipeline(cmd, PipelineBindPoint.Graphics, mask);
         foreach (RenderDraw draw in selected)
-            VkFrameCommands.DrawMesh(vk, cmd, scene, draw);
+            VkFrameCommands.DrawMesh(vk, cmd, scene, draw, mask: true);
 
         vk.CmdBindPipeline(cmd, PipelineBindPoint.Graphics, outline);
         foreach (RenderDraw draw in selected)

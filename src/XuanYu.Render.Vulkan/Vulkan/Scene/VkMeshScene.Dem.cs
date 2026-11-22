@@ -10,9 +10,11 @@ internal sealed partial class VkMeshScene
         (ReadOnlyMemory<short> Source, VkDemTexture Texture)> _demTextures = [];
     private VkDemTexture? _fallback;
     private bool _firstDemBindLogged;
-    private static readonly bool DemContourEnabled =
+    internal static readonly bool DemContourEnabled =
         Environment.GetEnvironmentVariable("XYE_G06_DEM_CONTOUR") == "1";
-    private static readonly bool DemUploadEnabled = DemContourEnabled ||
+    internal static readonly bool DemHillshadeEnabled =
+        Environment.GetEnvironmentVariable("XYE_G06_DEM_HILLSHADE") == "1";
+    private static readonly bool DemUploadEnabled = DemContourEnabled || DemHillshadeEnabled ||
         Environment.GetEnvironmentVariable("XYE_G06_DEM_UPLOAD") == "1";
 
     public void SyncDem(IReadOnlyList<RenderDraw> draws, Queue queue, uint family)

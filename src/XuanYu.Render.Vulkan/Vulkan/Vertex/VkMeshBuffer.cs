@@ -6,6 +6,7 @@ namespace XuanYu.Render.Vulkan;
 
 internal sealed unsafe partial class VkMeshBuffer : IDisposable
 {
+    internal const int VertexFloatCount = 12;
     private readonly Vk _vk;
     private readonly Device _device;
     private readonly ReadOnlyMemory<float> _demUv;
@@ -21,7 +22,7 @@ internal sealed unsafe partial class VkMeshBuffer : IDisposable
         _vk = vk;
         _device = device;
         _demUv = demUv;
-        ulong bytes = (ulong)mesh.VertexCount * 9ul * sizeof(float);
+        ulong bytes = (ulong)mesh.VertexCount * VertexFloatCount * sizeof(float);
         try
         {
             var info = new BufferCreateInfo

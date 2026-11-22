@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Numerics;
 using XuanYu.Core.Geodesy;
 using XuanYu.Editor.Camera;
@@ -16,6 +17,7 @@ public sealed partial class GeoTerrainRenderSession
     private readonly GeoTerrainFrameCache<GeoTileId, RenderMesh?> _meshes = new();
     private bool _firstSurfaceLogged;
     private bool _firstSafetyLogged;
+    private readonly bool _r02PerfEnabled = Environment.GetEnvironmentVariable("XYE_G06_PERF") == "1";
 
     public GlobalCamera Camera { get; private set; }
     public int SelectedCount { get; private set; }
@@ -47,6 +49,7 @@ public sealed partial class GeoTerrainRenderSession
         UpdateVisibleCover(targets);
         StitchVisibleTiles();
         UpdateNativeDetails();
+        UpdateRawGeometry();
         PrefetchCameraSources();
         if (Camera.RestoreTerrainClearance() && !_firstSafetyLogged)
         {
@@ -55,9 +58,7 @@ public sealed partial class GeoTerrainRenderSession
         }
         PendingCount = targets.Count(id => !_visibleMeshes.ContainsKey(id));
         Matrix4x4 projection = ViewProjection(width, height);
-        RenderDraw[] surface = CreateSelectionDraws(projection);
-        BindResidentDem(surface);
-        BindDemUvs(surface);
+        RenderDraw[] surface = PrepareSurface(projection);
         RenderDraw[] contours = CreateContourDraws(projection, surface);
         RenderDraw[] seams = CreateSeamDebugDraws(projection);
         RenderDraw[] draws = [..surface, ..contours, ..seams];
@@ -73,5 +74,20 @@ public sealed partial class GeoTerrainRenderSession
         }
         CaptureMonitorHistory();
         return draws;
+    }
+
+    private RenderDraw[] PrepareSurface(Matrix4x4 projection)
+    {
+        long start = _r02PerfEnabled ? Stopwatch.GetTimestamp() : 0;
+        RenderDraw[] surface = CreateSelectionDraws(projection);
+        double selectionMs = _r02PerfEnabled ? Stopwatch.GetElapsedTime(start).TotalMilliseconds : 0;
+        surface = BindResidentDem(surface);
+        start = _r02PerfEnabled ? Stopwatch.GetTimestamp() : 0;
+        BindDemUvs(surface);
+        double uvMs = _r02PerfEnabled ? Stopwatch.GetElapsedTime(start).TotalMilliseconds : 0;
+        if (_r02PerfEnabled && (_r02UvBuilds > 0 || selectionMs + uvMs >= 5d))
+            Notice?.Invoke($"[G06/R02] 帧={_monitorFrame} 选区={selectionMs:F1}ms UV={uvMs:F1}ms " +
+                $"新建UV={_r02UvBuilds} UV唯一反算={_r02UvReverseCount} Draw={surface.Length}");
+        return surface;
     }
 }

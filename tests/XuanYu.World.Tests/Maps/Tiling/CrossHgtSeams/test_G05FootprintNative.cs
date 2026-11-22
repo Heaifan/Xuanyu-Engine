@@ -4,7 +4,6 @@ using XuanYu.Core.Geodesy;
 using XuanYu.Editor.Preview.Terrain;
 using XuanYu.Render;
 using XuanYu.World.Maps;
-
 namespace XuanYu.World.Tests.Maps;
 
 public sealed class test_G05FootprintNative
@@ -20,8 +19,7 @@ public sealed class test_G05FootprintNative
         west.SetHeight(3598, 1801, 1300);
         east.SetHeight(2, 1801, 2300);
         var session = overview
-            ? new GeoTerrainRenderSession(new NasademTileCatalog([west.Path, east.Path, north.Path]),
-                16, useOverview: true)
+            ? new GeoTerrainRenderSession(new NasademTileCatalog([west.Path, east.Path, north.Path]), 16, useOverview: true)
             : new GeoTerrainRenderSession(west.Load(), east.Load(), north.Load());
         var anchor = new EnuFrame(new GeoCoordinate(24d, 121d, 0d));
         var left = new GeoCoordinate(23d + 1801d / 3600d, 120d + 3598d / 3600d, 0d);
@@ -29,16 +27,14 @@ public sealed class test_G05FootprintNative
         var id = GeographicTileScheme.Find(left, 13);
         Assert.Equal(id, GeographicTileScheme.Find(right, 13));
         session.Camera.FrameTop(new GeoCoordinate(23.5d, 121d, 0d), 1000d);
-        RenderMesh? mesh = null;
-        for (int i = 0; i < 150 && mesh is null; i++)
-            mesh = session.Draws(1280, 720).Select(d => d.Mesh).FirstOrDefault(m =>
-                m.AssetId.StartsWith("terrain/g04/", StringComparison.Ordinal) &&
-                m.AssetId.Contains($"/{id}/", StringComparison.Ordinal));
-        Assert.NotNull(mesh);
-        AssertSample(mesh!, anchor, left, 1300d);
-        AssertSample(mesh!, anchor, right, 2300d);
+        RenderMesh[] meshes = [];
+        for (int i = 0; i < 150 && meshes.Length == 0; i++)
+            meshes = session.Draws(1280, 720).Select(d => d.Mesh).Where(m =>
+                m.AssetId.StartsWith("terrain/g04/", StringComparison.Ordinal) && m.AssetId.Contains($"/{id}/", StringComparison.Ordinal)).ToArray();
+        Assert.NotEmpty(meshes);
+        AssertSample(meshes, anchor, left, 1300d);
+        AssertSample(meshes, anchor, right, 2300d);
     }
-
     [Fact]
     public void AdjacentNativeTiles_ShareRawRidgeOnTheirCommonEdge()
     {
@@ -63,9 +59,8 @@ public sealed class test_G05FootprintNative
                 (m.AssetId.Contains($"/{left}/") || m.AssetId.Contains($"/{right}/"))).ToArray();
         Assert.Equal(2, pair.Length);
         var anchor = new EnuFrame(new GeoCoordinate(23d, 121.5d, 0d));
-        foreach (var mesh in pair) AssertSample(mesh, anchor, point, 700d);
+        foreach (var mesh in pair) AssertSample([mesh], anchor, point, 700d);
     }
-
     [Fact]
     public void InheritedCoarseEdge_FirstNativeRowDoesNotFormSpur()
     {
@@ -95,13 +90,11 @@ public sealed class test_G05FootprintNative
             }
         Assert.True(steepest < 5d, $"Inherited edge creates a {steepest:F1}:1 slope.");
     }
-
-    private static void AssertSample(RenderMesh mesh, EnuFrame anchor, GeoCoordinate geo, double height)
+    private static void AssertSample(RenderMesh[] meshes, EnuFrame anchor, GeoCoordinate geo, double height)
     {
-        EnuPosition flat = anchor.ToEnu(Wgs84.ToEcef(geo));
-        Vector3 expected = new((float)flat.East, (float)flat.North, (float)(flat.Up + height));
-        float[] v = mesh.Vertices.ToArray();
-        Assert.Contains(Enumerable.Range(0, mesh.VertexCount), i =>
-            Vector3.Distance(new Vector3(v[i * 7], v[i * 7 + 1], v[i * 7 + 2]), expected) < 0.1f);
+        EnuPosition p = anchor.ToEnu(Wgs84.ToEcef(geo));
+        Vector3 expected = new((float)p.East, (float)p.North, (float)(p.Up + height));
+        Assert.Contains(meshes, mesh => Enumerable.Range(0, mesh.VertexCount).Any(i =>
+            Vector3.Distance(new Vector3(mesh.Vertices.Span[i * 7], mesh.Vertices.Span[i * 7 + 1], mesh.Vertices.Span[i * 7 + 2]), expected) < 0.1f));
     }
 }

@@ -50,21 +50,25 @@ internal static unsafe class VkFrameCommands
     }
 
     internal static void DrawMesh(Vk vk, CommandBuffer cmd, VkMeshScene scene,
-        RenderDraw draw, bool outline = false)
+        RenderDraw draw, bool outline = false, bool mask = false)
     {
         Silk.NET.Vulkan.Buffer buffer = scene.BufferFor(draw.Mesh);
         ulong offset = 0;
         vk.CmdBindVertexBuffers(cmd, 0, 1, &buffer, &offset);
-        bool raw = scene.BindDem(cmd, draw) && !outline;
+        bool hasDem = scene.BindDem(cmd, draw) && !outline;
+        bool raw = hasDem && VkMeshScene.DemContourEnabled && !draw.LegacyContourOnly;
         bool water = scene.BindWater(cmd, draw) && !outline;
+        float shadeSouth = hasDem && !mask && VkMeshScene.DemHillshadeEnabled &&
+            !draw.Mesh.TerrainShadedColors.IsEmpty && draw.ResidentDem is { } shadeDem
+            ? shadeDem.SouthLatitude + 91f : 0f;
         float dx = 0f, dy = 0f;
-        if (raw && draw.WaterAtlas is { } atlas && draw.ResidentDem is { } dem)
+        if (hasDem && draw.WaterAtlas is { } atlas && draw.ResidentDem is { } dem)
         {
             dx = dem.WestLongitude - atlas.WestLongitude;
             dy = atlas.SouthLatitude - dem.SouthLatitude;
         }
         var m = draw.ModelToClip;
-        float* push = stackalloc float[28]
+        float* push = stackalloc float[32]
         {
             m.M11, m.M12, m.M13, m.M14,
             m.M21, m.M22, m.M23, m.M24,
@@ -76,10 +80,12 @@ internal static unsafe class VkFrameCommands
                 (raw ? 3f : 1f) + draw.ContourIntervalBlend,
             outline ? 0f : (draw.ContourNextIntervalMeters > 0f
                 ? draw.ContourNextIntervalMeters : draw.ContourIntervalMeters),
-            dx, dy, water ? 1f : 0f, 0f
+            dx, dy, water ? 1f : 0f, shadeSouth,
+            draw.ContourLabelGap.X, draw.ContourLabelGap.Y,
+            draw.ContourLabelGap.Z, draw.ContourLabelGap.W
         };
-        vk.CmdPushConstants(cmd, scene.Layout, ShaderStageFlags.VertexBit,
-            0, 112, push);
+        vk.CmdPushConstants(cmd, scene.Layout, ShaderStageFlags.VertexBit | ShaderStageFlags.FragmentBit,
+            0, 128, push);
         vk.CmdDraw(cmd, (uint)draw.Mesh.VertexCount, 1, 0, 0);
     }
 

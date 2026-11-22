@@ -5,21 +5,24 @@ namespace XuanYu.Editor.Preview.Terrain;
 
 internal static partial class GeoTerrainSelectionMesh
 {
-    private static void ClipTriangle(List<float> selected, List<float> rest, Vertex a, Vertex b, Vertex c,
-        GeoTileBounds bounds)
+    private static void ClipTriangle(List<float> selected, List<float> rest,
+        List<double> selectedGeographic, List<double> restGeographic,
+        Vertex a, Vertex b, Vertex c, GeoTileBounds bounds)
     {
         // 粗 LOD 三角形可能跨 HGT 边界；切分只为区分轮廓选区，不重采样地形。
         for (int edge = 0; edge < 4; edge++)
             if (Side(a, bounds, edge) < 0 && Side(b, bounds, edge) < 0 &&
                 Side(c, bounds, edge) < 0)
             {
-                Write(rest, a); Write(rest, b); Write(rest, c);
+                Write(rest, restGeographic, a); Write(rest, restGeographic, b);
+                Write(rest, restGeographic, c);
                 return;
             }
         if (Enumerable.Range(0, 4).All(edge => Side(a, bounds, edge) >= 0 &&
             Side(b, bounds, edge) >= 0 && Side(c, bounds, edge) >= 0))
         {
-            Write(selected, a); Write(selected, b); Write(selected, c);
+            Write(selected, selectedGeographic, a); Write(selected, selectedGeographic, b);
+            Write(selected, selectedGeographic, c);
             return;
         }
         List<Vertex> inner = [a, b, c];
@@ -41,10 +44,10 @@ internal static partial class GeoTerrainSelectionMesh
                 previous = current;
                 from = to;
             }
-            WriteFan(rest, outer);
+            WriteFan(rest, restGeographic, outer);
             inner = next;
         }
-        WriteFan(selected, inner);
+        WriteFan(selected, selectedGeographic, inner);
     }
 
     private static double Side(Vertex v, GeoTileBounds b, int edge)
@@ -60,14 +63,23 @@ internal static partial class GeoTerrainSelectionMesh
         return Math.Abs(d) < 2e-7d ? 0d : d;
     }
 
-    private static void WriteFan(List<float> output, List<Vertex> polygon)
+    private static void WriteFan(List<float> output, List<double> geographic,
+        List<Vertex> polygon)
     {
         for (int i = 1; i + 1 < polygon.Count; i++)
         {
             Vertex a = polygon[0], b = polygon[i], c = polygon[i + 1];
             if (Vector3.Cross(b.Position - a.Position, c.Position - a.Position).LengthSquared() == 0f)
                 continue;
-            Write(output, a); Write(output, b); Write(output, c);
+            Write(output, geographic, a); Write(output, geographic, b);
+            Write(output, geographic, c);
         }
+    }
+
+    private static void Write(List<float> output, List<double> geographic, Vertex vertex)
+    {
+        Write(output, vertex);
+        geographic.Add(vertex.Longitude);
+        geographic.Add(vertex.Latitude);
     }
 }

@@ -8,12 +8,15 @@ layout(push_constant) uniform PushConstants {
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec4 color;
 layout(location = 2) in vec2 demUv;
+layout(location = 3) in vec3 baseColor;
 layout(location = 0) out vec4 shadedColor;
 layout(location = 1) out float elevation;
 layout(location = 2) flat out vec4 contourStyle;
 layout(location = 3) out vec2 rawUv;
 layout(location = 4) flat out int rawEnabled;
 layout(location = 5) out vec2 waterUv;
+layout(location = 6) out vec3 terrainBaseColor;
+layout(location = 7) flat out float shadeSouth;
 
 void main() {
     gl_Position = pc.mvp * vec4(position, 1.0);
@@ -28,4 +31,6 @@ void main() {
     rawUv = demUv - pc.water.xy;
     waterUv = terrain && pc.water.z > 0.0
         ? vec2(demUv.x, 1.0 - demUv.y) : vec2(-1.0);
+    terrainBaseColor = baseColor;
+    shadeSouth = terrain ? pc.water.w : 0.0;
 }

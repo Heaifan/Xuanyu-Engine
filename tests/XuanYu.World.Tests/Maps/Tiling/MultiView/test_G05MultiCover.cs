@@ -40,7 +40,10 @@ public sealed class test_G05MultiCover
         var draws = session.Draws(1280, 720);
         var ids = session.VisibleTileIds.ToHashSet();
         Assert.NotEmpty(draws);
-        Assert.Equal(ids.Count, draws.Count);
+        // DEM 分片继承原 AssetId，仅追加裁剪后缀；覆盖合同以逻辑瓦片为单位。
+        var groups = draws.GroupBy(d => d.Mesh.AssetId.Split("/dem-", StringSplitOptions.None)[0])
+            .ToDictionary(g => g.Key, g => g.ToArray());
+        Assert.Equal(ids.Count, groups.Count);
         Assert.All(draws, draw => Assert.True(draw.Mesh.TriangleCount > 0));
         double area = 0d;
         foreach (GeoTileId id in ids)
@@ -58,7 +61,12 @@ public sealed class test_G05MultiCover
                 Math.Max(bounds.WestLongitudeDegrees, region.WestLongitudeDegrees);
             Assert.True(lat > 0 && lon > 0);
             area += lat * lon;
-            Assert.Contains(draws, draw => draw.Mesh.AssetId == $"terrain/g02/{id}");
+            Assert.Contains($"terrain/g02/{id}", groups.Keys);
+            var parts = groups[$"terrain/g02/{id}"];
+            bool hillshade = Environment.GetEnvironmentVariable("XYE_G06_DEM_HILLSHADE") == "1";
+            Assert.InRange(parts.Length, 1, hillshade ? 4 : 1);
+            Assert.Equal(parts.Length, parts.Select(p => p.Mesh.AssetId).Distinct().Count());
+            if (parts.Length > 1) Assert.All(parts, part => Assert.True(part.LegacyContourOnly));
         }
         Assert.InRange(area, 2d - 1e-9d, 2d + 1e-9d);
     }

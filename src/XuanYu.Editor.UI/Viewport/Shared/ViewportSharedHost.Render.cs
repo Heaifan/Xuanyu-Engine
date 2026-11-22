@@ -28,10 +28,11 @@ public sealed partial class ViewportSharedHost
             var probe = next?.Probe ?? _probe!;
             var image = next?.Image ?? _image!;
             uint width = texture.Width, height = texture.Height;
-            var draws = _wb.ViewportDraws(width, height);
+            var draws = PrepareContourLabels(_wb.ViewportDraws(width, height), width, height);
             await Task.Run(() => probe.DrawScene(draws, width, height));
             await _scene.PresentWithKeyedMutexAsync(image, 1, 0);
             _scene.SetImageSize(width, height);
+            DisplayContourLabels();
 
             if (next is { } ready)
             {
@@ -92,5 +93,4 @@ public sealed partial class ViewportSharedHost
         await Task.Run(() => { probe?.Dispose(); texture?.Dispose(); });
         Console.WriteLine($"[G06/退出] {Environment.TickCount64} Vulkan 与 D3D 目标已释放");
     }
-
 }

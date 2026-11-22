@@ -30,10 +30,8 @@ public sealed class test_G05StreamingViewport
                     $"远景意外触发 Native：经度 {lon}，帧 {i}");
                 Assert.True(session.SourceResidency.LoadCount == 0,
                     $"Draws 触发原始 HGT：经度 {lon}，帧 {i}，" +
-                    $"眼点高程 {eye.HeightMeters:F1}m，" +
-                    $"解码 {session.SourceResidency.LoadCount}，" +
-                    $"后台完成 {session.BackgroundLoadCount}，" +
-                    $"在途 {session.RawPrefetchPending}");
+                    $"眼点高程 {eye.HeightMeters:F1}m，解码 {session.SourceResidency.LoadCount}，" +
+                    $"后台完成 {session.BackgroundLoadCount}，在途 {session.RawPrefetchPending}");
             }
         }
         Assert.False(session.RawPrefetchPending);
@@ -53,26 +51,33 @@ public sealed class test_G05StreamingViewport
         session.Camera.FrameTop(target, 1000d);
         var id = GeographicTileScheme.Find(target, 13);
         var anchor = new EnuFrame(new GeoCoordinate(24d, 121d, 0d));
-        XuanYu.Render.RenderMesh? mesh = null;
+        XuanYu.Render.RenderMesh[] meshes = [];
         Assert.True(SpinWait.SpinUntil(() =>
         {
             var draws = session.Draws(1280, 720);
             Assert.NotEmpty(draws);
-            mesh = draws.Select(d => d.Mesh).FirstOrDefault(m =>
+            meshes = draws.Select(d => d.Mesh).Where(m =>
                 m.AssetId.StartsWith("terrain/g04/", StringComparison.Ordinal) &&
-                m.AssetId.Contains($"/{id}/", StringComparison.Ordinal));
-            return mesh is not null;
+                m.AssetId.Contains($"/{id}/", StringComparison.Ordinal)).ToArray();
+            return meshes.Length > 0;
         }, TimeSpan.FromSeconds(30)));
-        Assert.NotNull(mesh);
+        Assert.NotEmpty(meshes);
         Assert.True(session.BackgroundLoadCount > 0);
         foreach (var (lon, h) in new[] { (120d + 3598d / 3600d, 1300d),
             (121d + 2d / 3600d, 2300d) })
         {
             var p = anchor.ToEnu(Wgs84.ToEcef(new GeoCoordinate(23d + 1801d / 3600d, lon, 0)));
             var expected = new System.Numerics.Vector3((float)p.East, (float)p.North, (float)(p.Up + h));
-            float[] v = mesh!.Vertices.ToArray();
-            Assert.Contains(Enumerable.Range(0, mesh.VertexCount), i =>
-                System.Numerics.Vector3.Distance(new(v[i * 7], v[i * 7 + 1], v[i * 7 + 2]), expected) < 0.1f);
+            Assert.Contains(meshes, mesh => ContainsSample(mesh, expected));
         }
+    }
+
+    private static bool ContainsSample(XuanYu.Render.RenderMesh mesh, System.Numerics.Vector3 expected)
+    {
+        var v = mesh.Vertices.Span;
+        for (int i = 0; i < v.Length; i += 7)
+            if (System.Numerics.Vector3.Distance(new(v[i], v[i + 1], v[i + 2]), expected) < 0.1f)
+                return true;
+        return false;
     }
 }

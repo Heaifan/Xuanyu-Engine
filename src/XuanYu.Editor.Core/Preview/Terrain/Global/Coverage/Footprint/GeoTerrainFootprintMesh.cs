@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using XuanYu.Core.Geodesy;
 using XuanYu.Render;
 using XuanYu.World.Maps;
@@ -29,6 +30,7 @@ internal static class GeoTerrainFootprintMesh
                         : point;
             }
         var data = new List<float>();
+        var geographic = new List<double>((width - 1) * (height - 1) * 12);
         for (int y = 0; y < height - 1; y++)
             for (int x = 0; x < width - 1; x++)
             {
@@ -36,18 +38,28 @@ internal static class GeoTerrainFootprintMesh
                 if (cut && !grid.Covers((ys[y] + ys[y + 1]) / 2d, (xs[x] + xs[x + 1]) / 2d))
                     continue;
                 int a = y * width + x, b0 = a + 1, c = a + width, d = c + 1;
-                Triangle(data, points[a], points[b0], points[d]);
-                Triangle(data, points[a], points[d], points[c]);
+                Triangle(a, b0, d);
+                Triangle(a, d, c);
             }
         if (data.Count == 0) return null;
         string asset = native ? $"terrain/g04/{sourceId}/{tile.Id}/footprint" : $"terrain/g02/{tile.Id}";
-        return RenderMesh.FromLitTerrain(asset, System.Runtime.InteropServices.CollectionsMarshal.AsSpan(data));
-    }
+        return RenderMesh.FromLitTerrain(asset, CollectionsMarshal.AsSpan(data),
+            CollectionsMarshal.AsSpan(geographic));
 
-    private static void Triangle(List<float> output, GeoTerrainEdgeVertex? a,
-        GeoTerrainEdgeVertex? b, GeoTerrainEdgeVertex? c)
-    {
-        if (a is not { } va || b is not { } vb || c is not { } vc) return;
-        va.AppendTo(output); vb.AppendTo(output); vc.AppendTo(output);
+        void Triangle(int a, int b, int c)
+        {
+            if (points[a] is not { } va || points[b] is not { } vb || points[c] is not { } vc) return;
+            Write(a, va); Write(b, vb); Write(c, vc);
+        }
+
+        void Write(int index, GeoTerrainEdgeVertex vertex)
+        {
+            vertex.AppendTo(data);
+            int x = index % width, y = index / width;
+            // 共边点可能是 ENU 线性插值结果，不能以名义格点替换原有 UV 反算。
+            bool boundary = x == 0 || x == width - 1 || y == 0 || y == height - 1;
+            geographic.Add(boundary ? double.NaN : xs[x]);
+            geographic.Add(boundary ? double.NaN : ys[y]);
+        }
     }
 }

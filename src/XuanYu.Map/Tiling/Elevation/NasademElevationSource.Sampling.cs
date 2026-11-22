@@ -23,6 +23,22 @@ public sealed partial class NasademElevationSource
         return null;
     }
 
+    // 标签只读取已驻留 HGT；绝不触发流式缓存同步解码。
+    public double? SampleResident(double latitudeDegrees, double longitudeDegrees)
+    {
+        int south = Math.Min(89, (int)Math.Floor(latitudeDegrees));
+        int west = (int)Math.Floor(longitudeDegrees);
+        if (TryGetResidentTile(south, west) is { } tile)
+            return Interpolate(tile, latitudeDegrees, longitudeDegrees);
+        if (latitudeDegrees == south && south > -90 &&
+            TryGetResidentTile(south - 1, west) is { } below)
+            return Interpolate(below, latitudeDegrees, longitudeDegrees);
+        if (longitudeDegrees == west &&
+            TryGetResidentTile(south, west == -180 ? 179 : west - 1) is { } left)
+            return Interpolate(left, latitudeDegrees, longitudeDegrees);
+        return null;
+    }
+
     private bool TryRead(int south, int west, double latitude, double longitude, out double? height)
     {
         double lon = longitude < west ? longitude + 360d : longitude;

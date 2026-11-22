@@ -25,6 +25,20 @@ internal sealed partial class RightTerrainInspector
                 _wb.SetTerrainContoursEnabled(toggle.IsChecked == true);
         };
         _rows.Children.Add(toggle);
+        var labels = new CheckBox
+        {
+            Content = "显示高程数值",
+            IsChecked = _wb.TerrainContourLabelsEnabled,
+            FontSize = 11,
+            Margin = new Thickness(8, 0, 8, 4),
+            Foreground = EditorTheme.TextMain
+        };
+        labels.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == ToggleButton.IsCheckedProperty)
+                _wb.SetTerrainContourLabelsEnabled(labels.IsChecked == true);
+        };
+        _rows.Children.Add(labels);
         AddPair("当前间距", $"{_wb.TerrainContourInterval} m");
         AddPair("显示规则", "六档自适应 · 远景淡化");
     }

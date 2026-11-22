@@ -13,37 +13,48 @@ internal static partial class GeoTerrainSelectionMesh
         float[] data = mesh.Vertices.ToArray();
         ReadOnlySpan<float> heights = mesh.TerrainElevations.Span;
         ReadOnlySpan<float> shaded = mesh.TerrainShadedColors.Span;
+        ReadOnlySpan<double> geographic = mesh.TerrainGeographicCoordinates.Span;
         for (int i = 0; i < heights.Length; i++)
             data[i * 7 + 6] = heights[i];
         var inner = new List<float>();
         var outer = new List<float>();
+        var innerGeographic = new List<double>();
+        var outerGeographic = new List<double>();
         var points = new Dictionary<Vector3, GeoCoordinate>();
         for (int i = 0; i < data.Length; i += 21)
         {
-            Vertex a = Read(data, shaded, i, anchor, points);
-            Vertex b = Read(data, shaded, i + 7, anchor, points);
-            Vertex c = Read(data, shaded, i + 14, anchor, points);
-            ClipTriangle(inner, outer, a, b, c, selected);
+            Vertex a = Read(data, shaded, geographic, i, anchor, points);
+            Vertex b = Read(data, shaded, geographic, i + 7, anchor, points);
+            Vertex c = Read(data, shaded, geographic, i + 14, anchor, points);
+            ClipTriangle(inner, outer, innerGeographic, outerGeographic, a, b, c, selected);
         }
         if (inner.Count == 0) return (null, mesh);
         if (outer.Count == 0) return (mesh, null);
-        return (Part("/dem-outline", inner), Part("/dem-rest", outer));
+        return (Part("/dem-outline", inner, innerGeographic),
+            Part("/dem-rest", outer, outerGeographic));
 
-        RenderMesh Part(string suffix, List<float> packed)
+        RenderMesh Part(string suffix, List<float> packed, List<double> coordinates)
         {
             var span = System.Runtime.InteropServices.CollectionsMarshal.AsSpan(packed);
+            var geographicSpan = System.Runtime.InteropServices.CollectionsMarshal.AsSpan(coordinates);
             string id = mesh.AssetId + suffix;
-            if (!mesh.TerrainShadedColors.IsEmpty) return RenderMesh.FromLitTerrain(id, span);
+            if (!mesh.TerrainShadedColors.IsEmpty)
+                return RenderMesh.FromLitTerrain(id, span, geographicSpan);
             return mesh.TerrainElevations.IsEmpty ? new RenderMesh(id, span) :
-                RenderMesh.FromOpaqueTerrain(id, span);
+                RenderMesh.FromOpaqueTerrain(id, span, geographicSpan);
         }
     }
 
-    private static Vertex Read(float[] data, ReadOnlySpan<float> shaded, int i, EnuFrame anchor,
+    private static Vertex Read(float[] data, ReadOnlySpan<float> shaded,
+        ReadOnlySpan<double> geographic, int i, EnuFrame anchor,
         Dictionary<Vector3, GeoCoordinate> points)
     {
         Vector3 p = new(data[i], data[i + 1], data[i + 2]);
-        if (!points.TryGetValue(p, out GeoCoordinate geo))
+        int coordinate = i / 7 * 2;
+        GeoCoordinate geo;
+        if (!geographic.IsEmpty && !double.IsNaN(geographic[coordinate]))
+            geo = new(geographic[coordinate + 1], geographic[coordinate], 0d);
+        else if (!points.TryGetValue(p, out geo))
         {
             double z = p.Z;
             // 地形以椭球零高程的 ENU XY 加高程构建；反求零高程经纬度避免山顶偏移。
