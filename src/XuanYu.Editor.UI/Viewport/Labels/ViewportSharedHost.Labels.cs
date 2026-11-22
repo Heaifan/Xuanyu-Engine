@@ -20,17 +20,12 @@ public sealed partial class ViewportSharedHost
         if (now - _lastContourLabelsAt >= 180)
         {
             _lastContourLabelsAt = now;
-            _wb.AttachTerrainContourGaps(draws, _worldLabels, width, height, scale,
-                out var retained, _contourLabels.MeasureWidth);
             var candidates = _wb.TerrainContourLabels(width, height);
-            var fresh = _wb.BindTerrainContourLabels(draws, candidates, width, height);
-            _worldLabels = retained.Concat(fresh.Where(label =>
-                !retained.Any(old => ReferenceEquals(old.Owner, label.Owner) ||
-                    old.ElevationMeters == label.ElevationMeters))).ToArray();
+            _worldLabels = _wb.BindTerrainContourLabels(
+                draws, candidates, width, height);
         }
         var result = _wb.AttachTerrainContourGaps(draws, _worldLabels, width, height,
             scale, out _screenLabels, _contourLabels.MeasureWidth);
-        _worldLabels = _screenLabels;
         return result;
     }
 
@@ -41,7 +36,7 @@ public sealed partial class ViewportSharedHost
         if (!_firstLabelsLogged && _screenLabels.Length > 0)
         {
             _firstLabelsLogged = true;
-            _wb.Log.Write($"[G06/R06B-F03] 真实等高线内嵌标高={_screenLabels.Length}");
+            _wb.Log.Write($"[G06/R06C] 同步标高={_screenLabels.Length}");
         }
     }
 }

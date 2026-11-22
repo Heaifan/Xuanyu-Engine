@@ -9,6 +9,7 @@ public readonly record struct GeoContourLabel(
 {
     public RenderMesh? Owner { get; init; }
     public float TangentUp { get; init; }
+    public int ContourId { get; init; }
 }
 
 internal static class GeoContourLabelLayout
@@ -23,12 +24,16 @@ internal static class GeoContourLabelLayout
             return dx * dx + dy * dy + MathF.Abs(point.AngleDegrees) * 0.00015f;
         });
         var accepted = new List<GeoContourLabel>();
+        var counts = new Dictionary<int, int>();
         foreach (var point in ordered)
         {
-            if (accepted.Any(old => MathF.Abs(point.X - old.X) < 30f &&
-                                    MathF.Abs(point.Y - old.Y) < 20f)) continue;
+            counts.TryGetValue(point.ContourId, out int count);
+            if (point.ContourId > 0 && count >= 3) continue;
+            if (accepted.Any(old => old.ContourId == point.ContourId &&
+                MathF.Abs(old.X - point.X) < 80f &&
+                MathF.Abs(old.Y - point.Y) < 30f)) continue;
             accepted.Add(point);
-            if (accepted.Count == 64) break;
+            if (point.ContourId > 0) counts[point.ContourId] = count + 1;
         }
         return accepted.ToArray();
     }

@@ -13,6 +13,7 @@ internal sealed partial class VkMeshScene : IDisposable
     private readonly VkTriangleTargets _targets;
     private readonly VkTrianglePipeline _pipeline;
     private readonly VkDemDescriptors _descriptors;
+    private readonly VkContourGapSet _contourGaps;
     private readonly Dictionary<RenderMesh, VkMeshBuffer> _buffers = [];
     public RenderPass RenderPass => _pass.Handle;
     public Pipeline Pipeline => _pipeline.Handle;
@@ -30,31 +31,28 @@ internal sealed partial class VkMeshScene : IDisposable
     public VkMeshScene(Vk vk, PhysicalDevice gpu, Device device,
         Format format, Extent2D extent, Image[] images, bool offscreen)
     {
-        _vk = vk;
-        _gpu = gpu;
-        _device = device;
+        _vk = vk; _gpu = gpu; _device = device;
         VkMsaaSettings.Validate(vk, gpu);
         VkTrianglePass? pass = null;
         VkTriangleTargets? targets = null;
         VkTrianglePipeline? pipeline = null;
         VkDemDescriptors? descriptors = null;
+        VkContourGapSet? contourGaps = null;
         try
         {
             descriptors = new VkDemDescriptors(vk, device);
+            contourGaps = new VkContourGapSet(vk, gpu, device);
             pass = new VkTrianglePass(vk, device, format, offscreen);
             targets = new VkTriangleTargets(vk, gpu, device, extent, format, images, pass.Handle);
-            pipeline = new VkTrianglePipeline(vk, device, pass.Handle, extent, descriptors.Layout);
-            _pass = pass;
-            _targets = targets;
-            _pipeline = pipeline;
-            _descriptors = descriptors;
+            pipeline = new VkTrianglePipeline(vk, device, pass.Handle, extent,
+                descriptors.Layout, contourGaps.Layout);
+            _pass = pass; _targets = targets; _pipeline = pipeline;
+            _descriptors = descriptors; _contourGaps = contourGaps;
         }
         catch
         {
-            pipeline?.Dispose();
-            targets?.Dispose();
-            pass?.Dispose();
-            descriptors?.Dispose();
+            pipeline?.Dispose(); targets?.Dispose(); pass?.Dispose();
+            contourGaps?.Dispose(); descriptors?.Dispose();
             throw;
         }
     }
@@ -84,13 +82,10 @@ internal sealed partial class VkMeshScene : IDisposable
 
     public void Dispose()
     {
-        DisposeWater();
-        DisposeDem();
+        DisposeWater(); DisposeDem();
         foreach (VkMeshBuffer buffer in _buffers.Values) buffer.Dispose();
         _buffers.Clear();
-        _pipeline.Dispose();
-        _descriptors.Dispose();
-        _targets.Dispose();
-        _pass.Dispose();
+        _pipeline.Dispose(); _contourGaps.Dispose();
+        _descriptors.Dispose(); _targets.Dispose(); _pass.Dispose();
     }
 }

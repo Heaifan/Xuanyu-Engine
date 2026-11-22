@@ -9,6 +9,7 @@ internal static unsafe class VkFrameCommands
         Vk vk, CommandBuffer command, VkMeshScene scene,
         uint imageIndex, Extent2D extent, IReadOnlyList<RenderDraw> draws)
     {
+        scene.SyncContourGaps(draws);
         Check(vk.ResetCommandBuffer(command, 0), "重置命令缓冲区");
         var begin = new CommandBufferBeginInfo
         {
@@ -56,6 +57,7 @@ internal static unsafe class VkFrameCommands
         ulong offset = 0;
         vk.CmdBindVertexBuffers(cmd, 0, 1, &buffer, &offset);
         bool hasDem = scene.BindDem(cmd, draw) && !outline;
+        var gaps = scene.BindContourGaps(cmd, draw);
         bool raw = hasDem && VkMeshScene.DemContourEnabled && !draw.LegacyContourOnly;
         bool water = scene.BindWater(cmd, draw) && !outline;
         float shadeSouth = hasDem && !mask && VkMeshScene.DemHillshadeEnabled &&
@@ -81,8 +83,7 @@ internal static unsafe class VkFrameCommands
             outline ? 0f : (draw.ContourNextIntervalMeters > 0f
                 ? draw.ContourNextIntervalMeters : draw.ContourIntervalMeters),
             dx, dy, water ? 1f : 0f, shadeSouth,
-            draw.ContourLabelGap.X, draw.ContourLabelGap.Y,
-            draw.ContourLabelGap.Z, draw.ContourLabelGap.W
+            gaps.First, outline || mask ? 0f : gaps.Count, 0f, 0f
         };
         vk.CmdPushConstants(cmd, scene.Layout, ShaderStageFlags.VertexBit | ShaderStageFlags.FragmentBit,
             0, 128, push);

@@ -5,7 +5,7 @@ namespace XuanYu.Editor.Preview.Terrain;
 
 internal static class GeoContourLabelGrid
 {
-    private const int Cells = 12;
+    private const int Cells = 28;
 
     public static GeoContourLabel[] Build(GeoCoordinate center, double distance,
         int majorInterval, Matrix4x4 projection, EnuFrame anchor,
@@ -13,7 +13,7 @@ internal static class GeoContourLabelGrid
     {
         var frame = new EnuFrame(new GeoCoordinate(
             center.LatitudeDegrees, center.LongitudeDegrees, 0d));
-        double radius = Math.Clamp(distance * 0.9d, 400d, 18_000d);
+        double radius = Math.Clamp(distance * 1.15d, 400d, 18_000d);
         var grid = new GeoContourLabelSample[Cells + 1, Cells + 1];
         for (int row = 0; row <= Cells; row++)
             for (int col = 0; col <= Cells; col++)
@@ -25,21 +25,32 @@ internal static class GeoContourLabelGrid
                 grid[row, col] = new(geo.LatitudeDegrees, geo.LongitudeDegrees,
                     sample(geo.LatitudeDegrees, geo.LongitudeDegrees));
             }
-        var candidates = new List<GeoContourLabel>();
+        var topology = new GeoContourLabelTopology();
         for (int row = 0; row <= Cells; row++)
             for (int col = 0; col <= Cells; col++)
             {
-                var point = grid[row, col];
-                if (col > 0 && GeoContourLabelProjection.TryCrossing(
-                    grid[row, col - 1], point, majorInterval, sample,
-                    anchor, projection, width, height, out var horizontal))
-                    candidates.Add(horizontal);
-                if (row > 0 && GeoContourLabelProjection.TryCrossing(
-                    grid[row - 1, col], point, majorInterval, sample,
-                    anchor, projection, width, height, out var vertical))
-                    candidates.Add(vertical);
+                if (col > 0) Scan(grid[row, col - 1], grid[row, col], row, col - 1, false);
+                if (row > 0) Scan(grid[row - 1, col], grid[row, col], row - 1, col, true);
             }
-        return GeoContourLabelLayout.Select(candidates, width, height);
+        for (int row = 0; row < Cells; row++)
+            for (int col = 0; col < Cells; col++)
+                topology.ConnectCell(grid, row, col, majorInterval);
+        return GeoContourLabelLayout.Select(topology.Candidates(), width, height);
+
+        void Scan(GeoContourLabelSample a, GeoContourLabelSample b,
+            int row, int col, bool vertical)
+        {
+            if (a.Height is not { } ah || b.Height is not { } bh) return;
+            int first = (int)Math.Floor(Math.Min(ah, bh) / majorInterval) + 1;
+            int last = (int)Math.Ceiling(Math.Max(ah, bh) / majorInterval) - 1;
+            for (int k = first; k <= last; k++)
+            {
+                int elevation = k * majorInterval;
+                bool found = GeoContourLabelProjection.TryCrossing(a, b, elevation,
+                    sample, anchor, projection, width, height, out var label);
+                topology.Add(new(row, col, vertical, elevation), found ? label : null);
+            }
+        }
     }
 }
 

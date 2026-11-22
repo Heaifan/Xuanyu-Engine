@@ -14,7 +14,8 @@ internal sealed unsafe class VkTrianglePipeline : IDisposable
     public Pipeline OverlayOutline { get; private set; }
 
     public VkTrianglePipeline(Vk vk, Device device, RenderPass pass,
-        Extent2D extent, DescriptorSetLayout demLayout)
+        Extent2D extent, DescriptorSetLayout demLayout,
+        DescriptorSetLayout contourGapLayout)
     {
         _vk = vk;
         _device = device;
@@ -23,14 +24,14 @@ internal sealed unsafe class VkTrianglePipeline : IDisposable
             StageFlags = ShaderStageFlags.VertexBit | ShaderStageFlags.FragmentBit,
             Offset = 0, Size = 128
         };
-        DescriptorSetLayout* layouts = stackalloc DescriptorSetLayout[2] { demLayout, demLayout };
+        DescriptorSetLayout* layouts = stackalloc DescriptorSetLayout[3]
+            { demLayout, demLayout, contourGapLayout };
         var info = new PipelineLayoutCreateInfo
         {
             SType = StructureType.PipelineLayoutCreateInfo,
             PushConstantRangeCount = 1,
             PPushConstantRanges = &range,
-            SetLayoutCount = 2,
-            PSetLayouts = layouts
+            SetLayoutCount = 3, PSetLayouts = layouts
         };
         Result result = vk.CreatePipelineLayout(device, &info, null, out var layout);
         if (result != Result.Success)
@@ -62,9 +63,6 @@ internal sealed unsafe class VkTrianglePipeline : IDisposable
         if (Layout.Handle != 0) _vk.DestroyPipelineLayout(_device, Layout, null);
         OverlayOutline = default;
         OverlayMask = default;
-        Outline = default;
-        Mask = default;
-        Handle = default;
-        Layout = default;
+        Mask = default; Outline = default; Handle = default; Layout = default;
     }
 }

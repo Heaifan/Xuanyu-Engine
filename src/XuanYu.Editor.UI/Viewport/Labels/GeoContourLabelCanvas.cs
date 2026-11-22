@@ -7,11 +7,16 @@ namespace XuanYu.Editor.UI;
 
 internal sealed class GeoContourLabelCanvas : Canvas
 {
-    private static readonly IBrush Ink = new SolidColorBrush(
-        Color.Parse("#505D4C"));
-    private readonly TextBlock[] _texts = new TextBlock[7];
+    private static readonly IBrush Ink = new SolidColorBrush(Color.Parse("#505D4C"));
+    private readonly List<TextBlock> _texts = [];
     private readonly TextBlock _measure = new() { FontSize = 10 };
     private readonly Dictionary<int, float> _widths = [];
+
+    public GeoContourLabelCanvas()
+    {
+        IsHitTestVisible = false;
+        ClipToBounds = true;
+    }
 
     public float MeasureWidth(int elevation)
     {
@@ -23,11 +28,9 @@ internal sealed class GeoContourLabelCanvas : Canvas
         return width;
     }
 
-    public GeoContourLabelCanvas()
+    public void Show(IReadOnlyList<GeoContourLabel> labels, double scale)
     {
-        IsHitTestVisible = false;
-        ClipToBounds = true;
-        for (int i = 0; i < _texts.Length; i++)
+        while (_texts.Count < labels.Count)
         {
             var text = new TextBlock
             {
@@ -37,14 +40,10 @@ internal sealed class GeoContourLabelCanvas : Canvas
                 RenderTransformOrigin = new RelativePoint(
                     0.5, 0.5, RelativeUnit.Relative)
             };
-            _texts[i] = text;
+            _texts.Add(text);
             Children.Add(text);
         }
-    }
-
-    public void Show(IReadOnlyList<GeoContourLabel> labels, double scale)
-    {
-        for (int i = 0; i < _texts.Length; i++)
+        for (int i = 0; i < _texts.Count; i++)
         {
             TextBlock text = _texts[i];
             text.IsVisible = i < labels.Count;

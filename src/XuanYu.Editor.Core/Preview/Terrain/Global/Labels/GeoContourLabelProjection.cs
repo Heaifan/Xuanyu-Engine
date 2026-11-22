@@ -6,17 +6,14 @@ namespace XuanYu.Editor.Preview.Terrain;
 internal static class GeoContourLabelProjection
 {
     public static bool TryCrossing(GeoContourLabelSample a, GeoContourLabelSample b,
-        int interval, Func<double, double, double?> sample, EnuFrame anchor,
+        int elevation, Func<double, double, double?> sample, EnuFrame anchor,
         Matrix4x4 projection, uint width, uint height, out GeoContourLabel label)
     {
         label = default;
-        if (a.Height is not { } first || b.Height is not { } last || first == last)
-            return false;
-        int elevation = (int)Math.Round((first + last) / (2d * interval)) * interval;
-        if (elevation <= Math.Min(first, last) || elevation >= Math.Max(first, last))
-            return false;
+        if (a.Height is not { } first || b.Height is not { } last || first == last ||
+            elevation <= Math.Min(first, last) || elevation >= Math.Max(first, last)) return false;
         double low = 0d, high = 1d;
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < 14; i++)
         {
             double t = (low + high) * 0.5d;
             double lat = a.Latitude + (b.Latitude - a.Latitude) * t;
@@ -29,8 +26,7 @@ internal static class GeoContourLabelProjection
         double ratio = (low + high) * 0.5d;
         double latitude = a.Latitude + (b.Latitude - a.Latitude) * ratio;
         double longitude = a.Longitude + (b.Longitude - a.Longitude) * ratio;
-        if (!TryTangent(latitude, longitude, sample, out Vector2 tangent))
-            return false;
+        if (!TryTangent(latitude, longitude, sample, out Vector2 tangent)) return false;
         EnuPosition local = anchor.ToEnu(Wgs84.ToEcef(
             new GeoCoordinate(latitude, longitude, 0d)));
         var point = new GeoContourLabel(0f, 0f, elevation, 0f,
@@ -60,15 +56,15 @@ internal static class GeoContourLabelProjection
     {
         point = default;
         Vector3 center = new(source.East, source.North, source.Up);
-        Vector3 tangent = new Vector3(source.TangentEast, source.TangentNorth, source.TangentUp) * 20f;
+        Vector3 tangent = new(source.TangentEast, source.TangentNorth, source.TangentUp);
+        tangent *= 20f;
         if (!Project(center, projection, width, height, out Vector2 p) ||
             !Project(center - tangent, projection, width, height, out Vector2 a) ||
-            !Project(center + tangent, projection, width, height, out Vector2 b))
-            return false;
+            !Project(center + tangent, projection, width, height, out Vector2 b)) return false;
         float angle = MathF.Atan2(b.Y - a.Y, b.X - a.X) * 180f / MathF.PI;
         if (angle > 90f) angle -= 180f;
         if (angle < -90f) angle += 180f;
-        if (MathF.Abs(angle) > 55f || p.X < 45f || p.X > width - 45f ||
+        if (MathF.Abs(angle) > 80f || p.X < 45f || p.X > width - 45f ||
             p.Y < 26f || p.Y > height - 26f ||
             (p.X > width - 110f && p.Y < 250f)) return false;
         point = source with { X = p.X, Y = p.Y, AngleDegrees = angle };

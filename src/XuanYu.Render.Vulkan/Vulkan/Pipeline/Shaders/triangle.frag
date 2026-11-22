@@ -2,6 +2,9 @@
 #extension GL_GOOGLE_include_directive : require
 #include "water.glsl"
 layout(set = 0, binding = 0) uniform isampler2D rawElevation;
+layout(set = 2, binding = 0, std430) readonly buffer ContourGaps {
+    vec4 entries[];
+} contourGaps;
 layout(location = 0) in vec4 shadedColor;
 layout(location = 1) in float elevation;
 layout(location = 2) flat in vec4 contourStyle;
@@ -38,8 +41,7 @@ bool sampleRaw(vec2 uv, out float h, out float heightSlope) {
     int b = texelFetch(rawElevation, cell + ivec2(1, 0), 0).r;
     int c = texelFetch(rawElevation, cell + ivec2(0, 1), 0).r;
     int d = texelFetch(rawElevation, cell + ivec2(1, 1), 0).r;
-    if (a == -32768 || b == -32768 || c == -32768 || d == -32768)
-        return false;
+    if (a == -32768 || b == -32768 || c == -32768 || d == -32768) return false;
     float fa = float(a), fb = float(b), fc = float(c), fd = float(d);
     h = mix(mix(fa, fb, t.x), mix(fc, fd, t.x), t.y);
     vec2 gradient = vec2(mix(fb - fa, fd - fc, t.y),
@@ -57,10 +59,18 @@ void shadeContours() {
     if (rawEnabled != 0) {
         float h, slope;
         if (!sampleRaw(rawUv, h, slope)) return;
-        bool gap = contourLabelGap(pc.label);
-        ink = labeledInk(h, slope, contourStyle.x, gap);
+        bool gap = false;
+        float gapElevation = 0.0;
+        for (int i = 0; i < int(pc.label.y); i++) {
+            vec4 entry = contourGaps.entries[int(pc.label.x) + i];
+            if (!contourLabelGap(entry)) continue;
+            gap = true;
+            gapElevation = entry.w;
+            break;
+        }
+        ink = labeledInk(h, slope, contourStyle.x, gap, gapElevation);
         if (next) ink = mix(ink,
-            labeledInk(h, slope, contourStyle.z, gap),
+            labeledInk(h, slope, contourStyle.z, gap, gapElevation),
             clamp(contourStyle.w, 0.0, 1.0));
     } else {
         ink = legacyInk(elevation, contourStyle.x);

@@ -16,7 +16,8 @@ public readonly record struct RenderDraw(
     public RenderDemTile? ResidentDem { get; init; }
     public ReadOnlyMemory<float> DemUV { get; init; }
     public RenderWaterAtlas? WaterAtlas { get; init; }
-    // 跨 HGT 渲染分片只升级晕渲，保留原来跨界等高线的 Legacy 语义。
+    // 跨 HGT 分片缺少原始 DEM 时仍允许回退旧等高线。
     public bool LegacyContourOnly { get; init; }
     public Vector4 ContourLabelGap { get; init; }
+    public ReadOnlyMemory<Vector4> ContourLabelGaps { get; init; }
 }
