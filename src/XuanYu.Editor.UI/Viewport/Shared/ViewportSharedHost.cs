@@ -61,6 +61,7 @@ public sealed partial class ViewportSharedHost : Grid
         Focusable = true;
         Children.Add(_scene);
         Children.Add(_contourLabels);
+        AttachGeoOverlays();
         var navigation = new ViewportNavigationPanel
         {
             HorizontalAlignment = HorizontalAlignment.Right,
@@ -83,6 +84,7 @@ public sealed partial class ViewportSharedHost : Grid
         PointerPressed += OnViewportPointerPressed;
         PointerMoved += OnViewportPointerMoved;
         PointerReleased += OnViewportPointerReleased;
+        PointerExited += (_, _) => { ToolTip.SetIsOpen(this, false); ClearGeoHudHover(); };
         PointerCaptureLost += (_, _) => _dragging = false;
         PointerWheelChanged += OnViewportWheel;
         KeyDown += OnViewportKeyDown;

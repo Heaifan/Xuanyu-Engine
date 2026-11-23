@@ -1,4 +1,3 @@
-
 using Avalonia.Controls;
 using XuanYu.Editor.Pages;
 using XuanYu.Editor.UI.Top.Persistence;
@@ -42,7 +41,7 @@ internal static class TopMenuBar
                 new()
                 {
                     Header = "视图",
-                    ItemsSource = new MenuItem[] { reset }
+                    ItemsSource = new MenuItem[] { reset, GeoOverlayViewMenu.Create(wb) }
                 },
                 new()
                 {

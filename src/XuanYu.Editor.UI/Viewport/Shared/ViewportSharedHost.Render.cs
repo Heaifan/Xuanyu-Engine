@@ -33,6 +33,8 @@ public sealed partial class ViewportSharedHost
             await _scene.PresentWithKeyedMutexAsync(image, 1, 0);
             _scene.SetImageSize(width, height);
             DisplayContourLabels();
+            UpdateGeoHudScale();
+            UpdateGeoMiniMap();
 
             if (next is { } ready)
             {

@@ -33,7 +33,7 @@ public sealed partial class ViewportSharedHost
     {
         if (_wb.IsGeoTerrainPreview)
         {
-            _wb.Log.Write("G-02F 瓦片预览：地理拾取尚未接入，切回 E4 可继续拾取");
+            _wb.Log.Write("G06 地理读数：请查看视口左下角 HUD；点击固定点尚未接入");
             return;
         }
         Vector3? hit = PickTerrainAtPointer(point);

@@ -20,6 +20,7 @@ public sealed partial class ViewportSharedHost
             _previous = e.GetPosition(this);
             e.Pointer.Capture(this);
             ToolTip.SetIsOpen(this, false);
+            ClearGeoHudHover();
             Focus();
             e.Handled = true;
         }
@@ -44,7 +45,10 @@ public sealed partial class ViewportSharedHost
         Point next = e.GetPosition(this);
         if (!_dragging)
         {
-            UpdateTerrainHover(next);
+            if (_wb.CurrentId == PageId.Terrain && _wb.IsGeoTerrainPreview)
+                UpdateGeoHudHover(next);
+            else
+                UpdateTerrainHover(next);
             return;
         }
 
@@ -62,6 +66,8 @@ public sealed partial class ViewportSharedHost
         if (!_dragging) return;
         _dragging = false;
         e.Pointer.Capture(null);
+        if (_wb.CurrentId == PageId.Terrain && _wb.IsGeoTerrainPreview)
+            UpdateGeoHudHover(e.GetPosition(this), force: true);
         e.Handled = true;
     }
 
@@ -74,6 +80,7 @@ public sealed partial class ViewportSharedHost
         OnCameraGesture(new ViewportCameraGesture(0, 0,
             (float)e.Delta.Y, false,
             (float)(cursor.X * scale), (float)(cursor.Y * scale)));
+        ClearGeoHudHover();
         e.Handled = true;
     }
 }
