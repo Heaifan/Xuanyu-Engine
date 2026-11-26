@@ -8,6 +8,9 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Vulkan/Pipeline/Shaders/*.spv" LogicalName="%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Vulkan/Terrain/Shaders/terrain.vert.spv" LogicalName="g07.terrain.vert.spv" />
+    <EmbeddedResource Include="Vulkan/Terrain/Shaders/terrain.frag.spv" LogicalName="g07.terrain.frag.spv" />
+    <EmbeddedResource Include="Vulkan/Terrain/Diagnostic/Shaders/terrain_probe.comp.spv" LogicalName="g07.terrain.probe.comp.spv" />
     <ProjectReference Include="..\XuanYu.Render\XuanYu.Render.csproj" />
   </ItemGroup>
 </Project>

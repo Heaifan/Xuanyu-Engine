@@ -12,7 +12,12 @@ internal sealed unsafe partial class VkMeshBuffer : IDisposable
     private readonly ReadOnlyMemory<float> _demUv;
     private VkBuffer _buffer;
     private DeviceMemory _memory;
+    private VkBuffer _indexBuffer;
+    private DeviceMemory _indexMemory;
     public VkBuffer Handle => _buffer;
+    public VkBuffer IndexHandle => _indexBuffer;
+    public bool IsIndexed => _indexBuffer.Handle != 0;
+    public uint IndexCount { get; private set; }
     public bool Matches(ReadOnlyMemory<float> next) =>
         next.IsEmpty || _demUv.Equals(next);
 
@@ -50,6 +55,7 @@ internal sealed unsafe partial class VkMeshBuffer : IDisposable
                 "映射顶点显存");
             CopyVertices(mapped, mesh, demUv);
             vk.UnmapMemory(device, _memory);
+            CreateIndices(gpu, mesh.Indices.Span);
         }
         catch { Dispose(); throw; }
     }
@@ -76,7 +82,11 @@ internal sealed unsafe partial class VkMeshBuffer : IDisposable
     {
         if (_buffer.Handle != 0) _vk.DestroyBuffer(_device, _buffer, null);
         if (_memory.Handle != 0) _vk.FreeMemory(_device, _memory, null);
+        if (_indexBuffer.Handle != 0) _vk.DestroyBuffer(_device, _indexBuffer, null);
+        if (_indexMemory.Handle != 0) _vk.FreeMemory(_device, _indexMemory, null);
         _buffer = default;
         _memory = default;
+        _indexBuffer = default;
+        _indexMemory = default;
     }
 }

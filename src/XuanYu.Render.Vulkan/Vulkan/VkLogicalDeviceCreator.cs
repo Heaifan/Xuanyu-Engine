@@ -7,7 +7,7 @@ namespace XuanYu.Render.Vulkan;
 internal static unsafe class VkLogicalDeviceCreator
 {
     public static (Device Device, Queue Queue) Create(
-        Vk vk, PhysicalDevice physicalDevice, uint family)
+        Vk vk, PhysicalDevice physicalDevice, uint family, bool shaderFloat64)
     {
         bool windows = OperatingSystem.IsWindows();
         bool linux = OperatingSystem.IsLinux();
@@ -46,11 +46,13 @@ internal static unsafe class VkLogicalDeviceCreator
                 QueueCount = 1,
                 PQueuePriorities = &priority
             };
+            var features = new PhysicalDeviceFeatures { ShaderFloat64 = shaderFloat64 };
             var createInfo = new DeviceCreateInfo
             {
                 SType = StructureType.DeviceCreateInfo,
                 QueueCreateInfoCount = 1,
                 PQueueCreateInfos = &queueInfo,
+                PEnabledFeatures = &features,
                 EnabledExtensionCount = extensionCount,
                 PpEnabledExtensionNames = extensionCount == 0 ? null : extensions
             };

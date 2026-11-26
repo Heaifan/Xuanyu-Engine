@@ -87,7 +87,7 @@ internal static unsafe class VkFrameCommands
         };
         vk.CmdPushConstants(cmd, scene.Layout, ShaderStageFlags.VertexBit | ShaderStageFlags.FragmentBit,
             0, 128, push);
-        vk.CmdDraw(cmd, (uint)draw.Mesh.VertexCount, 1, 0, 0);
+        if (scene.TryGetIndexBuffer(draw.Mesh, out var index)) { vk.CmdBindIndexBuffer(cmd, index, 0, IndexType.Uint32); vk.CmdDrawIndexed(cmd, (uint)draw.Mesh.IndexCount, 1, 0, 0, 0); } else vk.CmdDraw(cmd, (uint)draw.Mesh.VertexCount, 1, 0, 0);
     }
 
     private static void Check(Result result, string action)

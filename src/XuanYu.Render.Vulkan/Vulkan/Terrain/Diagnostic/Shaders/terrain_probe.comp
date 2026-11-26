@@ -1,0 +1,20 @@
+#version 450
+#extension GL_ARB_gpu_shader_fp64 : require
+#extension GL_GOOGLE_include_directive : require
+#include "../../Math/terrain_math.glsl"
+layout(local_size_x = 64) in;
+layout(std430, set = 0, binding = 0) readonly buffer InputData {
+    dvec4 baseSinCos;
+    dvec4 anchorSinCos;
+    dvec4 originEcefAndStep;
+    int heights[];
+} inputData;
+layout(std430, set = 0, binding = 1) writeonly buffer OutputData { vec4 positions[]; } outputData;
+void main() {
+    uint index = gl_GlobalInvocationID.x;
+    if (index >= 1089) return;
+    ivec2 grid = ivec2(int(index) % 33, int(index) / 33);
+    dvec3 position = terrainPosition(grid, inputData.heights[index], inputData.baseSinCos,
+        inputData.anchorSinCos, inputData.originEcefAndStep);
+    outputData.positions[index] = vec4(vec3(position), 1.0);
+}

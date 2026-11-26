@@ -24,6 +24,12 @@ internal sealed partial class VkMeshScene : IDisposable
     public PipelineLayout Layout => _pipeline.Layout;
     public Framebuffer GetFramebuffer(uint index) => _targets[index];
     public VkBuffer BufferFor(RenderMesh mesh) => _buffers[mesh].Handle;
+    public bool TryGetIndexBuffer(RenderMesh mesh, out VkBuffer buffer)
+    {
+        VkMeshBuffer resident = _buffers[mesh];
+        buffer = resident.IndexHandle;
+        return resident.IsIndexed;
+    }
 
     public VkMeshScene(Vk vk, PhysicalDevice gpu, Device device, VkSwapchain chain)
         : this(vk, gpu, device, chain.Format, chain.Extent, chain.Images, false) { }

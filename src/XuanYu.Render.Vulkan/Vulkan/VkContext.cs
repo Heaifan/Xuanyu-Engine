@@ -14,6 +14,7 @@ public sealed unsafe partial class VkContext : IDisposable
     public PhysicalDevice PhysicalDevice { get; private set; }
     public Queue GraphicsQueue { get; private set; }
     public GpuInfo Gpu { get; private set; } = null!;
+    public bool ShaderFloat64Enabled { get; private set; }
     public bool HasSurface => _presentation is not null;
     public bool IsInitialized =>
         !_disposed && _instance.Handle != 0 && _device.Handle != 0;
@@ -25,8 +26,10 @@ public sealed unsafe partial class VkContext : IDisposable
         {
             _instance = VkInstanceCreator.Create(_vk);
             (PhysicalDevice, Gpu) = VkPhysicalDeviceSelector.Pick(_vk, _instance);
+            _vk.GetPhysicalDeviceFeatures(PhysicalDevice, out var features);
+            ShaderFloat64Enabled = features.ShaderFloat64.Value != 0;
             (_device, GraphicsQueue) = VkLogicalDeviceCreator.Create(
-                _vk, PhysicalDevice, Gpu.GraphicsFamilyIndex);
+                _vk, PhysicalDevice, Gpu.GraphicsFamilyIndex, ShaderFloat64Enabled);
         }
         catch
         {
