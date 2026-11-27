@@ -43,6 +43,12 @@ internal sealed unsafe partial class VkTerrainDrawProbe : IDisposable
         Image image, VkTerrainBuffer readback, VkTerrainDrawPipeline pipeline, Action<CommandBuffer> draw)
     {
         Record(pass, framebuffer, extent, image, readback, pipeline, draw);
+        SubmitAndWait();
+        return readback.Read();
+    }
+
+    private void SubmitAndWait()
+    {
         var command = _command;
         var fence = _fence;
         var submit = new SubmitInfo { SType = StructureType.SubmitInfo,
@@ -52,7 +58,6 @@ internal sealed unsafe partial class VkTerrainDrawProbe : IDisposable
         _submitted = true;
         Check(_vk.WaitForFences(_device, 1, &fence, true, ulong.MaxValue), "等待 G07 绘制完成");
         _submitted = false;
-        return readback.Read();
     }
 
     public void Dispose()

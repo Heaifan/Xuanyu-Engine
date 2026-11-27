@@ -82,6 +82,8 @@ public sealed unsafe partial class VkSharedColorProbe
         Console.WriteLine($"[G06/退出] {Environment.TickCount64} VkSharedColorProbe 等待设备空闲");
         _vk.DeviceWaitIdle(_device);
         Console.WriteLine($"[G06/退出] {Environment.TickCount64} VkSharedColorProbe 设备空闲");
+        _terrain?.Dispose();
+        _terrain = null;
         _scene?.Dispose();
         _scene = null;
         if (_fence.Handle != 0) _vk.DestroyFence(_device, _fence, null);

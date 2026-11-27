@@ -6,16 +6,18 @@ public sealed partial class GeoUnifiedPageLoader
     private readonly GeoUnifiedTileLoader loader;
     private readonly GeoUnifiedPageCache cache;
     private readonly int maxPending;
+    private readonly bool retainCatalog;
     internal GeoUnifiedTileLoader Loader => loader;
     internal GeoUnifiedPageCache Cache => cache;
 
     public GeoUnifiedPageLoader(NasademTileCatalog catalog, GeoUnifiedTileLoader loader,
-        GeoUnifiedPageCache cache, int maxPending = 64)
+        GeoUnifiedPageCache cache, int maxPending = 64, bool retainCatalog = false)
     {
         if (!ReferenceEquals(catalog, loader.Catalog) || !ReferenceEquals(cache.Loader, loader))
             throw new ArgumentException("页面请求、缓存及原始数据必须共用加载器和目录。");
         if (maxPending < 1) throw new ArgumentOutOfRangeException(nameof(maxPending));
-        this.catalog = catalog; this.loader = loader; this.cache = cache; this.maxPending = maxPending;
+        this.catalog = catalog; this.loader = loader; this.cache = cache;
+        this.maxPending = maxPending; this.retainCatalog = retainCatalog;
     }
     private readonly object _gate = new();
     private readonly SemaphoreSlim _worker = new(1, 1);
@@ -61,7 +63,7 @@ public sealed partial class GeoUnifiedPageLoader
         await _worker.WaitAsync().ConfigureAwait(false);
         try
         {
-            var keys = catalog.Coordinates.Where(key => Intersects(tile, key.South, key.West)).ToArray();
+            var keys = KeysFor(tile);
             if (!loader.CanFitPage(keys.Length, GeoUnifiedPageCache.PageCharge))
                 throw new InvalidOperationException("高程页及其原始数据超出预算。");
             if (!loader.TrimUnneeded(keys))
@@ -74,6 +76,9 @@ public sealed partial class GeoUnifiedPageLoader
         }
         finally { _worker.Release(); }
     }
+
+    private (int South, int West)[] KeysFor(GeoUnifiedTile tile) => catalog.Coordinates
+        .Where(key => retainCatalog || Intersects(tile, key.South, key.West)).ToArray();
 
     private static bool Intersects(GeoUnifiedTile tile, int south, int west)
     {

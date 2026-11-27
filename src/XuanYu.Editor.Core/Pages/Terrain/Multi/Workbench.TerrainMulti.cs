@@ -15,6 +15,7 @@ public sealed partial class Workbench
             ImportTerrain(paths[0]);
             return;
         }
+        long started = Stopwatch.GetTimestamp();
         var watch = Stopwatch.StartNew();
         var catalog = new NasademTileCatalog(paths);
         var entries = Array.AsReadOnly(catalog.Entries.Select(TerrainDemEntry.Create)
@@ -27,6 +28,7 @@ public sealed partial class Workbench
         // 多 HGT 仅使用此轻量兼容文档承载原有场景 UI，不参与正式地理渲染或保存。
         MapDocument map = MapDocument.CreateDefault("NASADEM 多瓦片预览");
         SetTerrain(map, null, paths[0], null, geo, entries);
+        TrackG07Import(geo, started);
         NasademSourceResidency s = geo.SourceResidency;
         Log.Write($"G-05D-02：已索引 {catalog.Count} 张 HGT，原始总量 {catalog.Count * NasademTile.ByteLength / 1048576d:F1} MiB，耗时 {watch.Elapsed.TotalSeconds:F2} 秒");
         Log.Write($"G-05D-02-R3：派生准备 {geo.OverviewCount} 片，Far+Middle 数组 {geo.OverviewBytes / 1048576d:F2} MiB，L0-9 Far，L10-13 Middle，Native 原始精度");

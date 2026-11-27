@@ -1,13 +1,12 @@
 using Silk.NET.Vulkan;
 using XuanYu.Render;
-
 namespace XuanYu.Render.Vulkan;
-
 internal static unsafe class VkFrameCommands
 {
     public static void Record(
         Vk vk, CommandBuffer command, VkMeshScene scene,
-        uint imageIndex, Extent2D extent, IReadOnlyList<RenderDraw> draws)
+        uint imageIndex, Extent2D extent, IReadOnlyList<RenderDraw> draws,
+        Action<CommandBuffer>? recordTerrain = null)
     {
         scene.SyncContourGaps(draws);
         Check(vk.ResetCommandBuffer(command, 0), "重置命令缓冲区");
@@ -45,6 +44,7 @@ internal static unsafe class VkFrameCommands
             if (!draw.Visible) continue;
             DrawMesh(vk, command, scene, draw);
         }
+        recordTerrain?.Invoke(command);
         VkFrameSelection.Record(vk, command, scene, extent, draws);
         vk.CmdEndRenderPass(command);
         Check(vk.EndCommandBuffer(command), "结束命令缓冲区");

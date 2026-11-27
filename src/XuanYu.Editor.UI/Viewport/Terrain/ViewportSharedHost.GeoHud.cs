@@ -19,6 +19,7 @@ public sealed partial class ViewportSharedHost
     };
     private long _lastHudPickAt;
     private bool? _hudGeoMode;
+    private Point? _pendingG07HudPoint;
 
     private void UpdateGeoHudHover(Point point, bool force = false)
     {
@@ -26,6 +27,11 @@ public sealed partial class ViewportSharedHost
         if (_wb.CurrentId != PageId.Terrain || !_wb.HasTerrainHud ||
             !_wb.GeoHudVisible || !force && now - _lastHudPickAt < 120) return;
         _lastHudPickAt = now;
+        if (_g07Enabled && _wb.G07PreviewSource is not null)
+        {
+            _pendingG07HudPoint = point;
+            return;
+        }
         double scaling = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1d;
         var (width, height) = PixelSize;
         var pixel = new Vector2((float)(point.X * scaling), (float)(point.Y * scaling));
@@ -57,6 +63,7 @@ public sealed partial class ViewportSharedHost
 
     private void ClearGeoHudHover()
     {
+        _pendingG07HudPoint = null;
         if (_wb.IsGeoTerrainPreview) _geoHud.ShowPoint(null);
         else _geoHud.ShowLocalPoint(null);
     }

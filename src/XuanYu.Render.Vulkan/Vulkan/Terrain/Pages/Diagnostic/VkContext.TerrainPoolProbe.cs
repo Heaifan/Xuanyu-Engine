@@ -1,11 +1,12 @@
 using Silk.NET.Vulkan;
+using XuanYu.Render;
 
 namespace XuanYu.Render.Vulkan;
 
 public sealed unsafe partial class VkContext
 {
     public TerrainPoolProbeResult ProbeTerrainPagePool(int capacity, int uploadLimit, ulong heightBudget,
-        IReadOnlyList<int[]> topology, IReadOnlyList<TerrainPoolFrame> frames)
+        IReadOnlyList<int[]> topology, IReadOnlyList<TerrainPoolFrame> frames, RenderWaterAtlas? water = null)
     {
         if (!IsInitialized) throw new ObjectDisposedException(nameof(VkContext));
         if (!ShaderFloat64Enabled) throw new NotSupportedException("设备不支持 shaderFloat64。");
@@ -19,7 +20,7 @@ public sealed unsafe partial class VkContext
         using var pipeline = new VkTerrainDrawPipeline(_vk, _device, pass.Handle, extent);
         using var indices = new VkTerrainTopology(_vk, PhysicalDevice, _device, topology);
         using var pool = new VkTerrainPagePool(_vk, PhysicalDevice, _device, GraphicsQueue,
-            Gpu.GraphicsFamilyIndex, pipeline.SetLayout, capacity, uploadLimit, heightBudget);
+            Gpu.GraphicsFamilyIndex, pipeline.SetLayout, capacity, uploadLimit, heightBudget, water);
         using var readback = new VkTerrainBuffer(_vk, PhysicalDevice, _device, 128 * 128 * 4,
             BufferUsageFlags.TransferDstBit);
         using var probe = new VkTerrainDrawProbe(_vk, _device, GraphicsQueue, Gpu.GraphicsFamilyIndex);

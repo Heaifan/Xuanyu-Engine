@@ -34,12 +34,14 @@ public sealed partial class Workbench
 
     public void ImportTerrain(string path)
     {
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
         NasademTile tile = NasademHgtFile.Load(path);
         TerrainWaterMask? water = NasademWaterFile.Load(path, tile);
         MapDocument map = NasademPreviewBuilder.Create(tile, water);
         var geo = new GeoTerrainRenderSession(tile);
         geo.LoadWater(tile, water);
         SetTerrain(map, tile, path, null, geo);
+        TrackG07Import(geo, started);
         Log.Write($"G-03 NASADEM：{tile.TileId}，原始数据 {map.HeightField.SamplesX}×{map.HeightField.SamplesY}");
         Log.Write($"[G06/SWB] {geo.WaterStatus}");
     }

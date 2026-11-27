@@ -1,6 +1,7 @@
 using Avalonia.Platform;
 using Avalonia.Rendering.Composition;
 using System.Diagnostics;
+using XuanYu.Render;
 using XuanYu.Render.Vulkan;
 
 namespace XuanYu.Editor.UI;
@@ -33,19 +34,25 @@ public sealed partial class ViewportSharedHost
             var image = next?.Image ?? _image!;
             uint width = texture.Width, height = texture.Height;
             long stage = profile ? Stopwatch.GetTimestamp() : 0;
-            var draws = PrepareContourLabels(_wb.ViewportDraws(width, height), width, height);
+            var geo = _g07Enabled ? _wb.G07PreviewSource : null;
+            RenderDraw[] draws = geo is null
+                ? PrepareContourLabels(_wb.ViewportDraws(width, height), width, height) : [];
             long prepared = profile ? Stopwatch.GetTimestamp() : 0;
             var brushFrame = CaptureTerrainBrushFrame(width, height);
             long brushed = profile ? Stopwatch.GetTimestamp() : 0;
-            string gpuProfile = await Task.Run(() => probe.DrawScene(draws, width, height));
+            string gpuProfile = geo is null
+                ? await Task.Run(() => probe.DrawScene(draws, width, height))
+                : await DrawG07FrameAsync(probe, geo, width, height);
             long drawn = profile ? Stopwatch.GetTimestamp() : 0;
             await _scene.PresentWithKeyedMutexAsync(image, 1, 0);
             long presented = profile ? Stopwatch.GetTimestamp() : 0;
             _scene.SetImageSize(width, height);
+            if (geo is not null) _wb.CompleteG07Import(geo);
             DisplayTerrainBrushFrame(brushFrame);
             DisplayContourLabels();
             UpdateGeoHudScale();
             UpdateGeoMiniMap();
+            if (geo is not null) DisplayG07HudHover(geo, width, height);
             long uiUpdated = profile ? Stopwatch.GetTimestamp() : 0;
 
             if (next is { } ready)

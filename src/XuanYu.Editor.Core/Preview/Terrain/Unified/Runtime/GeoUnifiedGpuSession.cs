@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Numerics;
 using XuanYu.Core.Geodesy;
 using XuanYu.Render.Vulkan;
@@ -7,7 +8,10 @@ namespace XuanYu.Editor.Core.Preview.Terrain.Unified;
 
 public sealed record GeoUnifiedGpuFrame(GeoUnifiedCoverage Coverage,
     GeoUnifiedCoverage? PendingCoverage, TerrainPoolDraw[] Draws,
-    int SubmittedPages, bool CapacityBlocked);
+    int SubmittedPages, bool CapacityBlocked)
+{
+    public double SelectionMs { get; init; }
+}
 
 public sealed partial class GeoUnifiedGpuSession
 {
@@ -30,9 +34,12 @@ public sealed partial class GeoUnifiedGpuSession
         _pool.Poll();
         var coverage = _cpu.Coverage;
         GeoUnifiedCoverage? pending = null;
+        double selectionMs = 0;
         if (coverage.Leaves.All(tile => _pool.IsReady(Key(tile))))
         {
+            long start = Stopwatch.GetTimestamp();
             var selection = _cpu.Step(eye, height, fov, (tile, _) => _pool.IsReady(Key(tile)), visible);
+            selectionMs = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
             coverage = selection.Coverage;
             pending = selection.PendingCoverage;
         }
@@ -44,8 +51,8 @@ public sealed partial class GeoUnifiedGpuSession
         int submitted = SubmitMissing(coverage, blocked ? null : pending);
         TerrainPoolDraw[] draws = coverage.Leaves.All(tile => _pool.IsReady(Key(tile)))
             ? coverage.Leaves.Select(tile => new TerrainPoolDraw(Key(tile), tile.South, tile.West,
-                1 << tile.Level, _origin, mvp, coverage.EdgeMask(tile))).ToArray() : [];
-        return new(coverage, pending, draws, submitted, blocked);
+                1 << tile.Level, _origin, mvp, coverage.EdgeMask(tile), _cpu.Domain?.ClipRects(tile))).ToArray() : [];
+        return new(coverage, pending, draws, submitted, blocked) { SelectionMs = selectionMs };
     }
 
     // X and Y at level zero fit in 16 bits. Mask is topology, not height identity.

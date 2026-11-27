@@ -16,6 +16,9 @@ internal static class TerrainColorPalette
         Rgb(0xD5DF83), Rgb(0xEDCF79), Rgb(0xBF9369), Rgb(0xA9A5A0)
     ];
 
+    public static IReadOnlyList<Vector4> GpuElevation { get; } = Array.AsReadOnly(
+        ElevationColors.Select((color, i) => new Vector4(color, (float)ElevationMeters[i])).ToArray());
+
     public static Vector3 Standard(Vector3 normal, float height)
     {
         float degrees = MathF.Acos(Math.Clamp(normal.Z, 0f, 1f))

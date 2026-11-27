@@ -1,4 +1,7 @@
-layout(set = 1, binding = 0) uniform isampler2D swbAtlas;
+#ifndef SWB_LAYOUT
+#define SWB_LAYOUT set = 1, binding = 0
+#endif
+layout(SWB_LAYOUT) uniform isampler2D swbAtlas;
 layout(location = 5) in vec2 waterUv;
 
 const int SwbSide = 3601;

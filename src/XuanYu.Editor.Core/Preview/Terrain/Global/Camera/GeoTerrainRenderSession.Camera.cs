@@ -48,20 +48,24 @@ public sealed partial class GeoTerrainRenderSession
             double ground = sampler.Sample(eye.LatitudeDegrees,
                 eye.LongitudeDegrees) ?? 0d;
             double clearance = Math.Max(0d, eye.HeightMeters - ground);
-            double near = Math.Min(Camera.DistanceMeters * 0.01d,
-                clearance * 0.25d);
-            float baseline = (float)Math.Max(0.5d, near);
-            return G06ShortNear ? Math.Max(0.05f, baseline * 0.1f) : baseline;
+            return NearPlaneForClearance(clearance);
         }
     }
 
-    private Matrix4x4 ViewProjection(uint width, uint height)
+    private float NearPlaneForClearance(double clearance)
+    {
+        double near = Math.Min(Camera.DistanceMeters * 0.01d, clearance * 0.25d);
+        float baseline = (float)Math.Max(0.5d, near);
+        return G06ShortNear ? Math.Max(0.05f, baseline * 0.1f) : baseline;
+    }
+
+    private Matrix4x4 ViewProjection(uint width, uint height, float? nearOverride = null)
     {
         EnuPosition eye = _anchor.ToEnu(Camera.PositionEcef);
         EnuPosition target = _anchor.ToEnu(Camera.TargetEcef);
         Matrix4x4 view = Matrix4x4.CreateLookAt(ToFloat(eye),
             ToFloat(target), Vector3.UnitZ);
-        float near = NearPlaneMeters;
+        float near = nearOverride ?? NearPlaneMeters;
         float far = (float)Math.Max(500_000d, Camera.DistanceMeters * 8d);
         Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(
             MathF.PI / 3f, (float)width / height, near, far);

@@ -8,11 +8,16 @@ public sealed class GeoUnifiedSamples
     private readonly string _version;
     private readonly long _generation;
     internal (Guid, long) Identity => (_loader.Identity, _generation);
+    internal GeoUnifiedViewportDomain? Domain { get; }
 
     public GeoUnifiedSamples(NasademTileCatalog catalog, string version)
         : this(catalog, version, new GeoUnifiedTileLoader(catalog, long.MaxValue)) { }
 
     public GeoUnifiedSamples(NasademTileCatalog catalog, string version, GeoUnifiedTileLoader loader)
+        : this(catalog, version, loader, null) { }
+
+    internal GeoUnifiedSamples(NasademTileCatalog catalog, string version,
+        GeoUnifiedTileLoader loader, GeoUnifiedViewportDomain? domain)
     {
         if (!ReferenceEquals(catalog, loader.Catalog))
             throw new ArgumentException("采样器与加载器必须使用同一数据目录。", nameof(loader));
@@ -20,6 +25,7 @@ public sealed class GeoUnifiedSamples
         _version = version;
         _loader = loader;
         _generation = loader.Generation;
+        Domain = domain;
     }
 
     public void Add(NasademTile tile)
@@ -31,6 +37,18 @@ public sealed class GeoUnifiedSamples
     }
 
     public GeoUnifiedSample Sample(int x, int y)
+    {
+        var sample = SampleRaw(x, y);
+        if (Domain is null || sample.Status != GeoSampleStatus.OutsideCoverage) return sample;
+        var point = Domain.Nearest(x, y);
+        return SampleRaw(point.X, point.Y);
+    }
+
+    // R02 默认逐角秒精确测量；视口粗层使用最多约 129×129 的参考格。
+    internal int ReferenceStride(GeoUnifiedTile tile) =>
+        Domain is null ? 1 : Math.Max(1, (1 << tile.Level) / 4);
+
+    internal GeoUnifiedSample SampleRaw(int x, int y)
     {
         using var pin = _loader.PinSample(_generation);
         if (x is < 0 or > 1_296_000 || y is < 0 or > 648_000)

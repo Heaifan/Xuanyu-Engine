@@ -14,21 +14,21 @@ internal sealed unsafe partial class VkTerrainPoolBindings : IDisposable
     private DescriptorPool _pool;
 
     public VkTerrainPoolBindings(Vk vk, PhysicalDevice gpu, Device device,
-        DescriptorSetLayout layout, VkTerrainPageArray image, int capacity)
+        DescriptorSetLayout layout, VkTerrainPageArray image, int capacity, VkDemTexture water)
     {
         _vk = vk; _device = device;
         vk.GetPhysicalDeviceProperties(gpu, out var props);
         ulong align = Math.Max(1UL, props.Limits.MinUniformBufferOffsetAlignment);
-        _stride = checked((int)((160UL + align - 1) / align * align));
+        _stride = checked((int)(((ulong)VkTerrainDrawParameters.ByteSize + align - 1) / align * align));
         _parameters = new byte[checked(capacity * _stride)];
         _sets = new DescriptorSet[capacity];
         _uniform = new VkTerrainBuffer(vk, gpu, device, (ulong)_parameters.Length, BufferUsageFlags.UniformBufferBit);
-        try { CreateSets(layout, image); }
+        try { CreateSets(layout, image, water); }
         catch { Dispose(); throw; }
     }
 
     public void SetParameters(int slot, ReadOnlySpan<byte> parameters) =>
-        parameters.CopyTo(_parameters.AsSpan(slot * _stride, 160));
+        parameters.CopyTo(_parameters.AsSpan(slot * _stride, VkTerrainDrawParameters.ByteSize));
 
     public void FlushParameters() => _uniform.Write(_parameters);
 

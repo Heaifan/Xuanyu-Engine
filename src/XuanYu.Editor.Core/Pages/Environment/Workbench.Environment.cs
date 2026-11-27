@@ -41,7 +41,7 @@ public sealed partial class Workbench
             double distance = _geoPreview?.Camera.DistanceMeters ??
                 (ActiveCamera is { } camera
                     ? Vector3.Distance(camera.Position, camera.Target) : 100d);
-            double step = GridStep.FromDistance(distance);
+            double step = _geoPreview?.G07GridStepMeters ?? GridStep.FromDistance(distance);
             string unit = step >= 1000d ? $"{step / 1000d:0.#} km" : $"{step:0.#} m";
             return CurrentId == PageId.Terrain && _geoPreview is not null
                 ? $"地理方格网 · 约 {unit}" : $"三维网格 · {unit}";

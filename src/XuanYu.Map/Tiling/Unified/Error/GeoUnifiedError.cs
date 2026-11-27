@@ -13,7 +13,7 @@ public static partial class GeoUnifiedError
         if (page.Identity != source.Identity)
             throw new InvalidOperationException("高程页和参考高程的数据版本不一致。");
         GeoUnifiedTile tile = page.Tile;
-        int step = 1 << tile.Level;
+        int step = 1 << tile.Level, stride = source.ReferenceStride(tile);
         var vertices = new Vertex[33 * 33];
         for (int y = 0; y < 33; y++)
             for (int x = 0; x < 33; x++)
@@ -32,8 +32,8 @@ public static partial class GeoUnifiedError
                 !MeasureEdge(b, c, tile, source, anchor, ref maxSquared) ||
                 !MeasureEdge(c, a, tile, source, anchor, ref maxSquared)) return null;
             long area = Cross(b.X - a.X, b.Y - a.Y, c.X - a.X, c.Y - a.Y);
-            for (int y = Math.Min(a.Y, Math.Min(b.Y, c.Y)); y <= Math.Max(a.Y, Math.Max(b.Y, c.Y)); y++)
-                for (int x = Math.Min(a.X, Math.Min(b.X, c.X)); x <= Math.Max(a.X, Math.Max(b.X, c.X)); x++)
+            for (int y = Math.Min(a.Y, Math.Min(b.Y, c.Y)); y <= Math.Max(a.Y, Math.Max(b.Y, c.Y)); y += stride)
+                for (int x = Math.Min(a.X, Math.Min(b.X, c.X)); x <= Math.Max(a.X, Math.Max(b.X, c.X)); x += stride)
                 {
                     long wa = Cross(b.X - x, b.Y - y, c.X - x, c.Y - y);
                     long wb = Cross(c.X - x, c.Y - y, a.X - x, a.Y - y);

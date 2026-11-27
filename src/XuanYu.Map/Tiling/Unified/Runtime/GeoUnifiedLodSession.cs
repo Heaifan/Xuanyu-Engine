@@ -17,31 +17,19 @@ public sealed partial class GeoUnifiedLodSession : IDisposable
     private bool _disposed;
     public GeoUnifiedCoverage Coverage { get; private set; }
     public string? Diagnostic { get; private set; }
+    public string? PreparationProfile { get; private set; }
+    public GeoUnifiedViewportDomain? Domain => _source.Domain;
 
-    private GeoUnifiedLodSession(GeoUnifiedTile root, GeoUnifiedPageLoader pages,
+    private GeoUnifiedLodSession(GeoUnifiedCoverage coverage, GeoUnifiedPageLoader pages,
         GeoUnifiedPageCache cache, GeoUnifiedTileLoader loader, GeoUnifiedSamples source,
         EnuFrame anchor, int resourceLimit)
     {
         if (!ReferenceEquals(pages.Loader, loader) || !ReferenceEquals(pages.Cache, cache) ||
             !ReferenceEquals(source.Loader, loader)) throw new ArgumentException("地形会话必须共用同一资源所有者。");
         if (resourceLimit < 5) throw new ArgumentOutOfRangeException(nameof(resourceLimit));
-        Coverage = new GeoUnifiedCoverage(root);
+        Coverage = coverage;
         _pages = pages; _cache = cache; _loader = loader; _source = source;
         _anchor = anchor; _resourceLimit = resourceLimit;
-    }
-
-    public static async Task<GeoUnifiedLodSession> CreateAsync(GeoUnifiedTile root,
-        GeoUnifiedPageLoader pages, GeoUnifiedPageCache cache, GeoUnifiedTileLoader loader,
-        GeoUnifiedSamples source, EnuFrame anchor, int resourceLimit = 128)
-    {
-        var session = new GeoUnifiedLodSession(root, pages, cache, loader, source, anchor, resourceLimit);
-        try
-        {
-            var task = session.Start(root, 0)!;
-            await task.ConfigureAwait(false);
-            return session;
-        }
-        catch { session.Dispose(); throw; }
     }
 
     public GeoUnifiedSelection Step(EnuPosition eye, int height, double fov,
@@ -49,10 +37,21 @@ public sealed partial class GeoUnifiedLodSession : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         Diagnostic = null;
-        double? Error(GeoUnifiedTile tile, int mask) =>
-            TryResource(tile, mask, out var item) ? item.Metric.ScreenError(eye, height, fov) : null;
+        var domain = Domain;
+        double? Error(GeoUnifiedTile tile, int mask)
+        {
+            if (domain is not null && tile.Level > GeoUnifiedViewportDomain.RootLevel)
+                return double.PositiveInfinity;
+            if (domain is not null && visible is not null && !Visible(tile)) return 0d;
+            if (!TryResource(tile, mask, out var item)) return null;
+            if (item.TryMetric(out var metric)) return metric.ScreenError(eye, height, fov);
+            Diagnostic = item.Failure ?? "根页指标后台准备中";
+            return null;
+        }
         bool Ready(GeoUnifiedTile tile, int mask) => TryResource(tile, mask, out _) && gpuReady(tile, mask);
-        var result = _selector.StepWithMetrics(Coverage, Error, Ready, visible);
+        bool Visible(GeoUnifiedTile tile) => (domain is null || domain.Intersects(tile)) &&
+            (visible is null || visible(tile));
+        var result = _selector.StepWithMetrics(Coverage, Error, Ready, Visible);
         Coverage = result.Coverage;
         Prune(result);
         return result;

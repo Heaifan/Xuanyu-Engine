@@ -36,6 +36,7 @@ public sealed partial class ViewportSharedHost : Grid
         _stopped = true;
         _timer.Stop();
         await _frame;
+        ReleaseG07Session();
         Console.WriteLine($"[G06/退出] {Environment.TickCount64} 最后一帧已结束");
         await ReleaseTargetAsync(_image, _probe, _texture);
         _image = null; _probe = null; _texture = null;

@@ -19,6 +19,7 @@ public sealed partial class GeoTerrainRenderSession
         if (streamRaw && (!useOverview || cacheCapacity < 4))
             throw new ArgumentException("流式 Native 需要分级高程及至少 4 张原始缓存。", nameof(streamRaw));
         StreamingEnabled = streamRaw;
+        _g07Catalog = catalog;
     }
 
     private GeoTerrainRenderSession(NasademElevationSource source, NasademHgtInfo[] tiles)

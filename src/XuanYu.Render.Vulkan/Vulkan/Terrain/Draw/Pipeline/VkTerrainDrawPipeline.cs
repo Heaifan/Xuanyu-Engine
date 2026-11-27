@@ -16,13 +16,16 @@ internal sealed unsafe class VkTerrainDrawPipeline : IDisposable
         _vk = vk; _device = device;
         try
         {
-            DescriptorSetLayoutBinding* bindings = stackalloc DescriptorSetLayoutBinding[2];
+            DescriptorSetLayoutBinding* bindings = stackalloc DescriptorSetLayoutBinding[3];
             bindings[0] = new() { Binding = 0, DescriptorCount = 1,
                 DescriptorType = DescriptorType.CombinedImageSampler, StageFlags = ShaderStageFlags.VertexBit };
             bindings[1] = new() { Binding = 1, DescriptorCount = 1,
-                DescriptorType = DescriptorType.UniformBuffer, StageFlags = ShaderStageFlags.VertexBit };
+                DescriptorType = DescriptorType.UniformBuffer,
+                StageFlags = ShaderStageFlags.VertexBit | ShaderStageFlags.FragmentBit };
+            bindings[2] = new() { Binding = 2, DescriptorCount = 1,
+                DescriptorType = DescriptorType.CombinedImageSampler, StageFlags = ShaderStageFlags.FragmentBit };
             var setInfo = new DescriptorSetLayoutCreateInfo { SType = StructureType.DescriptorSetLayoutCreateInfo,
-                BindingCount = 2, PBindings = bindings };
+                BindingCount = 3, PBindings = bindings };
             Check(vk.CreateDescriptorSetLayout(device, &setInfo, null, out var set), "创建 G07 描述符布局");
             SetLayout = set;
             var layoutInfo = new PipelineLayoutCreateInfo { SType = StructureType.PipelineLayoutCreateInfo,

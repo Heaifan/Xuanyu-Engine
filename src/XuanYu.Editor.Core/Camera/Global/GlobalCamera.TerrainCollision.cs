@@ -19,21 +19,24 @@ public sealed partial class GlobalCamera
         _sweepTerrain = sweepTerrain;
     }
 
-    private bool IsAboveTerrain()
+    private bool IsAboveTerrain(Func<GeoCoordinate, double?>? groundSampler = null)
     {
-        if (_groundHeight is null) return true;
+        var sampler = groundSampler ?? _groundHeight;
+        if (sampler is null) return true;
         GeoCoordinate eye = Wgs84.ToGeo(PositionEcef);
-        double? ground = _groundHeight(eye);
+        double? ground = sampler(eye);
         return ground is null || eye.HeightMeters >= ground.Value + TerrainClearanceMeters;
     }
 
     private void ConstrainZoom(double previous) => ConstrainZoomPath(previous);
 
-    public bool RestoreTerrainClearance()
+    public bool RestoreTerrainClearance() => RestoreTerrainClearance(null);
+
+    public bool RestoreTerrainClearance(Func<GeoCoordinate, double?>? groundSampler)
     {
-        if (IsAboveTerrain()) return false;
+        if (IsAboveTerrain(groundSampler)) return false;
         double before = DistanceMeters;
-        for (int i = 0; i < 32 && !IsAboveTerrain(); i++)
+        for (int i = 0; i < 32 && !IsAboveTerrain(groundSampler); i++)
             DistanceMeters = Math.Min(MaxDistanceMeters,
                 Math.Max(DistanceMeters + 1d, DistanceMeters * 1.4d));
         return DistanceMeters > before;

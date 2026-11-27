@@ -1,4 +1,5 @@
 using Silk.NET.Vulkan;
+using XuanYu.Render;
 
 namespace XuanYu.Render.Vulkan;
 
@@ -6,6 +7,8 @@ namespace XuanYu.Render.Vulkan;
 public sealed partial class VkTerrainPagePool : IDisposable
 {
     private readonly VkTerrainPageArray _image;
+    private readonly VkDemTexture _waterTexture;
+    private readonly RenderWaterAtlas? _waterSource;
     private readonly VkTerrainPageTransfer _transfer;
     private readonly VkTerrainPoolBindings _bindings;
     private readonly Dictionary<long, int> _slots = [];
@@ -23,15 +26,22 @@ public sealed partial class VkTerrainPagePool : IDisposable
     public ulong HeightBytes => _image.AllocatedBytes;
 
     internal VkTerrainPagePool(Vk vk, PhysicalDevice gpu, Device device, Queue queue, uint family,
-        DescriptorSetLayout layout, int capacity, int limit, ulong budget)
+        DescriptorSetLayout layout, int capacity, int limit, ulong budget, RenderWaterAtlas? water = null)
     {
+        _waterSource = water;
         _limit = limit; _used = new bool[capacity];
         _image = new VkTerrainPageArray(vk, gpu, device, capacity, budget);
         try
         {
-            _bindings = new VkTerrainPoolBindings(vk, gpu, device, layout, _image, capacity);
-            try { _transfer = new VkTerrainPageTransfer(vk, gpu, device, queue, family, limit); }
-            catch { _bindings.Dispose(); throw; }
+            _waterTexture = water is null ? VkDemTexture.Fallback(vk, gpu, device, queue, family)
+                : VkDemTexture.FromWaterAtlas(vk, gpu, device, queue, family, water);
+            try
+            {
+                _bindings = new VkTerrainPoolBindings(vk, gpu, device, layout, _image, capacity, _waterTexture);
+                try { _transfer = new VkTerrainPageTransfer(vk, gpu, device, queue, family, limit); }
+                catch { _bindings.Dispose(); throw; }
+            }
+            catch { _waterTexture.Dispose(); throw; }
         }
         catch { _image.Dispose(); throw; }
     }
@@ -81,6 +91,6 @@ public sealed partial class VkTerrainPagePool : IDisposable
     public void Dispose()
     {
         try { _transfer.Dispose(); }
-        finally { _bindings.Dispose(); _image.Dispose(); }
+        finally { _bindings.Dispose(); _waterTexture.Dispose(); _image.Dispose(); }
     }
 }
