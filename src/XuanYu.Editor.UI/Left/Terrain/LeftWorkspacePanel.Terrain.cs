@@ -13,14 +13,13 @@ internal sealed partial class LeftWorkspacePanel
         _terrainMenu = _terrainPanel.CreateTerrainMenu();
     }
 
-    public void SetPage(PageInfo info, bool isWorld, bool isTerrain)
+    public void SetPage(PageInfo info, string detail)
     {
-        _tabs.IsVisible = isWorld || isTerrain;
-        _footerLabel.Text = isWorld ? "世界场景" :
-            isTerrain ? "地形场景" : info.Title;
+        bool isWorld = info.Id == PageId.World;
+        bool isTerrain = info.Id == PageId.Terrain;
+        _headerLabel.Text = isWorld ? "场景树" : info.LeftTitle;
         _scroll.ContextMenu = isWorld ? _sceneMenu : isTerrain ? _terrainMenu : null;
-        _infoTitle.Text = info.LeftTitle;
-        _infoDetail.Text = info.LeftDetail;
+        _infoDetail.Text = detail;
 
         if (isWorld)
         {
@@ -34,7 +33,7 @@ internal sealed partial class LeftWorkspacePanel
             if (!ReferenceEquals(_scroll.Content, _terrainPanel))
                 _scroll.Content = _terrainPanel;
         }
-        else
+        else if (!ReferenceEquals(_scroll.Content, _infoPanel))
             _scroll.Content = _infoPanel;
     }
 }

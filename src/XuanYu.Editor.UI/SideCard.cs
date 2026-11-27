@@ -1,19 +1,12 @@
-
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Layout;
 using Avalonia.Media;
 
 namespace XuanYu.Editor.UI;
 
 public sealed class SideCard : Border
 {
-    private readonly TextBlock _head = new()
-    {
-        Foreground = EditorTheme.TextMain,
-        FontWeight = FontWeight.SemiBold,
-        FontSize = 13
-    };
+    private readonly TextBlock _headerLabel;
     private readonly TextBlock _body = new()
     {
         Foreground = EditorTheme.TextSub,
@@ -32,47 +25,12 @@ public sealed class SideCard : Border
         BorderBrush = EditorTheme.Border;
         BorderThickness = new Thickness(1);
         CornerRadius = new CornerRadius(3);
-
-        var header = new Border
-        {
-            Background = EditorTheme.PanelHeaderBg,
-            BorderBrush = EditorTheme.Border,
-            BorderThickness = new Thickness(0, 0, 0, 1),
-            Padding = new Thickness(10, 0),
-            Child = new TextBlock
-            {
-                Text = roleTag,
-                Foreground = EditorTheme.TextMuted,
-                FontSize = 10,
-                VerticalAlignment = VerticalAlignment.Center
-            }
-        };
-
-        var footer = new Border
-        {
-            Background = EditorTheme.PanelHeaderBg,
-            BorderBrush = EditorTheme.Border,
-            BorderThickness = new Thickness(0, 1, 0, 0),
-            Padding = new Thickness(10, 0),
-            Child = new TextBlock
-            {
-                Text = "E1 · 预览工作台",
-                FontSize = 10,
-                Foreground = EditorTheme.TextMuted,
-                VerticalAlignment = VerticalAlignment.Center
-            }
-        };
-
-        var grid = new Grid
-        {
-            RowDefinitions = new RowDefinitions("26,*,22")
-        };
-
+        _headerLabel = WorkspacePanelHeader.CreateLabel(roleTag);
+        var header = WorkspacePanelHeader.Create(_headerLabel);
+        var grid = new Grid { RowDefinitions = new RowDefinitions("26,*") };
         Grid.SetRow(_content, 1);
-        Grid.SetRow(footer, 2);
         grid.Children.Add(header);
         grid.Children.Add(_content);
-        grid.Children.Add(footer);
         Child = grid;
     }
 
@@ -88,10 +46,8 @@ public sealed class SideCard : Border
 
     public void SetText(string title, string detail)
     {
-        _content.Children.Clear();
-        _head.Text = title;
+        _headerLabel.Text = title;
         _body.Text = detail;
-        _content.Children.Add(_head);
-        _content.Children.Add(_body);
+        SetContent(_body);
     }
 }

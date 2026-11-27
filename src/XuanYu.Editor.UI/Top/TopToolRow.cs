@@ -1,51 +1,46 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
+using Avalonia.Media;
 using XuanYu.Editor.Pages;
+using XuanYu.Editor.UI.Top.Persistence;
+using XuanYu.Editor.UI.Top.Simulation;
 
 namespace XuanYu.Editor.UI;
 
-internal sealed class TopToolRow : Border
+internal sealed partial class TopToolRow : Border
 {
     private readonly Workbench _wb;
-    private readonly StackPanel _terrain = new() { Orientation = Orientation.Horizontal, Spacing = 5 };
-    private readonly StackPanel _world = new() { Orientation = Orientation.Horizontal, Spacing = 5 };
-    private readonly ComboBox _mode = new()
-    {
-        Width = 120, Height = 28, FontSize = 12,
-        ItemsSource = new[] { "对象模式", "地形编辑模式" }
-    };
-    private readonly Button _undo, _redo, _grid, _contours, _shade, _worldGrid, _sky;
+    private readonly StackPanel _project = MakePanel(), _world = MakePanel(),
+        _terrain = MakePanel(), _simulation = MakePanel(), _tools = MakePanel();
     private readonly TextBlock _context = new()
     {
         FontSize = 11, Foreground = EditorTheme.TextSub,
         VerticalAlignment = VerticalAlignment.Center,
-        HorizontalAlignment = HorizontalAlignment.Right
+        Margin = new Thickness(8, 0, 0, 0)
     };
 
-    public TopToolRow(Workbench wb)
+    public TopToolRow(Workbench wb, SceneFileCommands scene, SimulationMenu simulation)
     {
         _wb = wb;
         Background = EditorTheme.PanelHeaderBg;
         BorderBrush = EditorTheme.Border;
         BorderThickness = new Thickness(0, 1, 0, 0);
         Padding = new Thickness(8, 3);
-        _mode.SelectionChanged += (_, _) =>
-        {
-            if (_mode.SelectedIndex < 0 || !_wb.CanEditLocalTerrain || _wb.CurrentId != PageId.Terrain) return;
-            _wb.SetTerrainMode(_mode.SelectedIndex == 1 ? TerrainWorkspaceMode.Edit : TerrainWorkspaceMode.Object);
-        };
-        _terrain.Children.Add(_mode);
-        _undo = Add(_terrain, "撤销", wb.UndoTerrain);
-        _redo = Add(_terrain, "重做", wb.RedoTerrain);
-        _grid = Add(_terrain, "网格", () => wb.SetTerrainGridEnabled(!wb.TerrainGridEnabled));
-        _contours = Add(_terrain, "等高线", () => wb.SetTerrainContoursEnabled(!wb.TerrainContoursEnabled));
-        _shade = Add(_terrain, "晕渲", () => wb.SetTerrainHillshadeEnabled(!wb.TerrainHillshadeEnabled));
-        _worldGrid = Add(_world, "网格", () => wb.SetWorldGridEnabled(!wb.WorldGridEnabled));
-        _sky = Add(_world, "天空", () => wb.SetSkyEnabled(!wb.SkyEnabled));
+        BuildProject(scene);
+        BuildWorld();
+        BuildTerrain();
+        BuildSimulation(simulation);
+        BuildTools();
+        var panels = new Grid();
+        foreach (var panel in new[] { _project, _world, _terrain, _simulation, _tools })
+            panels.Children.Add(panel);
+        var scroll = new ScrollViewer { Content = panels,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Disabled };
         var row = new Grid { ColumnDefinitions = new("*,Auto") };
-        row.Children.Add(_terrain);
-        row.Children.Add(_world);
+        row.Children.Add(scroll);
         Grid.SetColumn(_context, 1);
         row.Children.Add(_context);
         Child = row;
@@ -53,32 +48,48 @@ internal sealed class TopToolRow : Border
 
     public void Refresh()
     {
-        _terrain.IsVisible = _wb.CurrentId == PageId.Terrain;
+        _project.IsVisible = _wb.CurrentId == PageId.Project;
         _world.IsVisible = _wb.CurrentId == PageId.World;
-        _mode.IsEnabled = _wb.CanEditLocalTerrain;
-        int index = _wb.IsTerrainEditMode && _wb.CanEditLocalTerrain ? 1 : 0;
-        if (_mode.SelectedIndex != index) _mode.SelectedIndex = index;
-        _undo.IsEnabled = _wb.CanUndoTerrain;
-        _redo.IsEnabled = _wb.CanRedoTerrain;
-        _contours.IsEnabled = _wb.IsGeoTerrainPreview || _wb.HasLocalTerrainContours;
-        _shade.IsEnabled = _contours.IsEnabled;
-        Paint(_grid, _wb.TerrainGridEnabled);
-        Paint(_contours, _wb.TerrainContoursEnabled);
-        Paint(_shade, _wb.TerrainHillshadeEnabled);
-        Paint(_worldGrid, _wb.WorldGridEnabled);
-        Paint(_sky, _wb.SkyEnabled);
+        _terrain.IsVisible = _wb.CurrentId == PageId.Terrain;
+        _simulation.IsVisible = _wb.CurrentId == PageId.Simulation;
+        _tools.IsVisible = _wb.CurrentId == PageId.Tools;
+        RefreshTerrain();
+        RefreshWorkspaces();
         _context.Text = _wb.CurrentId == PageId.Terrain && !_wb.CanEditLocalTerrain
             ? "地形预览 · 不可雕刻" : _wb.Current.Title;
     }
 
-    private static Button Add(StackPanel panel, string label, Action action)
+    private static StackPanel MakePanel() => new()
+    {
+        Orientation = Orientation.Horizontal, Spacing = 4,
+        VerticalAlignment = VerticalAlignment.Center
+    };
+
+    private static Button Add(StackPanel panel, string label, Action? action = null)
     {
         var button = new Button { Content = label, FontSize = 12, Height = 28,
-            Padding = new Thickness(9, 3), Focusable = false };
-        button.Click += (_, _) => action();
+            Padding = new Thickness(8, 3), Focusable = false,
+            BorderThickness = new Thickness(0) };
+        if (action is not null) button.Click += (_, _) => action();
+        button.Resources["ButtonBackgroundDisabled"] = Brushes.Transparent;
+        button.Resources["ButtonBorderBrushDisabled"] = Brushes.Transparent;
+        button.Resources["ButtonForegroundDisabled"] = EditorTheme.TextMuted;
+        Paint(button, false);
         panel.Children.Add(button);
         return button;
     }
+
+    private static void AddUnavailable(StackPanel panel, params string[] labels)
+    {
+        foreach (string label in labels)
+            Add(panel, label).IsEnabled = false;
+    }
+
+    private static void Divide(StackPanel panel) => panel.Children.Add(new Border
+    {
+        Width = 1, Height = 20, Background = EditorTheme.Border,
+        VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(3, 0)
+    });
 
     private static void Paint(Button button, bool active)
     {

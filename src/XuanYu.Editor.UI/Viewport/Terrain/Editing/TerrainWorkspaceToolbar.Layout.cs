@@ -9,38 +9,6 @@ namespace XuanYu.Editor.UI;
 
 internal sealed partial class TerrainWorkspaceToolbar
 {
-    private void BuildGroups()
-    {
-        AddGroup(TerrainToolGroup.Generation, "生成");
-        AddGroup(TerrainToolGroup.Sculpt, "雕刻");
-        AddGroup(TerrainToolGroup.Evolution, "演化");
-        AddGroup(TerrainToolGroup.Hydrology, "水文");
-        AddGroup(TerrainToolGroup.Surface, "地表");
-        AddGroup(TerrainToolGroup.Engineering, "工程");
-        AddGroup(TerrainToolGroup.Analysis, "分析");
-    }
-
-    private void AddGroup(TerrainToolGroup group, string label)
-    {
-        var button = new Button { Content = label, FontSize = 12, Width = 40, MinWidth = 0,
-            Padding = new Thickness(3, 4), Focusable = false, BorderThickness = new Thickness(0),
-            HorizontalContentAlignment = HorizontalAlignment.Center };
-        button.Click += (_, _) =>
-        {
-            if (_wb.CanSelectTerrainToolGroup(group))
-            {
-                _wb.SelectTerrainToolGroup(group);
-                return;
-            }
-            string message = $"{label}：暂未开放";
-            ToolTip.SetTip(button, message);
-            ToolTip.SetIsOpen(button, true);
-            _wb.Log.Write($"[E5-UX01-R01] {message}");
-        };
-        _groupButtons.Add(group, button);
-        _groups.Children.Add(button);
-    }
-
     private void BuildTools()
     {
         AddTool(TerrainToolGroup.Generation, "自然造山 [5]",

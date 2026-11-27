@@ -19,19 +19,7 @@ public class RightWorkspacePanel : Border
         Background = EditorTheme.PanelBg;
         BorderBrush = EditorTheme.Border;
         BorderThickness = new Thickness(1);
-        var heading = new Border
-        {
-            Height = 24, Background = EditorTheme.PanelHeaderBg,
-            BorderBrush = EditorTheme.Border,
-            BorderThickness = new Thickness(0, 0, 0, 1),
-            Padding = new Thickness(8, 0),
-            Child = new TextBlock
-            {
-                Text = "INSPECTOR / 属性检查器", FontSize = 12,
-                Foreground = EditorTheme.TextMain,
-                VerticalAlignment = VerticalAlignment.Center
-            }
-        };
+        var heading = WorkspacePanelHeader.Create("属性检查器");
         var scroll = new ScrollViewer
         {
             Content = _body, HorizontalContentAlignment = HorizontalAlignment.Stretch,

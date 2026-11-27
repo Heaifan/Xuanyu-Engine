@@ -43,17 +43,7 @@ public sealed partial class EditorWindow
         tabs.Children.Add(_terrainDataTab);
         Grid.SetColumn(_terrainObjectTab, 1);
         tabs.Children.Add(_terrainObjectTab);
-        var header = new Border
-        {
-            Background = EditorTheme.PanelHeaderBg, BorderBrush = EditorTheme.Border,
-            BorderThickness = new Thickness(0, 0, 0, 1),
-            Padding = new Thickness(10, 0),
-            Child = new TextBlock
-            {
-                Text = "TERRAIN / 地形属性", FontSize = 10, Foreground = EditorTheme.TextMuted,
-                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-            }
-        };
+        var header = WorkspacePanelHeader.Create("地形属性");
         var root = new Grid { RowDefinitions = new("26,34,*") };
         Grid.SetRow(tabs, 1);
         Grid.SetRow(_terrainContent, 2);
