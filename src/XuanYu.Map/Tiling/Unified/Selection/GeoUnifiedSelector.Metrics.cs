@@ -12,8 +12,12 @@ public sealed partial class GeoUnifiedSelector
         {
             if (!coverage.TryCoarsenWithEdges(parent, (_, _) => true, out var candidate)) continue;
             double? error = screenError(parent, candidate.EdgeMask(parent));
-            if (error is < 1.5 && coverage.TryCoarsenWithEdges(parent, ready, out var coarse))
-                return new(coarse, null, 0);
+            if (error is < 1.5)
+            {
+                if (coverage.TryCoarsenWithEdges(parent, ready, out var coarse))
+                    return new(coarse, null, 0);
+                return new(coverage, parent, error.Value) { PendingCoverage = candidate };
+            }
         }
         var candidates = new List<(GeoUnifiedTile Tile, double Error)>();
         foreach (var tile in coverage.Leaves)
@@ -27,9 +31,7 @@ public sealed partial class GeoUnifiedSelector
         foreach (var (tile, error) in candidates.OrderByDescending(item => item.Error))
         {
             if (error <= 2.5) break;
-            if (coverage.TryRefineWithEdges(tile, ready, out var refined))
-                return new(refined, null, 0);
-            return new(coverage, tile, error);
+            return Refine(coverage, tile, error, ready);
         }
         return new(coverage, null, 0);
     }

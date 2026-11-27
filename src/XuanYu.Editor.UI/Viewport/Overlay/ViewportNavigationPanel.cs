@@ -22,7 +22,6 @@ internal sealed partial class ViewportNavigationPanel : StackPanel
         Width = 76;
         Spacing = 2;
         Children.Add(_axis);
-
         var zoom = MakeButton("zoom", "点击放大；滚轮双向缩放");
         zoom.Click += (_, _) => ZoomActive(1f);
         zoom.PointerWheelChanged += (_, e) =>
@@ -31,16 +30,12 @@ internal sealed partial class ViewportNavigationPanel : StackPanel
             e.Handled = true;
         };
         Children.Add(zoom);
-
         InitializePanButton();
         Children.Add(_panButton);
-
-        var sceneCamera = MakeButton(
-            "camera", "暂无 Camera Entity，尚未开放");
+        var sceneCamera = MakeButton("camera", "暂无 Camera Entity，尚未开放");
         sceneCamera.IsEnabled = false;
         ToolTip.SetShowOnDisabled(sceneCamera, true);
         Children.Add(sceneCamera);
-
         _projection.Click += (_, _) =>
         {
             if (GeoCamera() is not null)
@@ -65,21 +60,16 @@ internal sealed partial class ViewportNavigationPanel : StackPanel
         _axis.Bind(Pose, OrbitActive, SnapActive);
     }
 
-    private ViewportCamera? Camera() => _workbench switch
-    {
-        { CurrentId: PageId.World } wb => wb.Scene.Camera,
-        { CurrentId: PageId.Terrain, IsGeoTerrainPreview: false } wb =>
-            wb.TerrainScene.Camera,
-        _ => null
-    };
+    private ViewportCamera? Camera() => _workbench is { } wb &&
+        (!wb.IsSimulating || wb.CurrentId == PageId.World)
+        ? wb.ActiveCamera : null;
 
     private static Button MakeButton(string name, string tip)
     {
         var button = new Button
         {
             Content = ViewportNavIcons.Create(name),
-            Width = 29,
-            Height = 29,
+            Width = 29, Height = 29,
             HorizontalAlignment = HorizontalAlignment.Right,
             Margin = new Thickness(0, 0, 5, 0),
             HorizontalContentAlignment = HorizontalAlignment.Center,

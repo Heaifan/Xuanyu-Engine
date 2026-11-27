@@ -10,14 +10,22 @@ public sealed class test_G07Streaming
     {
         var paths = new[] { Environment.GetEnvironmentVariable("XYE_G07_WEST")!,
             Environment.GetEnvironmentVariable("XYE_G07_EAST")! };
-        var loader = new GeoUnifiedTileLoader(new NasademTileCatalog(paths), 80_000_000);
-        Task<NasademTile?> first = loader.Request(23, 120);
-        Task<NasademTile?> duplicate = loader.Request(23, 120);
+        var catalog = new NasademTileCatalog(paths);
+        var loader = new GeoUnifiedTileLoader(catalog, 80_000_000);
+        Task<bool> first = loader.Request(23, 120);
+        Task<bool> duplicate = loader.Request(23, 120);
         Assert.Same(first, duplicate);
-        Assert.NotNull(await first);
+        Assert.True(await first);
         Assert.True(loader.ReservedBytes <= 80_000_000);
-        Assert.Same(await first, await loader.Request(23, 120));
-        Assert.Null(await loader.Request(0, 0));
+        Assert.Same(first, loader.Request(23, 120));
+        Assert.False(await loader.Request(0, 0));
+        var source = new GeoUnifiedSamples(catalog, "v1", loader);
+        Assert.True(loader.Release(23, 120));
+        Assert.Equal(0, loader.ReservedBytes);
+        Assert.True(await first);
+        Assert.Equal(GeoSampleStatus.NotLoaded, source.Sample(1083392, 407552).Status);
+        Assert.True(await loader.Request(23, 120));
+        Assert.Equal(GeoSampleStatus.Valid, source.Sample(1083392, 407552).Status);
     }
 
     [G07DataFact]

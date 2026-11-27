@@ -22,7 +22,7 @@ public sealed class TestTerrainLodIdle
     }
 
     [Fact]
-    public void ZoomOutAndBack_ReusesCachedMesh()
+    public async Task ZoomOutAndBack_ReusesCachedMesh()
     {
         var field = new TerrainHeightField(901, 901, 2f);
         var preview = new TerrainPreviewSession(new MapDocument("LOD 缓存", field));
@@ -36,7 +36,7 @@ public sealed class TestTerrainLodIdle
             preview.ViewportDraws(800, 600);
             changed = preview.Scene.Objects.FirstOrDefault(x =>
                 x.Mesh.VertexCount > initial[x.Id].VertexCount);
-            if (changed is null) Thread.Sleep(10);
+            if (changed is null) await Task.Delay(10);
         }
         PreviewObject selected = Assert.IsType<PreviewObject>(changed);
         var refined = selected.Mesh;

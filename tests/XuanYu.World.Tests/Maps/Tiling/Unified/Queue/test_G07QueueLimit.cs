@@ -17,6 +17,6 @@ public sealed class test_G07QueueLimit
         Assert.False(waiting.IsCompleted);
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await loader.Request(24, 120));
         Assert.True(loader.Release(23, 120));
-        Assert.NotNull(await waiting.WaitAsync(TimeSpan.FromSeconds(15)));
+        Assert.True(await waiting.WaitAsync(TimeSpan.FromSeconds(15)));
     }
 }

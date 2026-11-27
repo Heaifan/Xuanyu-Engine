@@ -1,4 +1,3 @@
-
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -16,11 +15,7 @@ public sealed class TopBar : Border
         FontSize = 11,
         VerticalAlignment = VerticalAlignment.Center
     };
-    private readonly TextBlock _context = new()
-    {
-        Foreground = EditorTheme.TextSub,
-        FontSize = 11
-    };
+    private readonly TopToolRow _tools;
 
     public TopBar(Workbench wb, Window owner)
     {
@@ -42,11 +37,11 @@ public sealed class TopBar : Border
         first.Children.Add(_pages);
         first.Children.Add(_status);
 
-        var tools = TopToolRow.Create(_context);
+        _tools = new TopToolRow(wb);
         var root = new Grid { RowDefinitions = new RowDefinitions("38,36") };
-        Grid.SetRow(tools, 1);
+        Grid.SetRow(_tools, 1);
         root.Children.Add(first);
-        root.Children.Add(tools);
+        root.Children.Add(_tools);
         Child = root;
         Refresh();
     }
@@ -54,7 +49,7 @@ public sealed class TopBar : Border
     public void Refresh()
     {
         _pages.Refresh();
-        _context.Text = $"当前：{_wb.CurrentId}";
+        _tools.Refresh();
         _status.Text = _wb.IsSimulating
             ? $"XYE / PLAY {_wb.Simulation.ElapsedSeconds:0.0}s"
             : "XYE / EDITOR";

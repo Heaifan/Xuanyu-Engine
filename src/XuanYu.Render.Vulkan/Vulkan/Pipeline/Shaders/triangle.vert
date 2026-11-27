@@ -4,6 +4,7 @@ layout(push_constant) uniform PushConstants {
     vec4 tint;
     vec4 contour;
     vec4 water;
+    vec4 label;
 } pc;
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec4 color;
@@ -23,7 +24,8 @@ void main() {
     bool terrain = pc.contour.z > 0.0;
     rawEnabled = pc.contour.z >= 3.0 ? 1 : 0;
     float blend = rawEnabled != 0 ? pc.contour.z - 3.0 : pc.contour.z - 1.0;
-    shadedColor = vec4(mix(color.rgb, pc.tint.rgb, pc.tint.a), terrain ? 1.0 : color.a);
+    vec3 surfaceColor = terrain && pc.label.w > 0.0 ? baseColor : color.rgb;
+    shadedColor = vec4(mix(surfaceColor, pc.tint.rgb, pc.tint.a), terrain ? 1.0 : color.a);
     elevation = terrain ? color.a : 0.0;
     contourStyle = terrain
         ? vec4(pc.contour.xy, pc.contour.w, clamp(blend, 0.0, 1.0))

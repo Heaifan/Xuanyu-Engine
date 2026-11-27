@@ -14,10 +14,10 @@ public sealed class test_G07Residency
         await loader.Request(23, 120);
         Assert.True(loader.TryReservePage(1000));
         Assert.True(loader.ReservedBytes >= NasademTile.ByteLength * 3 + 1000);
-        Task<NasademTile?> pending = loader.Request(23, 121);
+        Task<bool> pending = loader.Request(23, 121);
         Assert.False(pending.IsCompleted);
         Assert.True(loader.Release(23, 120));
-        Assert.NotNull(await pending.WaitAsync(TimeSpan.FromSeconds(15)));
+        Assert.True(await pending.WaitAsync(TimeSpan.FromSeconds(15)));
         loader.ReleasePage(1000);
         Assert.True(loader.Release(23, 121));
         Assert.Equal(0, loader.ReservedBytes);

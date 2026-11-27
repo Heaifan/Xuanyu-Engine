@@ -14,7 +14,7 @@ public sealed partial class Workbench
     public string? TerrainMapPath { get; private set; }
     public bool TerrainSelected { get; private set; } = true;
     public string TerrainNodeText => TerrainMultiSourceLabel ??
-        (TerrainSourcePath is { } path ? Path.GetFileName(path) : "地形高度场");
+        (TerrainSourcePath is { } path ? Path.GetFileName(path) : TerrainMap.Name);
 
     public PreviewScene TerrainScene =>
         (_terrainPreview ??= CreateTerrainPreview()).Scene;
@@ -25,8 +25,11 @@ public sealed partial class Workbench
     {
         if (CurrentId != PageId.Terrain || IsGeoTerrainPreview) return null;
         var session = _terrainPreview ??= CreateTerrainPreview();
-        return session.TryPick(pixel, width, height, out var hit)
-            ? hit.WorldPosition : null;
+        if (!session.TryPick(pixel, width, height, out var hit)) return null;
+        return session.IsCentered
+            ? (hit.WorldPosition - new Vector3(session.OriginMeters, 0f))
+                * session.DisplayScale
+            : hit.WorldPosition;
     }
 
     public void ImportTerrain(string path)
@@ -76,6 +79,7 @@ public sealed partial class Workbench
         TerrainSourceTile = tile;
         TerrainSourcePath = sourcePath;
         TerrainMapPath = mapPath;
+        TerrainMode = TerrainWorkspaceMode.Object;
         TerrainSelected = true;
         TerrainDemEntries = entries ?? [];
         SelectedTerrainDem = null;
@@ -85,14 +89,4 @@ public sealed partial class Workbench
         Changed?.Invoke();
     }
 
-    private TerrainPreviewSession CreateTerrainPreview()
-    {
-        var preview = new TerrainPreviewSession();
-        BindTerrainScene(preview.Scene);
-        Log.Write($"E4 地形编辑兼容视口已创建：{preview.Map.WidthMeters:0} × {preview.Map.LengthMeters:0} 米");
-        return preview;
-    }
-
-    private void BindTerrainScene(PreviewScene scene) =>
-        scene.Changed += () => Changed?.Invoke();
 }

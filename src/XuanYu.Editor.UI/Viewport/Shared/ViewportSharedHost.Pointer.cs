@@ -2,14 +2,17 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using XuanYu.Editor.Pages;
-
 namespace XuanYu.Editor.UI;
-
 public sealed partial class ViewportSharedHost
 {
     private void OnViewportPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (!ReferenceEquals(e.Source, this)) return;
+        if (TryHandleBrushAdjustPress(e) || TryHandleSculptPress(e))
+        {
+            e.Handled = true;
+            return;
+        }
         var properties = e.GetCurrentPoint(this).Properties;
         bool middle = properties.IsMiddleButtonPressed;
         bool left = properties.IsLeftButtonPressed;
@@ -39,19 +42,26 @@ public sealed partial class ViewportSharedHost
             e.Handled = true;
         }
     }
-
     private void OnViewportPointerMoved(object? sender, PointerEventArgs e)
     {
+        if (TryHandleBrushAdjustMove(e) || TryHandleSculptMove(e))
+        {
+            e.Handled = true;
+            return;
+        }
         Point next = e.GetPosition(this);
         if (!_dragging)
         {
-            if (_wb.CurrentId == PageId.Terrain && _wb.IsGeoTerrainPreview)
-                UpdateGeoHudHover(next);
+            if (_wb.CurrentId == PageId.Terrain && _wb.HasTerrainHud)
+            {
+                ToolTip.SetIsOpen(this, false);
+                if (ReferenceEquals(e.Source, this)) UpdateGeoHudHover(next);
+                else ClearGeoHudHover();
+            }
             else
                 UpdateTerrainHover(next);
             return;
         }
-
         ToolTip.SetIsOpen(this, false);
         double scale = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
         OnCameraGesture(new ViewportCameraGesture(
@@ -63,10 +73,12 @@ public sealed partial class ViewportSharedHost
 
     private void OnViewportPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
+        if (TryHandleSculptRelease(e))
+        { UpdateGeoHudHover(e.GetPosition(this), force: true); e.Handled = true; return; }
         if (!_dragging) return;
         _dragging = false;
         e.Pointer.Capture(null);
-        if (_wb.CurrentId == PageId.Terrain && _wb.IsGeoTerrainPreview)
+        if (_wb.CurrentId == PageId.Terrain && _wb.HasTerrainHud)
             UpdateGeoHudHover(e.GetPosition(this), force: true);
         e.Handled = true;
     }
@@ -75,6 +87,8 @@ public sealed partial class ViewportSharedHost
     {
         if (!ReferenceEquals(e.Source, this)) return;
         ToolTip.SetIsOpen(this, false);
+        if (_sculptPointer is not null || _adjustOriginal is not null)
+        { e.Handled = true; return; }
         Point cursor = e.GetPosition(this);
         double scale = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
         OnCameraGesture(new ViewportCameraGesture(0, 0,

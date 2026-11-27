@@ -11,6 +11,16 @@ public sealed partial class ViewportSharedHost
     private Point _miniResizeStart;
     private int _miniResizeSize;
     private bool _miniResizing;
+    private readonly Thickness _baseMiniMapMargin;
+
+    internal void SetTerrainToolbarVisible(bool visible)
+    {
+        var original = _baseMiniMapMargin;
+        _miniMapPanel.Margin = visible
+            ? new Thickness(Math.Max(56, original.Left), Math.Max(48, original.Top),
+                original.Right, original.Bottom) : original;
+        _navigation.Margin = new Thickness(0, visible ? 48 : 12, 12, 0);
+    }
 
     private void AttachGeoOverlays()
     {
@@ -21,6 +31,7 @@ public sealed partial class ViewportSharedHost
         AddMiniMapResizeEdge(true, true);
         Children.Add(_geoHudPanel);
         Children.Add(_miniMapPanel);
+        Children.Add(_gridScale);
         ApplyMiniMapSize();
     }
 

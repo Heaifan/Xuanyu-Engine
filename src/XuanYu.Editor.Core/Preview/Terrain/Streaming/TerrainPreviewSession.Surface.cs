@@ -8,8 +8,10 @@ public sealed partial class TerrainPreviewSession
     private float? SampleSurface(Vector2 scaledPoint)
     {
         TerrainHeightField field = Map.HeightField;
-        float u = scaledPoint.X / (field.SpacingXMeters * DisplayScale);
-        float v = scaledPoint.Y / (field.SpacingYMeters * DisplayScale);
+        float u = (scaledPoint.X / DisplayScale + OriginMeters.X)
+            / field.SpacingXMeters;
+        float v = (scaledPoint.Y / DisplayScale + OriginMeters.Y)
+            / field.SpacingYMeters;
         if (u < 0f || v < 0f ||
             u > field.SamplesX - 1 || v > field.SamplesY - 1)
             return null;

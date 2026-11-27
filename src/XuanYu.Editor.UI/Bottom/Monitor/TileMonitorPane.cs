@@ -19,7 +19,7 @@ public sealed class TileMonitorPane : Grid
 
     public TileMonitorPane()
     {
-        RowDefinitions = new RowDefinitions("38,*,44");
+        RowDefinitions = new RowDefinitions("38,*,Auto");
         Margin = new Thickness(8, 4);
         _map.Selected += tile => { _selected = tile.Id; ShowDetail(_map.Snapshot); };
         var square = new Viewbox
@@ -69,8 +69,10 @@ public sealed class TileMonitorPane : Grid
         GeoTileBounds b = t.Bounds;
         _detail.Text = $"{t.Id}  LOD {t.Id.Level}  {t.Status} " +
             $"父片：{t.Fallback?.ToString() ?? "—"}\n" +
+            $"HGT：{t.SourceHgt}  网格：{(t.MeshAssetId.StartsWith("terrain/g04/", StringComparison.Ordinal) ? "Native" : "普通")}  " +
+            $"高程源：{t.ElevationSource}  几何格距：N {t.GeometryNorthMeters:F1}m / E {t.GeometryEastMeters:F1}m\n" +
             $"纬 {b.SouthLatitudeDegrees:F5}～{b.NorthLatitudeDegrees:F5}° " +
             $"经 {b.WestLongitudeDegrees:F5}～{b.EastLongitudeDegrees:F5}° " +
-            $"基础缓存：{(t.Cached ? "是" : "否")}";
+            $"基础缓存：{(t.Cached ? "是" : "否")}  网格资产：{t.MeshAssetId}";
     }
 }

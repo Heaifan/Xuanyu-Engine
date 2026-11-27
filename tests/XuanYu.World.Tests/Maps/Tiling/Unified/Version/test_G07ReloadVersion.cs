@@ -18,7 +18,7 @@ public sealed class test_G07ReloadVersion
             using (var input = zip.GetEntry("n23e120.hgt")!.Open())
             using (var output = File.Create(path)) input.CopyTo(output);
             var loader = new GeoUnifiedTileLoader(new NasademTileCatalog([path]), 80_000_000);
-            Assert.NotNull(await loader.Request(23, 120));
+            Assert.True(await loader.Request(23, 120));
             Assert.True(loader.Release(23, 120));
             using (var file = new FileStream(path, FileMode.Open, FileAccess.ReadWrite))
             {

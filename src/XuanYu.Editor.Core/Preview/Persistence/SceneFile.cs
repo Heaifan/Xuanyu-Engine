@@ -38,7 +38,9 @@ public static class SceneFile
     {
         if (document is null || document.Version != 1 || document.Entities is null)
             throw new InvalidDataException("场景版本或实体列表无效。");
-
+        SceneTerrainData? terrain = document.LocalTerrain;
+        if (terrain is not null)
+            ValidateTerrain(terrain, document.Entities);
         HashSet<Guid> ids = [];
         foreach (SceneEntityData? part in document.Entities)
         {
@@ -48,12 +50,29 @@ public static class SceneFile
                 entity.Name != entity.Name.Trim() ||
                 !ids.Add(entity.Id))
                 throw new InvalidDataException("场景包含无效或重复的实体。");
-            if (part.MeshId is not ("builtin/cube" or
+            bool local = terrain is not null && entity.Id == terrain.EntityId &&
+                part.MeshId.StartsWith("terrain/local/", StringComparison.Ordinal);
+            if (!local && part.MeshId is not ("builtin/cube" or
                 "demo/colored-face" or "demo/quad"))
                 throw new InvalidDataException($"不支持的网格资产：{part.MeshId}");
             if (!Valid(entity.Transform))
                 throw new InvalidDataException($"实体 Transform 无效：{entity.Name}");
         }
+    }
+
+    private static void ValidateTerrain(SceneTerrainData data,
+        SceneEntityData[] entities)
+    {
+        if (data.SamplesX is < 2 or > 257 || data.SamplesY is < 2 or > 257 ||
+            !float.IsFinite(data.SpacingX) || data.SpacingX <= 0 ||
+            !float.IsFinite(data.SpacingY) || data.SpacingY <= 0 ||
+            data.Heights is null ||
+            data.Heights.Length != data.SamplesX * data.SamplesY ||
+            data.Heights.Any(height => !float.IsFinite(height)) ||
+            !entities.Any(part => part?.Entity?.Id == data.EntityId &&
+                part.MeshId is not null &&
+                part.MeshId.StartsWith("terrain/local/", StringComparison.Ordinal)))
+            throw new InvalidDataException("场景中的本地 Terrain 高程数据无效。");
     }
 
     private static bool Valid(XuanYu.World.Transform value) =>

@@ -15,8 +15,10 @@ public sealed partial class Workbench
         ? geo.SourceLabel : null;
     public int TerrainSourceCount => _geoPreview?.SourceCount ?? 0;
     public string TerrainWaterStatus => _geoPreview?.WaterStatus ?? "未导入";
-    public bool TerrainContoursEnabled => _geoPreview?.ContoursEnabled ?? false;
-    public int TerrainContourInterval => _geoPreview?.ContourStyle.IntervalMeters ?? 0;
+    public bool TerrainContoursEnabled => _geoPreview?.ContoursEnabled ??
+        (HasLocalTerrainContours && _localContoursEnabled);
+    public int TerrainContourInterval => _geoPreview?.ContourStyle.IntervalMeters ??
+        (_terrainPreview is { IsCentered: true } local ? GetLocalContourStyle(local).IntervalMeters : 0);
 
     public TerrainStats? TerrainStats => _geoPreview is { } geo ? new(
         geo.MeshCacheStats, geo.SourceResidency, geo.DrawCount,
@@ -45,9 +47,13 @@ public sealed partial class Workbench
         _geoPreview!.ZoomAtCursor(wheel, new Vector2(x, y), width, height);
 
     public void ZoomTerrainAt(float wheel, float x, float y,
-        uint width, uint height) =>
-        (_terrainPreview ??= CreateTerrainPreview()).ZoomAtCursor(
-            wheel, new Vector2(x, y), width, height);
+        uint width, uint height)
+    {
+        if (CurrentId == PageId.Terrain || ReferenceEquals(_terrainPreview?.Scene, Scene))
+            (_terrainPreview ??= CreateTerrainPreview()).ZoomAtCursor(
+                wheel, new Vector2(x, y), width, height);
+        else Scene.Camera?.Zoom(wheel);
+    }
 
     public void SnapGeoTerrainAxis(Vector3 axis, uint width, uint height) =>
         _geoPreview!.SnapAxis(axis, width, height);
@@ -66,7 +72,18 @@ public sealed partial class Workbench
 
     public void SetTerrainContoursEnabled(bool enabled)
     {
-        _geoPreview!.SetContoursEnabled(enabled);
-        Log.Write($"G-06 等高线：{(enabled ? "开启" : "关闭")}");
+        if (TerrainContoursEnabled == enabled) return;
+        if (_geoPreview is { } geo)
+        {
+            geo.SetContoursEnabled(enabled);
+            Log.Write($"G-06 等高线：{(enabled ? "开启" : "关闭")}");
+            Changed?.Invoke();
+        }
+        else if (HasLocalTerrainContours)
+        {
+            _localContoursEnabled = enabled;
+            Log.Write($"[E5/V02] 等高线：{(enabled ? "开启" : "关闭")}");
+            Changed?.Invoke();
+        }
     }
 }

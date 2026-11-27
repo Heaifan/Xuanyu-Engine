@@ -9,7 +9,7 @@ internal static class GeoOverlayViewMenu
     {
         var hud = new MenuItem
         {
-            Header = "显示地理 HUD", ToggleType = MenuItemToggleType.CheckBox,
+            Header = "显示地形 HUD（含比例尺）", ToggleType = MenuItemToggleType.CheckBox,
             IsChecked = wb.GeoHudVisible
         };
         hud.PropertyChanged += (_, e) =>
@@ -44,7 +44,7 @@ internal static class GeoOverlayViewMenu
         sizes.Header = $"小地图尺寸（{wb.GeoMiniMapSize} DIP）";
         return new MenuItem
         {
-            Header = "地理叠层",
+            Header = "地形叠层",
             ItemsSource = new[] { hud, miniMap, sizes }
         };
     }

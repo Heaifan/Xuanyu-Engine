@@ -20,22 +20,22 @@ public sealed partial class ViewportSharedHost
     private void UpdateGeoMiniMap()
     {
         bool visible = _wb.CurrentId == PageId.Terrain &&
-            _wb.IsGeoTerrainPreview && _wb.GeoMiniMapVisible;
+            _wb.HasTerrainHud && _wb.GeoMiniMapVisible;
         _miniMapPanel.IsVisible = visible;
         if (!visible) return;
+        _miniMapPanel.Margin = _wb.IsGeoTerrainPreview ? new Thickness(12) : new Thickness(48, 50, 0, 0);
         ApplyMiniMapSize();
         long now = Environment.TickCount64;
         if (now - _lastMiniMapAt < 250) return;
         _lastMiniMapAt = now;
         var map = _wb.TerrainMiniMap();
-        var camera = _wb.GeoTerrainCamera;
-        if (map is null || camera is null)
+        var camera = _wb.TerrainMiniMapCamera();
+        if (map is null || camera is not { } view)
         {
             _miniMapPanel.IsVisible = false;
             return;
         }
-        _miniMap.Update(map, camera.Target.LatitudeDegrees,
-            camera.Target.LongitudeDegrees, camera.YawRadians);
+        _miniMap.Update(map, view.North, view.East, view.Yaw);
     }
 
     private void ApplyMiniMapSize()

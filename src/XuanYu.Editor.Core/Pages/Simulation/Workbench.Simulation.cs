@@ -1,4 +1,3 @@
-
 using XuanYu.Editor.Camera;
 using XuanYu.Editor.Preview;
 using XuanYu.Runtime;
@@ -10,15 +9,17 @@ public sealed partial class Workbench
     private ViewportCamera? _runtimeCamera;
     private GameCameraKey _heldCameraKeys;
 
-    public ViewportCamera? ActiveCamera =>
-        CurrentId == PageId.Terrain
-            ? TerrainScene.Camera
-            : _runtimeCamera ?? Scene.Camera;
+    public ViewportCamera? ActiveCamera => IsSimulating
+        ? _runtimeCamera ?? Scene.Camera
+        : _geoPreview is not null
+            ? null
+            : CurrentId == PageId.Terrain ? TerrainScene.Camera : Scene.Camera;
 
     public void StartSimulation()
     {
+        ViewportCamera? editorCamera = ActiveCamera;
         Simulation.Start();
-        _runtimeCamera = Scene.Camera?.Copy();
+        _runtimeCamera = editorCamera?.Copy();
         ResetCameraKeys();
         _runtimeBridge = CreateRuntimeBridge();
         Log.Write("模拟开始：已建立独立 World 副本，目标 30 Hz");
@@ -51,34 +52,23 @@ public sealed partial class Workbench
             ResetCameraKeys();
             return;
         }
-
-        if (!IsSimulating || CurrentId != PageId.World)
-            return;
-
+        if (!IsSimulating || CurrentId != PageId.World) return;
         if (down) _heldCameraKeys |= key;
         else _heldCameraKeys &= ~key;
     }
 
-    private void ResetCameraKeys() =>
-        _heldCameraKeys = GameCameraKey.None;
+    private void ResetCameraKeys() => _heldCameraKeys = GameCameraKey.None;
 
     private void TickRuntimeCamera()
     {
-        if (_runtimeCamera is null || CurrentId != PageId.World)
-            return;
-
+        if (_runtimeCamera is null || CurrentId != PageId.World) return;
         int forward = (Has(GameCameraKey.Forward) ? 1 : 0) -
             (Has(GameCameraKey.Backward) ? 1 : 0);
         int right = (Has(GameCameraKey.Right) ? 1 : 0) -
             (Has(GameCameraKey.Left) ? 1 : 0);
-
-        if (forward == 0 && right == 0)
-            return;
-
+        if (forward == 0 && right == 0) return;
         float step = 4f / SimulationSession.TicksPerSecond;
-        if (forward != 0 && right != 0)
-            step /= MathF.Sqrt(2f);
-
+        if (forward != 0 && right != 0) step /= MathF.Sqrt(2f);
         _runtimeCamera.MoveGround(forward * step, right * step);
     }
 
@@ -90,7 +80,6 @@ public sealed partial class Workbench
         var bridge = new WorldRenderBridge(Simulation.RunningWorld!);
         foreach (PreviewObject item in Scene.Objects)
             bridge.Bind(item.Id, item.Mesh);
-
         return bridge;
     }
 }

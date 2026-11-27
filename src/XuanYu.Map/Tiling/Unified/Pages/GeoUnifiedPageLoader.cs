@@ -67,10 +67,10 @@ public sealed partial class GeoUnifiedPageLoader
             if (!loader.TrimUnneeded(keys))
                 throw new InvalidOperationException("原始高程仍在使用，暂不能回收。");
             var sources = keys.Select(key => loader.Request(key.South, key.West)).ToArray();
-            await Task.WhenAll(sources).ConfigureAwait(false);
-            var page = await Task.Run(() => cache.Acquire(tile)).ConfigureAwait(false);
-            loader.MarkEvictable(keys);
-            return page;
+            var loaded = await Task.WhenAll(sources).ConfigureAwait(false);
+            loader.MarkEvictable(keys.Where((_, i) => loaded[i]));
+            if (loaded.Any(ok => !ok)) throw new InvalidOperationException("原始高程未全部就绪。");
+            return await Task.Run(() => cache.Acquire(tile)).ConfigureAwait(false);
         }
         finally { _worker.Release(); }
     }

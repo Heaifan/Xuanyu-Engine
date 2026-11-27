@@ -60,7 +60,7 @@ internal static unsafe class VkFrameCommands
         var gaps = scene.BindContourGaps(cmd, draw);
         bool raw = hasDem && VkMeshScene.DemContourEnabled && !draw.LegacyContourOnly;
         bool water = scene.BindWater(cmd, draw) && !outline;
-        float shadeSouth = hasDem && !mask && VkMeshScene.DemHillshadeEnabled &&
+        float shadeSouth = hasDem && !mask && !draw.DisableTerrainHillshade && VkMeshScene.DemHillshadeEnabled &&
             !draw.Mesh.TerrainShadedColors.IsEmpty && draw.ResidentDem is { } shadeDem
             ? shadeDem.SouthLatitude + 91f : 0f;
         float dx = 0f, dy = 0f;
@@ -83,7 +83,9 @@ internal static unsafe class VkFrameCommands
             outline ? 0f : (draw.ContourNextIntervalMeters > 0f
                 ? draw.ContourNextIntervalMeters : draw.ContourIntervalMeters),
             dx, dy, water ? 1f : 0f, shadeSouth,
-            gaps.First, outline || mask ? 0f : gaps.Count, 0f, 0f
+            gaps.First, outline || mask ? 0f : gaps.Count,
+            draw.ResidentDem is null ? 1f : 0f,
+            !outline && !mask && draw.DisableTerrainHillshade && !draw.Mesh.TerrainShadedColors.IsEmpty ? 1f : 0f
         };
         vk.CmdPushConstants(cmd, scene.Layout, ShaderStageFlags.VertexBit | ShaderStageFlags.FragmentBit,
             0, 128, push);

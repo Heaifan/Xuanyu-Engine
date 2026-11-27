@@ -5,15 +5,17 @@ namespace XuanYu.Editor.Preview;
 public static class PreviewMeshPicker
 {
     public static Guid? Pick(PreviewScene scene, int x, int y,
-        uint width, uint height)
+        uint width, uint height) => Pick(scene, x, y, width, height,
+            scene.ViewProjection(width, height));
+
+    public static Guid? Pick(PreviewScene scene, int x, int y,
+        uint width, uint height, Matrix4x4 camera)
     {
         Vector2 point = new(x, y);
-        Matrix4x4 camera = scene.ViewProjection(width, height);
         for (int i = scene.Objects.Count - 1; i >= 0; i--)
         {
             PreviewObject item = scene.Objects[i];
-            if (!item.Visible)
-                continue;
+            if (!item.Visible) continue;
             Matrix4x4 transform = item.ModelToClip * camera;
             ReadOnlySpan<float> data = item.Mesh.Vertices.Span;
             for (int offset = 0; offset < data.Length; offset += 21)
@@ -21,8 +23,7 @@ public static class PreviewMeshPicker
                 Vector2 a = Project(data, offset, transform, width, height);
                 Vector2 b = Project(data, offset + 7, transform, width, height);
                 Vector2 c = Project(data, offset + 14, transform, width, height);
-                if (Contains(point, a, b, c))
-                    return item.Id;
+                if (Contains(point, a, b, c)) return item.Id;
             }
         }
         return null;
@@ -41,8 +42,7 @@ public static class PreviewMeshPicker
     private static bool Contains(Vector2 p, Vector2 a, Vector2 b, Vector2 c)
     {
         float area = Edge(a, b, c);
-        if (MathF.Abs(area) < 0.0001f)
-            return false;
+        if (MathF.Abs(area) < 0.0001f) return false;
         float ab = Edge(a, b, p);
         float bc = Edge(b, c, p);
         float ca = Edge(c, a, p);

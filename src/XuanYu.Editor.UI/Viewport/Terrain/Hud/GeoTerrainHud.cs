@@ -1,3 +1,4 @@
+using System.Numerics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -42,6 +43,13 @@ internal sealed partial class GeoTerrainHud : Border
         Child = content;
         ShowPoint(null);
         ShowScale(null);
+    }
+
+    public void ShowLocalPoint(Vector3? value)
+    {
+        _coordinates.Text = value is { } point
+            ? $"X {point.X:0.##} m    Y {point.Y:0.##} m" : "X —    Y —";
+        _elevation.Text = value is { } p ? $"Z {p.Z:0.##} m" : "Z —";
     }
 
     public void ShowPoint(GeoTerrainHudPoint? value)

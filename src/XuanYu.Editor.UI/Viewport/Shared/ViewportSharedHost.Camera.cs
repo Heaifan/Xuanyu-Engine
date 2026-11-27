@@ -1,6 +1,5 @@
 using XuanYu.Editor.Camera;
 using XuanYu.Editor.Pages;
-using XuanYu.Editor.Preview;
 
 namespace XuanYu.Editor.UI;
 
@@ -8,7 +7,8 @@ public sealed partial class ViewportSharedHost
 {
     private void OnCameraGesture(ViewportCameraGesture gesture)
     {
-        if (_wb.CurrentId == PageId.Terrain && _wb.IsGeoTerrainPreview)
+        if (_wb.IsSimulating && _wb.CurrentId != PageId.World) return;
+        if (_wb.IsGeoTerrainPreview && !_wb.IsSimulating)
         {
             if (gesture.WheelSteps != 0f)
             {
@@ -16,18 +16,14 @@ public sealed partial class ViewportSharedHost
                 _wb.ZoomGeoTerrainAt(gesture.WheelSteps,
                     gesture.CursorX, gesture.CursorY, width, height);
             }
-            else
-                _wb.NavigateGeoTerrain(gesture.DeltaX, gesture.DeltaY,
-                    0f, gesture.Pan, PixelSize.Height);
+            else _wb.NavigateGeoTerrain(gesture.DeltaX, gesture.DeltaY,
+                0f, gesture.Pan, PixelSize.Height);
             return;
         }
-        if (_wb.CurrentId is not (PageId.World or PageId.Terrain) ||
-            _wb.ActiveCamera is not { } camera)
-            return;
-
+        if (_wb.ActiveCamera is not { } camera) return;
         if (gesture.WheelSteps != 0)
         {
-            if (_wb.CurrentId == PageId.Terrain)
+            if (!_wb.IsSimulating)
             {
                 var (width, height) = PixelSize;
                 _wb.ZoomTerrainAt(gesture.WheelSteps,
@@ -38,52 +34,34 @@ public sealed partial class ViewportSharedHost
         else if (gesture.Pan)
             camera.Pan(gesture.DeltaX, gesture.DeltaY,
                 Math.Max(1u, PixelSize.Height));
-        else
-            camera.Orbit(gesture.DeltaX, gesture.DeltaY);
+        else camera.Orbit(gesture.DeltaX, gesture.DeltaY);
     }
 
     private void OnCameraShortcut(ViewportCameraShortcut shortcut)
     {
-        if (_wb.IsSimulating ||
-            _wb.CurrentId is not (PageId.World or PageId.Terrain))
-            return;
-        if (_wb.CurrentId == PageId.Terrain && _wb.IsGeoTerrainPreview)
+        if (_wb.IsSimulating) return;
+        if (_wb.IsGeoTerrainPreview)
         {
             _wb.ResetGeoTerrainCamera();
             return;
         }
-
-        PreviewScene scene = _wb.CurrentId == PageId.Terrain
-            ? _wb.TerrainScene : _wb.Scene;
-
-        if (scene.Camera is not { } camera)
-            return;
-
+        var scene = _wb.CurrentId == PageId.Terrain ? _wb.TerrainScene : _wb.Scene;
+        if (_wb.ActiveCamera is not { } camera) return;
         var (width, height) = PixelSize;
-        float aspect = Math.Max(1u, width) /
-            (float)Math.Max(1u, height);
-
-        bool terrain = _wb.CurrentId == PageId.Terrain;
-
+        float aspect = Math.Max(1u, width) / (float)Math.Max(1u, height);
         if (shortcut == ViewportCameraShortcut.Home ||
-            (terrain && shortcut == ViewportCameraShortcut.FocusSelection))
+            _wb.CurrentId == PageId.Terrain)
         {
-            bool found = ViewportSceneFraming.FrameAll(
-                camera, scene.Objects, aspect);
-
-            _wb.Log.Write(terrain
-                ? "E4 地形：已聚焦完整地图"
-                : found
-                    ? "Home：已显示全部可见实体"
-                    : "Home：场景为空，已恢复默认视角");
+            bool found = ViewportSceneFraming.FrameAll(camera,
+                scene.Objects, aspect);
+            _wb.Log.Write(found ? "[E5/视口] Home：已聚焦地形"
+                : "[E5/视口] Home：已恢复初始视角");
         }
-        else if (shortcut == ViewportCameraShortcut.FocusSelection)
+        else
         {
             bool found = ViewportSceneFraming.Focus(
                 camera, scene.Selected, aspect);
-
-            _wb.Log.Write(found
-                ? $"F：聚焦实体 {scene.Selected!.Name}"
+            _wb.Log.Write(found ? $"F：聚焦实体 {scene.Selected!.Name}"
                 : "F：请先选中一个可见实体");
         }
     }

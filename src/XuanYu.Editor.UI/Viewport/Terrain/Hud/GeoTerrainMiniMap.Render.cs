@@ -38,8 +38,8 @@ internal sealed partial class GeoTerrainMiniMap
 
     private Rect MapArea(double south, double north, double west, double east)
     {
-        double physicalWidth = (east - west) *
-            Math.Cos((south + north) * 0.5d * Math.PI / 180d);
+        double physicalWidth = (east - west) * (_map!.IsLocal ? 1d :
+            Math.Cos((south + north) * 0.5d * Math.PI / 180d));
         double physicalHeight = north - south;
         double side = Math.Min(Bounds.Width, Bounds.Height) - 8d;
         double ratio = physicalWidth / physicalHeight;

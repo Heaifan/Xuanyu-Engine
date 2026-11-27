@@ -23,7 +23,7 @@ public static partial class GeoContourMesh
         }
     }
 
-    private static bool Cross(Point a, Point b, float level, out Point cut)
+    internal static bool Cross(Point a, Point b, float level, out Point cut)
     {
         cut = default;
         if ((a.Elevation <= level) == (b.Elevation <= level)) return false;

@@ -27,18 +27,10 @@ public sealed partial class GeoTerrainRenderSession
                 double lon = west + (x + 0.5d) * (east - west) / columns;
                 double? h = coarse.Sample(lat, lon);
                 cells[y * columns + x] = h is not { } height ? (byte)0 :
-                    IsMiniMapWater(lat, lon) ? (byte)1 : HeightBand(height);
+                    IsMiniMapWater(lat, lon) ? (byte)1 : GeoTerrainMiniMapData.HeightBand(height);
             }
         }
         _miniMapWater = _waterAtlas;
         return _miniMap = new(south, west, north, east, columns, rows, cells);
     }
-
-    private static byte HeightBand(double height) => height switch
-    {
-        < 100d => 2, < 250d => 3, < 450d => 4,
-        < 650d => 5, < 900d => 6, < 1300d => 7,
-        < 1800d => 8, < 2400d => 9, < 3000d => 10,
-        < 3600d => 11, < 4200d => 12, _ => 13
-    };
 }

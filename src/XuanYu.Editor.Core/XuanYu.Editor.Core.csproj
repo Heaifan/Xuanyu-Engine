@@ -1,5 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <InternalsVisibleTo Include="XuanYu.World.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\XuanYu.Core\XuanYu.Core.csproj" />
     <ProjectReference Include="..\XuanYu.World\XuanYu.World.csproj" />
     <ProjectReference Include="..\XuanYu.Render\XuanYu.Render.csproj" />

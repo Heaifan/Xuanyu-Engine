@@ -1,10 +1,12 @@
 using XuanYu.Core.Geodesy;
+using XuanYu.Editor.Core.Preview.Terrain.Unified;
 using XuanYu.Render.Vulkan;
 using XuanYu.World.Maps;
 using Xunit;
 
 namespace XuanYu.World.Tests.Maps;
 
+[Collection("VulkanHardware")]
 public sealed class test_G07GpuCoordinates
 {
     [G07DataFact]
@@ -26,17 +28,22 @@ public sealed class test_G07GpuCoordinates
         var positions = context.ProbeTerrainCoordinates(tile.South, tile.West, 1 << tile.Level, origin, heights);
         Assert.Equal(33 * 33, positions.Length);
         var anchor = new EnuFrame(origin);
-        double max = 0;
+        var mesh = GeoUnifiedMeshAdapter.Build(page.Page, anchor, 0);
+        var vertices = mesh.Vertices.ToArray();
+        double max = 0, meshMax = 0;
         for (int row = 0; row < 33; row++)
             for (int col = 0; col < 33; col++)
             {
-                var geo = new GeoCoordinate((tile.South + row * 64) / 3600d - 90,
-                    (tile.West + col * 64) / 3600d - 180, 0);
-                var p = anchor.ToEnu(Wgs84.ToEcef(geo));
-                var gpu = positions[row * 33 + col];
-                double x = p.East - gpu.X, y = p.North - gpu.Y, z = p.Up + heights[row * 33 + col] - gpu.Z;
-                max = Math.Max(max, Math.Sqrt(x * x + y * y + z * z));
+                int i = row * 33 + col, v = i * 7;
+                var p = GeoUnifiedPosition.At(anchor, tile.West + col * 64, tile.South + row * 64, heights[i]);
+                var gpu = positions[i];
+                max = Math.Max(max, Distance(p.East - gpu.X, p.North - gpu.Y, p.Up - gpu.Z));
+                meshMax = Math.Max(meshMax, Distance(vertices[v] - gpu.X,
+                    vertices[v + 1] - gpu.Y, vertices[v + 2] - gpu.Z));
             }
         Assert.InRange(max, 0, 0.10);
+        Assert.InRange(meshMax, 0, 0.10);
     }
+
+    private static double Distance(double x, double y, double z) => Math.Sqrt(x * x + y * y + z * z);
 }

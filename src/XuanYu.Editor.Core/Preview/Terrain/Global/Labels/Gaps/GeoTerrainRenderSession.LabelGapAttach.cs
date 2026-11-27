@@ -1,51 +1,29 @@
-using System.Numerics;
+using System.Diagnostics;
 using XuanYu.Render;
 
 namespace XuanYu.Editor.Preview.Terrain;
 
 public sealed partial class GeoTerrainRenderSession
 {
+    private long _lastLabelGapReport = -60;
+
     public RenderDraw[] AttachContourLabelGaps(IReadOnlyList<RenderDraw> draws,
         IReadOnlyList<GeoContourLabel> anchors, uint width, uint height, float scale,
         out GeoContourLabel[] visible, Func<int, float>? measure = null)
     {
-        RenderDraw[] result = draws.ToArray();
-        var labels = new List<GeoContourLabel>();
         if (!ContoursEnabled || !ContourLabelsEnabled || anchors.Count == 0)
         {
             visible = [];
-            return result;
+            return draws.ToArray();
         }
-        var gaps = new List<Vector4>?[result.Length];
-        Matrix4x4 projection = ViewProjection(width, height);
-        _labelVisibility.Prepare(result, projection);
-        foreach (GeoContourLabel anchor in anchors)
+        long start = _r02PerfEnabled ? Stopwatch.GetTimestamp() : 0;
+        var result = ContourLabelGapLayout.Attach(draws, anchors, ViewProjection(width, height),
+            _labelVisibility, CanOwn, width, height, scale, out visible, measure);
+        if (_r02PerfEnabled && _monitorFrame - _lastLabelGapReport >= 60)
         {
-            int index = Array.FindIndex(result, d =>
-                ReferenceEquals(d.Mesh, anchor.Owner) && CanOwn(d, anchor));
-            if (index < 0 || !GeoContourLabelProjection.TryScreen(anchor,
-                projection, width, height, out GeoContourLabel label)) continue;
-            if (label.ContourId > 0 && labels.Any(old =>
-                old.ContourId == label.ContourId)) continue;
-            float radians = label.AngleDegrees * MathF.PI / 180f;
-            float halfWidth = ((measure?.Invoke(label.ElevationMeters) ?? 64f) / 2f + 2f) * scale;
-            if (labels.Any(old => MathF.Abs(old.X - label.X) <
-                halfWidth * 2f + 8f && MathF.Abs(old.Y - label.Y) < 20f)) continue;
-            if (!_labelVisibility.IsVisible(label, halfWidth, radians, width, height)) continue;
-            uint packed = (uint)BitConverter.HalfToUInt16Bits((Half)radians) |
-                ((uint)BitConverter.HalfToUInt16Bits((Half)halfWidth) << 16);
-            (gaps[index] ??= []).Add(new Vector4(label.X, label.Y,
-                BitConverter.UInt32BitsToSingle(packed), label.ElevationMeters));
-            labels.Add(label);
+            _lastLabelGapReport = _monitorFrame;
+            Notice?.Invoke($"[G06/R08-03B/标高布局] 帧={_monitorFrame} 候选={anchors.Count} 可见={visible.Length} 耗时={Stopwatch.GetElapsedTime(start).TotalMilliseconds:F1}ms");
         }
-        for (int i = 0; i < result.Length; i++)
-            if (gaps[i] is { Count: > 0 } entries)
-                result[i] = result[i] with
-                {
-                    ContourLabelGap = entries[0],
-                    ContourLabelGaps = entries.ToArray()
-                };
-        visible = labels.ToArray();
         return result;
     }
 }

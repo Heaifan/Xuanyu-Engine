@@ -39,6 +39,16 @@ public sealed class RenderMesh
     public static RenderMesh FromIndexedTerrain(string assetId,
         ReadOnlySpan<float> vertices, ReadOnlySpan<uint> indices) =>
         new(assetId, vertices, indices);
+
+    public static RenderMesh FromLocalTerrain(string assetId, ReadOnlySpan<float> vertices) =>
+        CreateTerrain(assetId, vertices, default, heightOffset: 2);
+
+    public static RenderMesh FromLocalTerrain(string assetId, ReadOnlySpan<float> vertices,
+        ReadOnlySpan<float> shaded)
+    {
+        if (shaded.Length != vertices.Length / 7 * 3)
+            throw new ArgumentException("晕渲颜色须与网格顶点一一对应。", nameof(shaded));
+        return CreateTerrain(assetId, vertices, shaded.ToArray(), heightOffset: 2);
     }
 
     // The public RGBA layout remains unchanged for picking and selection.
@@ -77,7 +87,8 @@ public sealed class RenderMesh
     }
 
     private static RenderMesh CreateTerrain(string assetId, ReadOnlySpan<float> packed,
-        ReadOnlyMemory<float> shaded, ReadOnlyMemory<double> geographic = default)
+        ReadOnlyMemory<float> shaded, ReadOnlyMemory<double> geographic = default,
+        int heightOffset = 6)
     {
         var heights = new float[packed.Length / 7];
         var mesh = new RenderMesh(assetId, packed)
@@ -87,7 +98,7 @@ public sealed class RenderMesh
         };
         for (int i = 0; i < heights.Length; i++)
         {
-            heights[i] = mesh._vertices[i * 7 + 6];
+            heights[i] = mesh._vertices[i * 7 + heightOffset];
             mesh._vertices[i * 7 + 6] = 1f;
         }
         return mesh;

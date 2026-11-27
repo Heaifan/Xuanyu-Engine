@@ -1,5 +1,6 @@
 using Avalonia.Platform;
 using Avalonia.Rendering.Composition;
+using System.Diagnostics;
 using XuanYu.Render.Vulkan;
 
 namespace XuanYu.Editor.UI;
@@ -10,6 +11,9 @@ public sealed partial class ViewportSharedHost
     private async Task RenderAsync()
     {
         if (_interop is null || _stopped) return;
+        bool profile = Environment.GetEnvironmentVariable("XYE_G06_PERF") == "1";
+        long frameStarted = profile ? Stopwatch.GetTimestamp() : 0;
+        double intervalMs = BeginSharedFrameProfile(frameStarted, profile);
         var (requestedWidth, requestedHeight) = PixelSize;
         if (requestedWidth < 2 || requestedHeight < 2) return;
         long startedAt = Environment.TickCount64;
@@ -28,13 +32,21 @@ public sealed partial class ViewportSharedHost
             var probe = next?.Probe ?? _probe!;
             var image = next?.Image ?? _image!;
             uint width = texture.Width, height = texture.Height;
+            long stage = profile ? Stopwatch.GetTimestamp() : 0;
             var draws = PrepareContourLabels(_wb.ViewportDraws(width, height), width, height);
-            await Task.Run(() => probe.DrawScene(draws, width, height));
+            long prepared = profile ? Stopwatch.GetTimestamp() : 0;
+            var brushFrame = CaptureTerrainBrushFrame(width, height);
+            long brushed = profile ? Stopwatch.GetTimestamp() : 0;
+            string gpuProfile = await Task.Run(() => probe.DrawScene(draws, width, height));
+            long drawn = profile ? Stopwatch.GetTimestamp() : 0;
             await _scene.PresentWithKeyedMutexAsync(image, 1, 0);
+            long presented = profile ? Stopwatch.GetTimestamp() : 0;
             _scene.SetImageSize(width, height);
+            DisplayTerrainBrushFrame(brushFrame);
             DisplayContourLabels();
             UpdateGeoHudScale();
             UpdateGeoMiniMap();
+            long uiUpdated = profile ? Stopwatch.GetTimestamp() : 0;
 
             if (next is { } ready)
             {
@@ -45,6 +57,8 @@ public sealed partial class ViewportSharedHost
                 _wb.Log.Write($"E3-06D GPU 目标：{width}×{height} | 重建首帧：{Environment.TickCount64 - startedAt}ms");
                 await ReleaseTargetAsync(previous.Item1, previous.Item2, previous.Item3);
             }
+            ReportSharedFrameProfile(profile, intervalMs, frameStarted,
+                prepared, stage, brushed, drawn, presented, uiUpdated, gpuProfile);
         }
         catch (Exception error)
         {
@@ -54,45 +68,5 @@ public sealed partial class ViewportSharedHost
             _wb.Log.Write($"E3-06D 共享视口帧失败：{error.Message}");
             Console.Error.WriteLine($"[XYE/E306D] {error}");
         }
-    }
-
-    private async Task<(WinSharedTexture Texture, VkSharedColorProbe Probe,
-        ICompositionImportedGpuImage Image)> CreateTargetAsync(uint width, uint height)
-    {
-        var created = await Task.Run(() =>
-        {
-            var texture = new WinSharedTexture(width, height);
-            try { return (Texture: texture,
-                Probe: _vk.CreateSharedColorProbe(texture.Handle, width, height)); }
-            catch { texture.Dispose(); throw; }
-        });
-        try
-        {
-            var image = _interop!.ImportImage(
-                new PlatformHandle(created.Texture.Handle, "D3D11TextureNtHandle"),
-                new PlatformGraphicsExternalImageProperties
-                {
-                    Width = (int)width, Height = (int)height,
-                    Format = PlatformGraphicsExternalImageFormat.R8G8B8A8UNorm,
-                    TopLeftOrigin = true
-                });
-            return (created.Texture, created.Probe, image);
-        }
-        catch
-        {
-            created.Probe.Dispose(); created.Texture.Dispose();
-            throw;
-        }
-    }
-
-    private static async Task ReleaseTargetAsync(
-        ICompositionImportedGpuImage? image, VkSharedColorProbe? probe,
-        WinSharedTexture? texture)
-    {
-        Console.WriteLine($"[G06/退出] {Environment.TickCount64} 开始释放合成图像");
-        if (image is not null) await image.DisposeAsync();
-        Console.WriteLine($"[G06/退出] {Environment.TickCount64} 合成图像已释放，开始释放 Vulkan 目标");
-        await Task.Run(() => { probe?.Dispose(); texture?.Dispose(); });
-        Console.WriteLine($"[G06/退出] {Environment.TickCount64} Vulkan 与 D3D 目标已释放");
     }
 }

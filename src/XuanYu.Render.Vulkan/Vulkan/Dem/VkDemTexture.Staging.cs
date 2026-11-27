@@ -6,7 +6,7 @@ namespace XuanYu.Render.Vulkan;
 internal sealed unsafe partial class VkDemTexture
 {
     private void Upload(PhysicalDevice gpu, Queue queue, uint family,
-        ReadOnlyMemory<short> samples)
+        ReadOnlyMemory<short> samples, bool vertexSampling)
     {
         ulong bytes = (ulong)samples.Length * sizeof(short);
         VkBuffer staging = default;
@@ -40,7 +40,7 @@ internal sealed unsafe partial class VkDemTexture
             fixed (short* source = samples.Span)
                 System.Buffer.MemoryCopy(source, mapped, (long)bytes, (long)bytes);
             _vk.UnmapMemory(_device, memory);
-            Transfer(queue, family, staging);
+            Transfer(queue, family, staging, vertexSampling);
         }
         finally
         {

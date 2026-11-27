@@ -16,39 +16,41 @@ internal static class TopMenuBar
             owner.Width = 1280;
             owner.Height = 800;
         };
-
         return new Menu
         {
             Background = EditorTheme.PanelBg,
             Foreground = EditorTheme.TextMain,
             ItemsSource = new MenuItem[]
             {
-                new()
-                {
-                    Header = "文件",
-                    ItemsSource = SceneFileMenu.Create(owner, wb)
-                },
+                new() { Header = "文件", ItemsSource = SceneFileMenu.Create(owner, wb) },
                 new() { Header = "地图", ItemsSource = TerrainFileMenu.Create(owner, wb) },
                 new()
                 {
                     Header = "编辑",
                     ItemsSource = new MenuItem[]
                     {
-                        new() { Header = "撤销", IsEnabled = false },
-                        new() { Header = "重做", IsEnabled = false }
+                        CreateHistoryItem(wb, "撤销地形", wb.UndoTerrain, () => wb.CanUndoTerrain),
+                        CreateHistoryItem(wb, "重做地形", wb.RedoTerrain, () => wb.CanRedoTerrain)
                     }
                 },
                 new()
                 {
                     Header = "视图",
-                    ItemsSource = new MenuItem[] { reset, GeoOverlayViewMenu.Create(wb) }
+                    ItemsSource = new MenuItem[]
+                    {
+                        reset, GeoOverlayViewMenu.Create(wb),
+                        ViewportEnvironmentViewMenu.Create(wb)
+                    }
                 },
-                new()
-                {
-                    Header = "运行",
-                    ItemsSource = SimulationMenu.Create(owner, wb)
-                }
+                new() { Header = "运行", ItemsSource = SimulationMenu.Create(owner, wb) }
             }
         };
+    }
+    private static MenuItem CreateHistoryItem(Workbench wb, string title, Action run, Func<bool> canRun)
+    {
+        var item = new MenuItem { Header = title, IsEnabled = canRun() };
+        item.Click += (_, _) => run();
+        wb.Changed += () => item.IsEnabled = canRun();
+        return item;
     }
 }

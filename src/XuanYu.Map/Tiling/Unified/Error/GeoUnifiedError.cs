@@ -54,10 +54,6 @@ public static partial class GeoUnifiedError
 
     private static long Cross(long ax, long ay, long bx, long by) => ax * by - ay * bx;
 
-    private static EnuPosition Position(EnuFrame anchor, int x, int y, short height)
-    {
-        var geo = new GeoCoordinate(y / 3600d - 90, x / 3600d - 180, 0);
-        var p = anchor.ToEnu(Wgs84.ToEcef(geo));
-        return new EnuPosition(p.East, p.North, p.Up + height);
-    }
+    private static EnuPosition Position(EnuFrame anchor, int x, int y, short height) =>
+        GeoUnifiedPosition.At(anchor, x, y, height);
 }

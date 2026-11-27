@@ -3,6 +3,7 @@ using XuanYu.Render.Vulkan;
 
 namespace XuanYu.World.Tests;
 
+[Collection("VulkanHardware")]
 public sealed class test_VkContext
 {
     [Fact]

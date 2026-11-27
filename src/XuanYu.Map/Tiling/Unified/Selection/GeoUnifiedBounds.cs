@@ -23,12 +23,10 @@ public readonly record struct GeoUnifiedBounds(EnuPosition Min, EnuPosition Max)
                 int x = tile.West + col, y = tile.South + row;
                 var sample = source.Sample(x, y);
                 if (sample.Status != GeoSampleStatus.Valid || sample.Height is not { } height) return null;
-                var geo = new GeoCoordinate(y / 3600d - 90, x / 3600d - 180, 0);
-                var p = anchor.ToEnu(Wgs84.ToEcef(geo));
-                double z = p.Up + height;
+                var p = GeoUnifiedPosition.At(anchor, x, y, height);
                 minX = Math.Min(minX, p.East); maxX = Math.Max(maxX, p.East);
                 minY = Math.Min(minY, p.North); maxY = Math.Max(maxY, p.North);
-                minZ = Math.Min(minZ, z); maxZ = Math.Max(maxZ, z);
+                minZ = Math.Min(minZ, p.Up); maxZ = Math.Max(maxZ, p.Up);
             }
         return new(new(minX, minY, minZ), new(maxX, maxY, maxZ));
     }

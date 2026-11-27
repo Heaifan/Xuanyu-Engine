@@ -2,6 +2,7 @@ using Xunit;
 using XuanYu.Core.Geodesy;
 using XuanYu.Editor.Pages;
 using XuanYu.Editor.Preview.Terrain;
+using XuanYu.Render;
 using XuanYu.World.Maps;
 
 namespace XuanYu.World.Tests.Maps;
@@ -32,13 +33,23 @@ public sealed class test_G02FSeams
         workbench.ImportTerrain(hgt.Path);
         Assert.True(workbench.IsGeoTerrainPreview);
         Assert.Equal(hgt.Load().TileId, workbench.TerrainSourceTile!.TileId);
-        IReadOnlyList<XuanYu.Render.RenderDraw> draws = [];
-        for (int i = 0; i < 64 && draws.Count == 0; i++)
+
+        IReadOnlyList<RenderDraw> draws = [];
+        for (int i = 0; i < 64; i++)
+        {
             draws = workbench.ViewportDraws(1000, 700);
-        Assert.NotEmpty(draws);
-        Assert.All(draws, draw =>
+            if (draws.Any(draw => draw.Mesh.AssetId.StartsWith(
+                "terrain/g02/", StringComparison.Ordinal))) break;
+        }
+
+        var terrains = draws.Where(draw => draw.Mesh.AssetId.StartsWith(
+            "terrain/", StringComparison.Ordinal)).ToArray();
+        Assert.NotEmpty(terrains);
+        Assert.All(terrains, draw =>
             Assert.StartsWith("terrain/g02/", draw.Mesh.AssetId));
+        Assert.DoesNotContain(terrains, draw =>
+            draw.Mesh.AssetId.Contains("/seam/", StringComparison.Ordinal));
         Assert.DoesNotContain(draws, draw =>
-            draw.Mesh.AssetId.Contains("/seam/"));
+            draw.Mesh.AssetId.StartsWith("demo/", StringComparison.Ordinal));
     }
 }

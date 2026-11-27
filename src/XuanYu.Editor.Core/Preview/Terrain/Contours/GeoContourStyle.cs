@@ -28,6 +28,24 @@ public readonly record struct GeoContourStyle(
             (2_500d, 20, 50), (7_500d, 50, 100), (20_000d, 100, 200),
             (60_000d, 200, 500), (2_000_000d, 500, 1000)
         ];
+        return BlendAtDistance(style, distanceMeters, transitions);
+    }
+
+    public static GeoContourStyle AtLocalDistance(double distanceMeters)
+    {
+        GeoContourStyle style = AtDistance(distanceMeters);
+        if (distanceMeters > 1650d) return style;
+        int interval = distanceMeters < 100d ? 1 : distanceMeters < 300d ? 2 :
+            distanceMeters < 750d ? 5 : distanceMeters < 1500d ? 10 : 20;
+        style = style with { IntervalMeters = interval, NextIntervalMeters = interval };
+        (double threshold, int before, int after)[] transitions =
+        [ (100d, 1, 2), (300d, 2, 5), (750d, 5, 10), (1500d, 10, 20) ];
+        return BlendAtDistance(style, distanceMeters, transitions);
+    }
+
+    private static GeoContourStyle BlendAtDistance(GeoContourStyle style,
+        double distanceMeters, (double threshold, int before, int after)[] transitions)
+    {
         foreach (var (threshold, before, after) in transitions)
         {
             double start = threshold * 0.9d, end = threshold * 1.1d;
@@ -37,6 +55,6 @@ public readonly record struct GeoContourStyle(
             return style with { IntervalMeters = before,
                 NextIntervalMeters = after, IntervalBlend = t };
         }
-        return style with { NextIntervalMeters = interval };
+        return style with { NextIntervalMeters = style.IntervalMeters };
     }
 }

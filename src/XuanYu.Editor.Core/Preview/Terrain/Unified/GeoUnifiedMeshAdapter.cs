@@ -20,9 +20,8 @@ public static class GeoUnifiedMeshAdapter
             {
                 int i = y * 33 + x;
                 if (page.HeightAt(x, y) is not short height) continue;
-                var geo = new GeoCoordinate((page.Tile.South + y * step) / 3600d - 90d,
-                    (page.Tile.West + x * step) / 3600d - 180d, height);
-                var p = anchor.ToEnu(Wgs84.ToEcef(geo));
+                var p = GeoUnifiedPosition.At(anchor, page.Tile.West + x * step,
+                    page.Tile.South + y * step, height);
                 float t = Math.Clamp(height / 4000f, 0f, 1f);
                 int v = i * 7;
                 vertices[v] = (float)p.East; vertices[v + 1] = (float)p.North; vertices[v + 2] = (float)p.Up;

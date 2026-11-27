@@ -1,4 +1,3 @@
-
 using System.Numerics;
 
 namespace XuanYu.Editor.Camera;
@@ -10,7 +9,8 @@ public sealed partial class ViewportCamera
     private float _yaw;
     private float _pitch;
     private float _distance;
-
+    private float _maxDistance = 500f;
+    private float ZoomLimit => _terrainHeight is null ? _maxDistance : MathF.Max(2000f, _maxDistance);
     public Vector3 Target { get; private set; }
     public Vector3 Position => Target + _distance * new Vector3(
         MathF.Cos(_pitch) * MathF.Cos(_yaw),
@@ -63,7 +63,7 @@ public sealed partial class ViewportCamera
     {
         float previous = _distance;
         _distance = Math.Clamp(
-            _distance * MathF.Pow(0.85f, wheelSteps), 0.25f, 500f);
+            _distance * MathF.Pow(0.85f, wheelSteps), 0.25f, ZoomLimit);
         ConstrainZoom(previous);
     }
 
@@ -77,21 +77,23 @@ public sealed partial class ViewportCamera
     {
         Target = center;
         float fit = MathF.Min(1f, aspect);
-        _distance = Math.Clamp(
-            MathF.Max(0.5f, radius) * 1.35f /
-            (MathF.Sin(FieldOfView / 2f) * fit), 0.25f, 500f);
+        float distance = MathF.Max(0.5f, radius) * 1.35f /
+            (MathF.Sin(FieldOfView / 2f) * fit);
+        _maxDistance = MathF.Max(500f, distance * 4f);
+        _distance = Math.Clamp(distance, 0.25f, ZoomLimit);
         LiftAboveTerrain();
     }
 
     public Matrix4x4 ViewProjection(uint width, uint height)
     {
         Matrix4x4 view = Matrix4x4.CreateLookAt(Position, Target, ViewUp);
+        var (near, far) = ClipDepthRange();
         Matrix4x4 projection = IsOrthographic
             ? Matrix4x4.CreateOrthographic(
                 2f * _distance * MathF.Tan(FieldOfView / 2f) * (float)width / height,
-                2f * _distance * MathF.Tan(FieldOfView / 2f), 0.1f, 1000f)
+                2f * _distance * MathF.Tan(FieldOfView / 2f), near, far)
             : Matrix4x4.CreatePerspectiveFieldOfView(
-                FieldOfView, (float)width / height, 0.1f, 1000f);
+                FieldOfView, (float)width / height, near, far);
         projection.M22 = -projection.M22;
         return view * projection;
     }

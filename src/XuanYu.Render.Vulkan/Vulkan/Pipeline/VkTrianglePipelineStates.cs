@@ -4,7 +4,7 @@ internal static unsafe class VkTrianglePipelineStates
 {
     public static Pipeline Create(Vk vk, Device device, RenderPass pass,
         PipelineLayout layout, Extent2D extent, ShaderModule vert,
-        ShaderModule frag, VkSelectionPass selection = VkSelectionPass.Base)
+        ShaderModule frag, VkSelectionPass selection = VkSelectionPass.Base, bool procedural = false)
     {
         byte[] entry = "main\0"u8.ToArray();
         fixed (byte* name = entry)
@@ -33,6 +33,9 @@ internal static unsafe class VkTrianglePipelineStates
                 VertexBindingDescriptionCount = 1, PVertexBindingDescriptions = &binding,
                 VertexAttributeDescriptionCount = 4, PVertexAttributeDescriptions = attrs
             };
+            if (procedural)
+                input = new PipelineVertexInputStateCreateInfo
+                    { SType = StructureType.PipelineVertexInputStateCreateInfo };
             var assembly = new PipelineInputAssemblyStateCreateInfo
                 { SType = StructureType.PipelineInputAssemblyStateCreateInfo,
                   Topology = PrimitiveTopology.TriangleList };

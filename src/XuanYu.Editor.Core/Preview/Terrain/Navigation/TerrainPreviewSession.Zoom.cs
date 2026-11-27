@@ -9,9 +9,12 @@ public sealed partial class TerrainPreviewSession
     {
         if (width < 2 || height < 2 || Scene.Camera is not { } camera) return;
         bool found = TryPick(pixel, width, height, out var hit);
-        Vector3 anchor = found ? hit.WorldPosition * DisplayScale : default;
+        Vector3 anchor = found
+            ? (hit.WorldPosition - new Vector3(OriginMeters, 0f)) * DisplayScale
+            : default;
+        Vector3 previous = camera.Position;
         camera.Zoom(wheel);
-        if (!found) return;
+        if (!found || camera.Position == previous) return;
 
         for (int i = 0; i < 2; i++)
         {

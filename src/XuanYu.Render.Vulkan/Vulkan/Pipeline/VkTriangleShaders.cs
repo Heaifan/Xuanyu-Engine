@@ -1,4 +1,3 @@
-
 using Silk.NET.Vulkan;
 
 namespace XuanYu.Render.Vulkan;
@@ -11,14 +10,15 @@ internal sealed unsafe class VkTriangleShaders : IDisposable
     public ShaderModule Vertex { get; }
     public ShaderModule Fragment { get; }
 
-    public VkTriangleShaders(Vk vk, Device device)
+    public VkTriangleShaders(Vk vk, Device device,
+        string vertex = "triangle.vert.spv", string fragment = "triangle.frag.spv")
     {
         _vk = vk;
         _device = device;
-        Vertex = Create("triangle.vert.spv");
+        Vertex = Create(vertex);
         try
         {
-            Fragment = Create("triangle.frag.spv");
+            Fragment = Create(fragment);
         }
         catch
         {

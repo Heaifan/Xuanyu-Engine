@@ -11,7 +11,7 @@ public sealed class test_E303GameCamera
     public void Play_WasdMovesOnlyRuntimeCamera_ThenStopRestoresView()
     {
         var wb = new Workbench(use3D: true);
-        var editor = wb.Scene.Camera!;
+        var editor = wb.ActiveCamera!;
         Matrix4x4 before = editor.ViewProjection(800, 600);
         wb.StartSimulation();
         Assert.NotSame(editor, wb.ActiveCamera);
@@ -21,8 +21,10 @@ public sealed class test_E303GameCamera
         wb.SetGameCameraKey(GameCameraKey.Forward, false);
         Assert.NotEqual(before, wb.ActiveCamera!.ViewProjection(800, 600));
         Assert.Equal(before, editor.ViewProjection(800, 600));
-        Assert.NotEqual(wb.Scene.ViewportDraws(800, 600)[0].ModelToClip,
-            wb.ViewportDraws(800, 600)[0].ModelToClip);
+        var editDraw = Assert.Single(wb.Scene.RenderWithProjection(
+            wb.EditorProjection(800, 600)));
+        var gameDraw = Assert.Single(wb.ViewportDraws(800, 600));
+        Assert.NotEqual(editDraw.ModelToClip, gameDraw.ModelToClip);
         wb.StopSimulation();
         Assert.Same(editor, wb.ActiveCamera);
         Assert.Equal(before, wb.ActiveCamera!.ViewProjection(800, 600));
@@ -65,12 +67,12 @@ public sealed class test_E303GameCamera
     public void RuntimeMouseOrbit_ShouldNotChangeEditorCamera()
     {
         var wb = new Workbench(use3D: true);
-        Matrix4x4 editorView = wb.Scene.Camera!.ViewProjection(800, 600);
+        Matrix4x4 editorView = wb.ActiveCamera!.ViewProjection(800, 600);
         wb.StartSimulation();
         wb.ActiveCamera!.Orbit(70f, 20f);
         wb.ActiveCamera!.Zoom(1f);
         Assert.NotEqual(editorView, wb.ActiveCamera!.ViewProjection(800, 600));
         wb.StopSimulation();
-        Assert.Equal(editorView, wb.Scene.Camera!.ViewProjection(800, 600));
+        Assert.Equal(editorView, wb.ActiveCamera!.ViewProjection(800, 600));
     }
 }

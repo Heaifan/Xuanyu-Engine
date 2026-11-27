@@ -14,6 +14,7 @@ public sealed partial class ViewportSharedHost : Grid
 {
     private readonly VkContext _vk;
     private readonly Workbench _wb;
+    private readonly ViewportNavigationPanel _navigation;
     private readonly ViewportCompositionSurface _scene = new()
         { IsHitTestVisible = false };
     private readonly DispatcherTimer _timer = new()
@@ -62,15 +63,16 @@ public sealed partial class ViewportSharedHost : Grid
         Children.Add(_scene);
         Children.Add(_contourLabels);
         AttachGeoOverlays();
-        var navigation = new ViewportNavigationPanel
+        _baseMiniMapMargin = _miniMapPanel.Margin;
+        _navigation = new ViewportNavigationPanel
         {
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Top,
             Margin = new Thickness(0, 12, 12, 0)
         };
-        navigation.Bind(workbench, () => PixelSize);
-        navigation.PanModeChanged += enabled => _panMode = enabled;
-        Children.Add(navigation);
+        _navigation.Bind(workbench, () => PixelSize);
+        _navigation.PanModeChanged += enabled => _panMode = enabled;
+        Children.Add(_navigation);
         _scene.GpuInteropReady += interop =>
         {
             if (_stopped) return;
@@ -91,5 +93,6 @@ public sealed partial class ViewportSharedHost : Grid
         KeyUp += OnViewportKeyUp;
         LostFocus += (_, _) => _wb.SetGameCameraKey(
             XuanYu.Editor.Camera.GameCameraKey.None, false);
+        AttachTerrainBrushOverlay();
     }
 }

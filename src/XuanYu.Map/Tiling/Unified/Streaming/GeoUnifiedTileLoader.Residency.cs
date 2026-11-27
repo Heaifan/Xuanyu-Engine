@@ -27,8 +27,14 @@ public sealed partial class GeoUnifiedTileLoader
         }
     }
 
-    internal bool CanFitPage(int tileCount, long pageBytes) =>
-        pageBytes <= _budget && tileCount <= (_budget - pageBytes) / Reservation;
+    internal bool CanFitPage(int tileCount, long pageBytes)
+    {
+        lock (_gate)
+        {
+            long available = _budget - _ownedPageBytes - _pageBytes;
+            return pageBytes <= available && tileCount <= (available - pageBytes) / Reservation;
+        }
+    }
 
     public bool Release(int south, int west)
     {

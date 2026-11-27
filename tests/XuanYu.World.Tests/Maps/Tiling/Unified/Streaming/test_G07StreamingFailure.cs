@@ -20,7 +20,7 @@ public sealed class test_G07StreamingFailure
             await Assert.ThrowsAnyAsync<IOException>(async () => await loader.Request(23, 120));
             Assert.Equal(0, loader.ReservedBytes);
             File.Copy(original, path);
-            Assert.NotNull(await loader.Request(23, 120));
+            Assert.True(await loader.Request(23, 120));
         }
         finally { Directory.Delete(folder, true); }
     }

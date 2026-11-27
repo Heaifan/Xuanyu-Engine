@@ -1,5 +1,6 @@
 using System.Numerics;
 using XuanYu.Editor.Preview;
+using XuanYu.Editor.Preview.Terrain;
 using XuanYu.Render;
 using XuanYu.Render.Vulkan;
 using XuanYu.Runtime;
@@ -22,15 +23,10 @@ public sealed partial class Workbench
 
     public IReadOnlyList<RenderDraw> ViewportDraws(uint width, uint height)
     {
-        if (CurrentId == PageId.Terrain)
-            return _geoPreview is not null
-                ? GeoTerrainDraws(width, height)
-                : (_terrainPreview ??= CreateTerrainPreview())
-                    .ViewportDraws(width, height);
-        return _runtimeBridge is null
-            ? Scene.ViewportDraws(width, height)
-            : _runtimeBridge.Snapshot(
+        if (_runtimeBridge is not null && CurrentId != PageId.Terrain)
+            return _runtimeBridge.Snapshot(
                 ActiveCamera?.ViewProjection(width, height) ?? Matrix4x4.Identity);
+        return ComposeEditorDraws(width, height);
     }
 
     public SimulationSession Simulation { get; }
@@ -43,9 +39,16 @@ public sealed partial class Workbench
     public Workbench(PageId startPage = PageId.World, bool use3D = false)
     {
         CurrentId = PageCatalog.Get(startPage).Id;
-        Scene = use3D ? PreviewSeed.Create3D() : PreviewSeed.Create();
+        if (use3D)
+        {
+            _terrainPreview = new TerrainPreviewSession(
+                TerrainPreviewMap.CreateBlank(), centered: true);
+            Scene = _terrainPreview.Scene;
+        }
+        else Scene = PreviewSeed.Create();
         Simulation = new SimulationSession(World);
         Scene.Changed += () => Changed?.Invoke();
+        Scene.Restored += RebindRestoredLocalTerrain;
         Log.Write($"工作台已就绪，当前页面：{Current.Title}");
     }
 

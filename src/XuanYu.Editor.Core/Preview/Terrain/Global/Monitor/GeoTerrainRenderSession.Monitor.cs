@@ -31,8 +31,8 @@ public sealed partial class GeoTerrainRenderSession
                     break;
                 }
             }
-            tiles[i] = new GeoTileMonitorTile(id, GeographicTileScheme.Bounds(id),
-                targets.Contains(id), drawn.Contains(id), cached.Contains(id), fallback);
+            tiles[i] = DescribeMonitorTile(id, targets.Contains(id),
+                drawn.Contains(id), cached.Contains(id), fallback);
         }
         return new GeoTileMonitorSnapshot(_monitorFrame, _coverage,
             Wgs84.ToGeo(Camera.PositionEcef), Camera.Target,

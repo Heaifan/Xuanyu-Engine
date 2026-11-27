@@ -10,7 +10,7 @@ internal sealed partial class GeoContourLabelTopology
 
     public void Add(GeoContourGridEdge edge, GeoContourLabel? label)
     {
-        _parents.Add(edge, edge);
+        _parents.TryAdd(edge, edge);
         if (label is { } point) _points.Add((edge, point));
     }
 
@@ -39,7 +39,7 @@ internal sealed partial class GeoContourLabelTopology
         return parent;
     }
 
-    private void Join(GeoContourGridEdge a, GeoContourGridEdge b)
+    internal void Join(GeoContourGridEdge a, GeoContourGridEdge b)
     {
         if (_parents.ContainsKey(a) && _parents.ContainsKey(b))
         {

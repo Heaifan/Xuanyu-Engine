@@ -16,15 +16,11 @@ public static class TerrainRenderMeshAdapter
         ArgumentNullException.ThrowIfNull(geometry);
         if (mode is not (TerrainDisplayMode.Standard or TerrainDisplayMode.Elevation))
             throw new ArgumentOutOfRangeException(nameof(mode));
-        (float min, float max) = heightRange ?? HeightRange(geometry.Positions);
-        float range = max - min;
         Vector3[] colors = new Vector3[geometry.Positions.Length];
         for (int vertex = 0; vertex < colors.Length; vertex++)
         {
             Vector3 point = geometry.Positions[vertex];
             Vector3 normal = geometry.Normals[vertex];
-            float height = range > 0.0001f
-                ? (point.Z - min) / range : 0.25f;
             int x = startX + (int)MathF.Round(point.X / spacingX);
             int y = startY + (int)MathF.Round(point.Y / spacingY);
             bool sea = water is not null && water.IsWater(x, y);
@@ -35,11 +31,16 @@ public static class TerrainRenderMeshAdapter
                 colors[vertex] = shading.Sample(x, y);
                 continue;
             }
+            if (!sea && !coast)
+            {
+                Vector3 lightingNormal = mode == TerrainDisplayMode.Standard
+                    ? normal : Vector3.UnitZ;
+                colors[vertex] = GeoTerrainEdgeVertex.FromHeight(
+                    point, point.Z, lightingNormal).ShadedColor;
+                continue;
+            }
             Vector3 color = sea ? new Vector3(0.05f, 0.29f, 0.52f)
-                : coast ? new Vector3(0.68f, 0.61f, 0.43f)
-                : mode == TerrainDisplayMode.Standard
-                    ? TerrainColorPalette.Standard(normal, height)
-                    : TerrainColorPalette.Elevation(point.Z);
+                : new Vector3(0.68f, 0.61f, 0.43f);
             float light = 0.58f + 0.42f * MathF.Max(0f,
                 Vector3.Dot(normal, Sun));
             colors[vertex] = color * light;
@@ -62,17 +63,21 @@ public static class TerrainRenderMeshAdapter
         return new RenderMesh("terrain/e4-preview", values);
     }
 
+    public static RenderMesh CreateLocal(string assetId, TerrainMeshGeometry geometry)
+    {
+        var vertices = new GeoTerrainEdgeVertex[geometry.Positions.Length];
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            Vector3 p = geometry.Positions[i];
+            vertices[i] = GeoTerrainEdgeVertex.FromHeight(p, p.Z, geometry.Normals[i]);
+        }
+        var packed = new List<float>(checked(geometry.Indices.Length * 10));
+        foreach (int index in geometry.Indices)
+            vertices[index].AppendTo(packed);
+        return RenderMesh.FromLitTerrain(assetId,
+            System.Runtime.InteropServices.CollectionsMarshal.AsSpan(packed));
+    }
+
     private static readonly Vector3 Sun = Vector3.Normalize(
         new Vector3(-0.5f, -0.3f, 1f));
-
-    private static (float Min, float Max) HeightRange(Vector3[] points)
-    {
-        float min = float.PositiveInfinity, max = float.NegativeInfinity;
-        foreach (Vector3 point in points)
-        {
-            min = MathF.Min(min, point.Z);
-            max = MathF.Max(max, point.Z);
-        }
-        return (min, max);
-    }
 }

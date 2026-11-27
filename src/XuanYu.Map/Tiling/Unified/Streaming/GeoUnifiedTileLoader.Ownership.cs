@@ -38,8 +38,7 @@ public sealed partial class GeoUnifiedTileLoader
     {
         lock (_gate)
         {
-            if (_requests.TryGetValue((south, west), out var source) &&
-                source.Task.IsCompletedSuccessfully && source.Task.Result is { } found)
+            if (_requests.TryGetValue((south, west), out var source) && source.Tile is { } found)
             { tile = found; return true; }
             tile = null!;
             return false;
@@ -54,14 +53,14 @@ public sealed partial class GeoUnifiedTileLoader
             var key = (tile.SouthLatitude, tile.WestLongitude);
             if (_requests.TryGetValue(key, out var old))
             {
-                if (old.Task.IsCompletedSuccessfully && ReferenceEquals(old.Task.Result, tile)) return;
+                if (ReferenceEquals(old.Tile, tile)) return;
                 throw new InvalidOperationException("已发布的数据不能在同一版本中替换。");
             }
             if (Reservation > _budget - _reserved) throw new InvalidOperationException("高程数据预算不足。");
             CheckVersion(key, hash);
             RecordSeams(tile);
-            var source = new TaskCompletionSource<NasademTile?>(TaskCreationOptions.RunContinuationsAsynchronously);
-            source.SetResult(tile);
+            var source = new Entry { Tile = tile };
+            source.Completion.SetResult(true);
             _requests.Add(key, source);
             _reserved += Reservation;
         }

@@ -54,7 +54,7 @@ public sealed partial class GeoUnifiedLodSession : IDisposable
         bool Ready(GeoUnifiedTile tile, int mask) => TryResource(tile, mask, out _) && gpuReady(tile, mask);
         var result = _selector.StepWithMetrics(Coverage, Error, Ready, visible);
         Coverage = result.Coverage;
-        Prune(result.BlockedTile);
+        Prune(result);
         return result;
     }
 

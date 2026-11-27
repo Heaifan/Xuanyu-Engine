@@ -41,7 +41,7 @@ public sealed partial class EditorWindow
 
     private void OnViewportClicked(int x, int y)
     {
-        if (_wb.CurrentId != PageId.World || _wb.IsSimulating)
+        if (_wb.CurrentId != PageId.World || _wb.IsSimulating || _wb.IsGeoTerrainPreview)
             return;
         var (width, height) = _sharedViewport?.PixelSize ??
             _nativeViewport?.PixelSize ?? (0u, 0u);

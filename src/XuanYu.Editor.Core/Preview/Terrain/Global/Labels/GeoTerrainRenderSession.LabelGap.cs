@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Numerics;
 using XuanYu.Core.Geodesy;
 using XuanYu.Render;
@@ -7,12 +8,14 @@ namespace XuanYu.Editor.Preview.Terrain;
 public sealed partial class GeoTerrainRenderSession
 {
     private readonly GeoContourLabelVisibility _labelVisibility = new();
+    private long _lastLabelBindReport = -60;
 
     public GeoContourLabel[] BindContourLabelMeshes(
         IReadOnlyList<RenderDraw> draws, IReadOnlyList<GeoContourLabel> anchors,
         uint width, uint height)
     {
         if (!ContoursEnabled || !ContourLabelsEnabled) return [];
+        long start = _r02PerfEnabled ? Stopwatch.GetTimestamp() : 0;
         Matrix4x4 projection = ViewProjection(width, height);
         var result = new List<GeoContourLabel>();
         foreach (GeoContourLabel label in anchors)
@@ -37,6 +40,11 @@ public sealed partial class GeoTerrainRenderSession
                 result.Add(bound);
                 break;
             }
+        }
+        if (_r02PerfEnabled && _monitorFrame - _lastLabelBindReport >= 60)
+        {
+            _lastLabelBindReport = _monitorFrame;
+            Notice?.Invoke($"[G06/R08-03B/标高绑定] 帧={_monitorFrame} 候选={anchors.Count} 绑定={result.Count} 耗时={Stopwatch.GetElapsedTime(start).TotalMilliseconds:F1}ms");
         }
         return result.ToArray();
     }

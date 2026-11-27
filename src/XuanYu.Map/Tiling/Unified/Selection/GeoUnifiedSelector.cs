@@ -1,7 +1,10 @@
 namespace XuanYu.World.Maps;
 
 public readonly record struct GeoUnifiedSelection(
-    GeoUnifiedCoverage Coverage, GeoUnifiedTile? BlockedTile, double BlockedPixels);
+    GeoUnifiedCoverage Coverage, GeoUnifiedTile? BlockedTile, double BlockedPixels)
+{
+    public GeoUnifiedCoverage? PendingCoverage { get; init; }
+}
 
 public sealed partial class GeoUnifiedSelector
 {
@@ -31,9 +34,17 @@ public sealed partial class GeoUnifiedSelector
         {
             double error = screenError(tile);
             if (!GeoUnifiedScreenError.ShouldRefine(error, false)) break;
-            if (coverage.TryRefineWithEdges(tile, ready, out var refined)) return new(refined, null, 0);
-            return new(coverage, tile, error);
+            return Refine(coverage, tile, error, ready);
         }
         return new(coverage, null, 0);
+    }
+
+    private static GeoUnifiedSelection Refine(GeoUnifiedCoverage coverage, GeoUnifiedTile tile,
+        double error, Func<GeoUnifiedTile, int, bool> ready)
+    {
+        var candidate = coverage.PrepareBalancedRefinement(tile);
+        if (candidate.Leaves.Any(leaf => !ready(leaf, candidate.EdgeMask(leaf))))
+            return new(coverage, tile, error) { PendingCoverage = candidate };
+        return new(candidate, null, 0);
     }
 }

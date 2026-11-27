@@ -63,29 +63,6 @@ internal sealed partial class VkMeshScene : IDisposable
         }
     }
 
-    public void SyncMeshes(IReadOnlyList<RenderDraw> draws)
-    {
-        HashSet<RenderMesh> active = new(draws.Select(x => x.Mesh));
-        foreach (RenderMesh old in _buffers.Keys.ToArray())
-            if (!active.Contains(old))
-            {
-                _buffers[old].Dispose();
-                _buffers.Remove(old);
-            }
-        foreach (RenderDraw draw in draws)
-        {
-            if (!draw.Visible) continue;
-            if (_buffers.TryGetValue(draw.Mesh, out var old))
-            {
-                if (old.Matches(draw.DemUV)) continue;
-                old.Dispose();
-                _buffers.Remove(draw.Mesh);
-            }
-            _buffers.Add(draw.Mesh,
-                new VkMeshBuffer(_vk, _gpu, _device, draw.Mesh, draw.DemUV));
-        }
-    }
-
     public void Dispose()
     {
         DisposeWater(); DisposeDem();

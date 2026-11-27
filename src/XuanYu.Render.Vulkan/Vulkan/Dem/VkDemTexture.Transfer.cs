@@ -5,7 +5,7 @@ namespace XuanYu.Render.Vulkan;
 
 internal sealed unsafe partial class VkDemTexture
 {
-    private void Transfer(Queue queue, uint family, VkBuffer staging)
+    private void Transfer(Queue queue, uint family, VkBuffer staging, bool vertexSampling)
     {
         CommandPool pool = default;
         try
@@ -64,7 +64,8 @@ internal sealed unsafe partial class VkDemTexture
             barrier.SrcAccessMask = AccessFlags.TransferWriteBit;
             barrier.DstAccessMask = AccessFlags.ShaderReadBit;
             _vk.CmdPipelineBarrier(cmd, PipelineStageFlags.TransferBit,
-                PipelineStageFlags.FragmentShaderBit, 0, 0, null, 0, null, 1, &barrier);
+                vertexSampling ? PipelineStageFlags.VertexShaderBit : PipelineStageFlags.FragmentShaderBit,
+                0, 0, null, 0, null, 1, &barrier);
             Check(_vk.EndCommandBuffer(cmd), "结束 DEM 纹理传输");
             var submit = new SubmitInfo
             {

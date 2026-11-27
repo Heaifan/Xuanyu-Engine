@@ -7,7 +7,7 @@ public sealed partial class GeoUnifiedTileLoader
     private readonly long _budget;
     private readonly int _maxQueued;
     private readonly object _gate = new();
-    private readonly Dictionary<(int, int), TaskCompletionSource<NasademTile?>> _requests = [];
+    private readonly Dictionary<(int, int), Entry> _requests = [];
     private readonly Queue<(int South, int West)> _queue = new();
     private long _reserved, _pageBytes;
     private const long Reservation = NasademTile.ByteLength * 3;
@@ -22,18 +22,18 @@ public sealed partial class GeoUnifiedTileLoader
 
     public long ReservedBytes { get { lock (_gate) return _reserved; } }
 
-    public Task<NasademTile?> Request(int south, int west)
+    public Task<bool> Request(int south, int west)
     {
         lock (_gate)
         {
             var key = (south, west);
             if (_requests.TryGetValue(key, out var existing)) return existing.Task;
-            if (!_catalog.Coordinates.Contains(key)) return Task.FromResult<NasademTile?>(null);
+            if (!_catalog.Coordinates.Contains(key)) return Task.FromResult(false);
             if (Reservation > _budget)
-                return Task.FromException<NasademTile?>(new InvalidOperationException("高程数据预算不足。"));
+                return Task.FromException<bool>(new InvalidOperationException("高程数据预算不足。"));
             if (_queue.Count >= _maxQueued)
-                return Task.FromException<NasademTile?>(new InvalidOperationException("高程读取队列已满。"));
-            var source = new TaskCompletionSource<NasademTile?>(TaskCreationOptions.RunContinuationsAsynchronously);
+                return Task.FromException<bool>(new InvalidOperationException("高程读取队列已满。"));
+            var source = new Entry();
             _requests.Add(key, source);
             _queue.Enqueue(key);
             StartWaiting();
@@ -59,9 +59,19 @@ public sealed partial class GeoUnifiedTileLoader
             var hash = tile is null ? null : Fingerprint(tile);
             lock (_gate)
             {
-                if (hash is not null) CheckVersion(key, hash);
-                if (tile is not null) RecordSeams(tile);
-                _requests[key].SetResult(tile);
+                var source = _requests[key];
+                if (tile is null)
+                {
+                    _requests.Remove(key);
+                    _reserved -= Reservation;
+                    StartWaiting();
+                    source.Completion.SetResult(false);
+                    return;
+                }
+                CheckVersion(key, hash!);
+                RecordSeams(tile);
+                source.Tile = tile;
+                source.Completion.SetResult(true);
             }
         }
         catch (Exception error)
@@ -72,8 +82,15 @@ public sealed partial class GeoUnifiedTileLoader
                 _requests.Remove(key);
                 _reserved -= Reservation;
                 StartWaiting();
-                source.SetException(error);
+                source.Completion.SetException(error);
             }
         }
+    }
+
+    private sealed class Entry
+    {
+        internal readonly TaskCompletionSource<bool> Completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal Task<bool> Task => Completion.Task;
+        internal NasademTile? Tile;
     }
 }

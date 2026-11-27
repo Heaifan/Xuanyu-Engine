@@ -6,8 +6,6 @@ namespace XuanYu.Editor.Preview.Terrain;
 public sealed class TerrainShadingField
 {
     private const int Interval = 20;
-    private static readonly Vector3 Sun = Vector3.Normalize(
-        new Vector3(-0.5f, -0.3f, 1f));
     private readonly Vector3[] _colors;
     private readonly int _columns, _maxX, _maxY;
 
@@ -23,7 +21,7 @@ public sealed class TerrainShadingField
             for (int col = 0; col < _columns; col++)
                 _colors[row * _columns + col] = ColorAt(field,
                     Math.Min(col * Interval, _maxX),
-                    Math.Min(row * Interval, _maxY), heightRange);
+                    Math.Min(row * Interval, _maxY));
     }
 
     public Vector3 Sample(int x, int y)
@@ -43,8 +41,7 @@ public sealed class TerrainShadingField
             : a + (c - a) * ty + (d - c) * tx;
     }
 
-    private static Vector3 ColorAt(TerrainHeightField field, int x, int y,
-        (float Min, float Max) range)
+    private static Vector3 ColorAt(TerrainHeightField field, int x, int y)
     {
         int l = Math.Max(0, x - 5), r = Math.Min(field.SamplesX - 1, x + 5);
         int d = Math.Max(0, y - 5), u = Math.Min(field.SamplesY - 1, y + 5);
@@ -53,11 +50,7 @@ public sealed class TerrainShadingField
         float dy = (field.GetHeight(x, d) - field.GetHeight(x, u)) /
             ((u - d) * field.SpacingYMeters);
         Vector3 normal = Vector3.Normalize(new Vector3(dx, dy, 1f));
-        float span = range.Max - range.Min;
-        float height = span > 0.0001f
-            ? (field.GetHeight(x, y) - range.Min) / span : 0.25f;
-        float light = 0.58f + 0.42f * MathF.Max(0f,
-            Vector3.Dot(normal, Sun));
-        return TerrainColorPalette.Standard(normal, height) * light;
+        Vector3 point = field.GetWorldPosition(x, y);
+        return GeoTerrainEdgeVertex.FromHeight(point, point.Z, normal).ShadedColor;
     }
 }

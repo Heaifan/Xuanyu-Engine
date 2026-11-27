@@ -8,11 +8,8 @@ internal sealed partial class ViewportSwapchainSession
 {
     private void OnCameraShortcut(ViewportCameraShortcut shortcut)
     {
-        if (_workbench.IsSimulating ||
-            _workbench.CurrentId is not (PageId.World or PageId.Terrain))
-            return;
-        if (_workbench.CurrentId == PageId.Terrain &&
-            _workbench.IsGeoTerrainPreview)
+        if (_workbench.IsSimulating) return;
+        if (_workbench.IsGeoTerrainPreview)
         {
             _workbench.ResetGeoTerrainCamera();
             return;

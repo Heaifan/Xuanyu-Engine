@@ -1,4 +1,3 @@
-
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -17,7 +16,7 @@ internal sealed class TopPageTabs : StackPanel
         _wb = wb;
         Orientation = Orientation.Horizontal;
         Spacing = 4;
-        Margin = new Thickness(14, 0, 0, 0);
+        HorizontalAlignment = HorizontalAlignment.Center;
         VerticalAlignment = VerticalAlignment.Center;
 
         foreach (PageInfo page in PageCatalog.All)

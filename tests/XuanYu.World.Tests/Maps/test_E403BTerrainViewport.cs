@@ -1,27 +1,22 @@
-
 using Xunit;
 using XuanYu.Editor.Pages;
+using XuanYu.Render;
 
 namespace XuanYu.World.Tests.Maps;
 
 public sealed class TestE403BTerrainViewport
 {
     [Fact]
-    public void TerrainPage_UsesTerrainDraws()
+    public void TerrainPage_UsesSharedLocalTerrainDraws()
     {
         var wb = new Workbench(use3D: true);
-
-        Assert.Equal(36,
-            Assert.Single(wb.ViewportDraws(800, 600))
-                .Mesh.VertexCount);
-
+        var world = Terrain(wb);
+        Assert.Equal(60000, world.Mesh.VertexCount);
         wb.SwitchTo(PageId.Terrain);
-
-        var draw = Assert.Single(
-            wb.ViewportDraws(800, 600));
-
-        Assert.Equal(98304, draw.Mesh.VertexCount);
-        Assert.Same(wb.TerrainScene.Camera, wb.ActiveCamera);
+        var terrain = Terrain(wb);
+        Assert.Same(world.Mesh, terrain.Mesh);
+        Assert.Same(wb.Scene, wb.TerrainScene);
+        Assert.Same(wb.Scene.Camera, wb.ActiveCamera);
     }
 
     [Fact]
@@ -29,17 +24,11 @@ public sealed class TestE403BTerrainViewport
     {
         var wb = new Workbench(use3D: true);
         wb.SwitchTo(PageId.Terrain);
-
-        var before = Assert.Single(
-            wb.ViewportDraws(1200, 800));
+        var before = Terrain(wb, 1200, 800);
         var camera = wb.ActiveCamera!;
-
         camera.Orbit(150f, 50f);
         camera.Zoom(3f);
-
-        var after = Assert.Single(
-            wb.ViewportDraws(800, 600));
-
+        var after = Terrain(wb);
         Assert.Same(before.Mesh, after.Mesh);
         Assert.NotEqual(before.ModelToClip, after.ModelToClip);
     }
@@ -48,20 +37,18 @@ public sealed class TestE403BTerrainViewport
     public void SwitchingPages_PreservesWorldAndTerrain()
     {
         var wb = new Workbench(use3D: true);
-
-        var worldMesh = Assert.Single(
-            wb.ViewportDraws(800, 600)).Mesh;
-
+        var scene = wb.Scene;
+        var camera = scene.Camera;
+        var mesh = Terrain(wb).Mesh;
         wb.SwitchTo(PageId.Terrain);
-        var terrainMesh = Assert.Single(
-            wb.ViewportDraws(800, 600)).Mesh;
-
+        Assert.Same(mesh, Terrain(wb).Mesh);
         wb.SwitchTo(PageId.World);
-        Assert.Same(worldMesh,
-            Assert.Single(wb.ViewportDraws(800, 600)).Mesh);
-
-        wb.SwitchTo(PageId.Terrain);
-        Assert.Same(terrainMesh,
-            Assert.Single(wb.ViewportDraws(800, 600)).Mesh);
+        Assert.Same(mesh, Terrain(wb).Mesh);
+        Assert.Same(scene, wb.TerrainScene);
+        Assert.Same(camera, wb.ActiveCamera);
     }
+
+    private static RenderDraw Terrain(Workbench wb, uint width = 800, uint height = 600) =>
+        Assert.Single(wb.ViewportDraws(width, height), draw =>
+            draw.Mesh.AssetId.StartsWith("terrain/local/", StringComparison.Ordinal));
 }

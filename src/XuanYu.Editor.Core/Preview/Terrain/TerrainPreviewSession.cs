@@ -9,34 +9,64 @@ public sealed partial class TerrainPreviewSession
 {
     public MapDocument Map { get; }
     public PreviewScene Scene { get; }
-    public TerrainMeshGeometry? Geometry { get; }
+    public TerrainMeshGeometry? Geometry { get; private set; }
     public float DisplayScale { get; }
+    public Vector2 OriginMeters { get; }
+    public bool IsCentered { get; }
+    public Guid? TerrainObjectId { get; }
 
     public TerrainPreviewSession() : this(TerrainPreviewMap.Create()) { }
 
-    public TerrainPreviewSession(MapDocument map)
+    public TerrainPreviewSession(MapDocument map,
+        PreviewScene? sharedScene = null, Guid? replacingId = null,
+        bool centered = false, Guid? existingId = null)
     {
         Map = map;
+        IsCentered = centered;
+        OriginMeters = centered
+            ? new Vector2(map.WidthMeters / 2f, map.LengthMeters / 2f)
+            : Vector2.Zero;
         DisplayScale = MathF.Min(1f,
             256f / MathF.Max(map.WidthMeters, map.LengthMeters));
-        var camera = new ViewportCamera();
-        Scene = new PreviewScene { Camera = camera };
+        Scene = sharedScene ?? new PreviewScene();
+        var camera = Scene.Camera ?? new ViewportCamera();
+        Scene.Camera = camera;
+        if (replacingId is Guid id) Scene.Delete(id);
+
         if (map.HeightField.SamplesX > 257 || map.HeightField.SamplesY > 257)
             CreateChunks();
         else
         {
             Geometry = TerrainMeshBuilder.Build(map.HeightField);
-            Scene.Add(map.Name, TerrainRenderMeshAdapter.Create(Geometry),
-                Matrix4x4.CreateScale(DisplayScale));
+            if (existingId is Guid loadedId) TerrainObjectId = loadedId;
+            else
+            {
+                RenderMesh mesh = centered
+                    ? TerrainRenderMeshAdapter.CreateLocal($"terrain/local/{Guid.NewGuid():N}", Geometry)
+                    : TerrainRenderMeshAdapter.Create(Geometry);
+                Matrix4x4 model = Matrix4x4.CreateScale(DisplayScale) *
+                    Matrix4x4.CreateTranslation(
+                        -OriginMeters.X * DisplayScale,
+                        -OriginMeters.Y * DisplayScale, 0f);
+                TerrainObjectId = Scene.Add(map.Name, mesh, model).Id;
+            }
         }
+        if (centered && TerrainObjectId is Guid terrainId)
+            Scene.RegisterLocalTerrain(map, terrainId);
 
         TerrainHeightField field = map.HeightField;
-        float z = DisplayScale == 1f ? 12f :
-            field.GetHeight(field.SamplesX / 2, field.SamplesY / 2) * DisplayScale;
-        var center = new Vector3(map.WidthMeters * DisplayScale * 0.5f,
-            map.LengthMeters * DisplayScale * 0.5f, z);
-        camera.Frame(center, 170f, 1.4f);
+        float z = centered ? 0f : DisplayScale == 1f ? 12f :
+            field.GetHeight(field.SamplesX / 2, field.SamplesY / 2)
+                * DisplayScale;
+        var center = new Vector3(
+            (map.WidthMeters / 2f - OriginMeters.X) * DisplayScale,
+            (map.LengthMeters / 2f - OriginMeters.Y) * DisplayScale, z);
+        float radius = centered
+            ? MathF.Max(map.WidthMeters, map.LengthMeters) * DisplayScale * 0.7f
+            : 170f;
+        camera.Frame(center, radius, 1.4f);
         camera.SetTerrainCollision(SampleSurface);
+        RefreshLocalCameraBounds();
     }
 
     public IReadOnlyList<RenderDraw> ViewportDraws(uint width, uint height)
@@ -48,7 +78,7 @@ public sealed partial class TerrainPreviewSession
     }
 
     public bool TryPick(Vector2 pixel, uint width, uint height,
-        out TerrainRayHit hit)
+        out TerrainRayHit hit, TerrainHeightField? reference = null)
     {
         hit = default;
         if (width == 0 || height == 0 || Scene.Camera is not { } camera)
@@ -57,7 +87,9 @@ public sealed partial class TerrainPreviewSession
             camera.ViewProjection(width, height), pixel, width, height,
             out Vector3 origin, out Vector3 direction))
             return false;
-        return TerrainHeightRayPicker.TryPick(Map.HeightField,
-            origin / DisplayScale, direction, out hit);
+        Vector3 dataOrigin = origin / DisplayScale +
+            new Vector3(OriginMeters, 0f);
+        return TerrainHeightRayPicker.TryPick(
+            reference ?? Map.HeightField, dataOrigin, direction, out hit);
     }
 }

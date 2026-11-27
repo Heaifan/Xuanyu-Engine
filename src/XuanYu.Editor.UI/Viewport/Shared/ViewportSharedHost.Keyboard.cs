@@ -8,6 +8,11 @@ public sealed partial class ViewportSharedHost
 {
     private void OnViewportKeyDown(object? sender, KeyEventArgs e)
     {
+        if (TryHandleBrushKey(e))
+        {
+            e.Handled = true;
+            return;
+        }
         if (e.Key == Key.F8 &&
             _wb.CurrentId == PageId.Terrain && _wb.IsGeoTerrainPreview)
         {

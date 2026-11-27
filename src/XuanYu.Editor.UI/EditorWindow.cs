@@ -29,7 +29,7 @@ public sealed partial class EditorWindow : Window
         _leftPanel = new LeftWorkspacePanel(_wb.Scene);
         _leftPanel.BindTerrain(_wb);
         _inspector = new RightPreviewInspector(_wb.Scene);
-        Control viewport = CreateViewport(vk);
+        Control viewport = new TerrainWorkspaceToolbar(_wb, CreateViewport(vk));
         var root = new Grid { RowDefinitions = new("74,*") };
         var workspace = BuildWorkspace(viewport);
         Grid.SetRow(workspace, 1);

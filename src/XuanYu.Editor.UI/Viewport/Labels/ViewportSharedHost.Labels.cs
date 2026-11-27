@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using XuanYu.Editor.Pages;
 using XuanYu.Editor.Preview.Terrain;
 using XuanYu.Render;
 
@@ -15,6 +16,14 @@ public sealed partial class ViewportSharedHost
     private RenderDraw[] PrepareContourLabels(
         IReadOnlyList<RenderDraw> draws, uint width, uint height)
     {
+        draws = _wb.ApplyTerrainHillshade(_wb.ApplyLocalTerrainContours(draws));
+        if ((_wb.IsSimulating && _wb.CurrentId != PageId.Terrain) ||
+            !_wb.TerrainContoursEnabled || !_wb.TerrainContourLabelsEnabled)
+        {
+            _worldLabels = []; _screenLabels = [];
+            _lastContourLabelsAt = 0;
+            return draws.ToArray();
+        }
         float scale = (float)(TopLevel.GetTopLevel(this)?.RenderScaling ?? 1d);
         long now = Environment.TickCount64;
         if (now - _lastContourLabelsAt >= 180)

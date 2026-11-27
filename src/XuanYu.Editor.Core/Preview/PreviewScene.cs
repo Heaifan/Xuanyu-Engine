@@ -31,7 +31,10 @@ public sealed partial class PreviewScene
         Camera?.ViewProjection(width, height) ?? Matrix4x4.Identity;
 
     public IReadOnlyList<RenderDraw> ViewportDraws(uint width, uint height) =>
-        _bridge.Snapshot(ViewProjection(width, height), SelectedId);
+        RenderWithProjection(ViewProjection(width, height));
+
+    public IReadOnlyList<RenderDraw> RenderWithProjection(Matrix4x4 projection) =>
+        _bridge.Snapshot(projection, SelectedId);
 
     public PreviewObject Add(string name, RenderMesh mesh, Matrix4x4 modelToClip)
     {
@@ -51,16 +54,14 @@ public sealed partial class PreviewScene
     {
         if (id is not null && _objects.All(x => x.Id != id))
             throw new ArgumentOutOfRangeException(nameof(id));
-        if (SelectedId == id)
-            return;
+        if (SelectedId == id) return;
         SelectedId = id;
         Publish();
     }
 
     public void SetVisible(Guid id, bool visible)
     {
-        if (World.Find(id)?.IsVisible == visible)
-            return;
+        if (World.Find(id)?.IsVisible == visible) return;
         World.SetVisible(id, visible);
         Publish();
     }
@@ -73,14 +74,11 @@ public sealed partial class PreviewScene
 
     public bool Delete(Guid id)
     {
-        if (!World.Delete(id))
-            return false;
+        if (!World.Delete(id)) return false;
         _bridge.Unbind(id);
         PreviewObject? item = _objects.FirstOrDefault(x => x.Id == id);
-        if (item is not null)
-            _objects.Remove(item);
-        if (SelectedId == id)
-            SelectedId = null;
+        if (item is not null) _objects.Remove(item);
+        if (SelectedId == id) SelectedId = null;
         Publish();
         return true;
     }

@@ -16,8 +16,7 @@ public sealed partial class GeoUnifiedTileLoader
             (south, west == -180 ? 179 : west - 1), (south, west == 179 ? -180 : west + 1)];
         foreach (var key in neighbors)
         {
-            if (!_requests.TryGetValue(key, out var source) ||
-                !source.Task.IsCompletedSuccessfully || source.Task.Result is not { } other) continue;
+            if (!_requests.TryGetValue(key, out var source) || source.Tile is not { } other) continue;
             GeoUnifiedSeamReport report = GeoUnifiedSeamAudit.Compare(tile, other);
             var id = string.CompareOrdinal(report.First, report.Second) < 0
                 ? (report.First, report.Second) : (report.Second, report.First);

@@ -1,4 +1,3 @@
-
 using Avalonia.Threading;
 using Silk.NET.Vulkan;
 using XuanYu.Editor.Pages;
@@ -58,8 +57,9 @@ internal sealed partial class ViewportSwapchainSession
             string summary = _vk.ConfigureSwapchain(width, height);
             if (summary.Length > 0)
                 _workbench.Log.Write(summary);
-            Result result = _vk.PresentFrame(
-                _workbench.ViewportDraws(width, height));
+            var draws = _workbench.ViewportDraws(width, height);
+            draws = _workbench.ApplyTerrainHillshade(_workbench.ApplyLocalTerrainContours(draws));
+            Result result = _vk.PresentFrame(draws);
             if (result == Result.ErrorOutOfDateKhr)
             {
                 summary = _vk.ConfigureSwapchain(width, height, force: true);

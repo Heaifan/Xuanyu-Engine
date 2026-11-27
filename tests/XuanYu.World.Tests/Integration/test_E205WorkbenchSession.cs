@@ -17,7 +17,7 @@ public sealed class test_E205WorkbenchSession
             var source = new Workbench(use3D: true);
             var first = Assert.Single(source.Scene.Objects);
             var second = source.Scene.CreateCube();
-            source.Scene.Rename(first.Id, "MainCube");
+            source.Scene.Rename(first.Id, "MainTerrain");
             var transform = new Transform(
                 new Vector3(2.5f, -1f, 3f),
                 Quaternion.CreateFromYawPitchRoll(0.4f, 0.2f, 0.1f),
@@ -26,13 +26,12 @@ public sealed class test_E205WorkbenchSession
             source.Scene.SetVisible(second.Id, false);
             source.Scene.Select(second.Id);
             SceneFile.Save(source.Scene, path);
-
             var reopened = new Workbench(use3D: true);
             SceneFile.Load(reopened.Scene, path);
             Assert.Equal(2, reopened.Scene.Objects.Count);
             Assert.Equal(first.Id, reopened.Scene.Objects[0].Id);
             Assert.Equal(second.Id, reopened.Scene.Objects[1].Id);
-            Assert.Equal("MainCube", reopened.Scene.Objects[0].Name);
+            Assert.Equal("MainTerrain", reopened.Scene.Objects[0].Name);
             Assert.Equal(transform, reopened.World.Find(first.Id)!.Transform);
             Assert.False(reopened.World.Find(second.Id)!.IsVisible);
             Assert.Null(reopened.Scene.SelectedId);
@@ -40,6 +39,7 @@ public sealed class test_E205WorkbenchSession
             Assert.Equal(2, draws.Count);
             Assert.True(draws[0].Visible);
             Assert.False(draws[1].Visible);
+            Assert.Equal(source.TerrainMap.WidthMeters, reopened.TerrainMap.WidthMeters);
             reopened.Scene.Select(first.Id);
             reopened.Scene.SetTransform(first.Id, Transform.Identity);
             Assert.Equal(Transform.Identity, reopened.World.Find(first.Id)!.Transform);
@@ -57,7 +57,6 @@ public sealed class test_E205WorkbenchSession
             var source = new Workbench(use3D: true);
             source.Scene.CreateCube();
             SceneFile.Save(source.Scene, path);
-
             var target = new Workbench(use3D: true);
             target.Scene.CreateCube();
             Guid staleId = target.Scene.CreateCube().Id;
@@ -66,7 +65,7 @@ public sealed class test_E205WorkbenchSession
             Assert.Null(target.World.Find(staleId));
             Assert.Equal(2, target.Scene.Objects.Count);
             var added = target.Scene.CreateCube();
-            Assert.Equal("Cube_003", added.Name);
+            Assert.Equal("Cube_002", added.Name);
             Assert.NotNull(target.World.Find(added.Id));
             Assert.Equal(3, target.Scene.ViewportDraws(800, 600).Count);
             Assert.Equal(added.Id, target.Scene.SelectedId);

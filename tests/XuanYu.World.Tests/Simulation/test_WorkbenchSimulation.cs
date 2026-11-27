@@ -11,25 +11,25 @@ public sealed class test_WorkbenchSimulation
     public void PlayStop_ShouldKeepEditorSceneAndRenderBridgeUnchanged()
     {
         var wb = new Workbench(use3D: true);
-        var cube = Assert.Single(wb.Scene.Objects);
+        var terrain = Assert.Single(wb.Scene.Objects);
+        Transform original = wb.World.Find(terrain.Id)!.Transform;
+        var before = Assert.Single(wb.Scene.Draws);
         wb.StartSimulation();
         Assert.True(wb.IsSimulating);
         Assert.NotSame(wb.World, wb.Simulation.RunningWorld);
-        Assert.Equal(cube.Id, Assert.Single(
+        Assert.Equal(terrain.Id, Assert.Single(
             wb.Simulation.RunningWorld!.Entities).Id);
-
         for (int i = 0; i < 30; i++)
             wb.AdvanceSimulationTick();
         Assert.Equal(1d, wb.Simulation.ElapsedSeconds);
-        wb.Simulation.RunningWorld.SetTransform(cube.Id, new Transform(
+        wb.Simulation.RunningWorld.SetTransform(terrain.Id, new Transform(
             new Vector3(5, 0, 0), Quaternion.Identity, Vector3.One));
-        Assert.Equal(Transform.Identity, wb.World.Find(cube.Id)!.Transform);
-        Assert.Equal(0f, wb.Scene.Draws[0].ModelToClip.M41);
-
+        Assert.Equal(original, wb.World.Find(terrain.Id)!.Transform);
+        Assert.Equal(before.ModelToClip, wb.Scene.Draws[0].ModelToClip);
         wb.StopSimulation();
         Assert.False(wb.IsSimulating);
         Assert.Null(wb.Simulation.RunningWorld);
-        Assert.Equal(cube.Id, Assert.Single(wb.Scene.Objects).Id);
+        Assert.Equal(terrain.Id, Assert.Single(wb.Scene.Objects).Id);
         Assert.Contains(wb.Log.Items, line => line.Contains("模拟停止"));
     }
 }

@@ -1,6 +1,7 @@
 using XuanYu.Editor.Preview.Persistence;
 using XuanYu.Render;
 using XuanYu.World;
+using XuanYu.World.Maps;
 
 namespace XuanYu.Editor.Preview;
 
@@ -8,16 +9,25 @@ public sealed partial class PreviewScene
 {
     internal SceneDocument Capture() => new(1,
         _objects.Select(item => new SceneEntityData(
-            World.Find(item.Id)!, item.Mesh.AssetId)).ToArray());
+            World.Find(item.Id)!, item.Mesh.AssetId)).ToArray(),
+        LocalTerrainId is Guid id && LocalTerrainMap is { } map
+            ? SceneTerrainCodec.Capture(id, map) : null);
 
     internal void Restore(SceneDocument document)
     {
+        SceneTerrainData? data = document.LocalTerrain;
+        MapDocument? localMap = data is null ? null :
+            SceneTerrainCodec.RestoreMap(data,
+                document.Entities.First(part => part.Entity.Id == data.EntityId)
+                    .Entity.Name);
         Dictionary<string, RenderMesh> meshes = [];
         var items = document.Entities.Select(part =>
         {
             if (!meshes.TryGetValue(part.MeshId, out RenderMesh? mesh))
             {
-                mesh = PreviewSeed.CreateMesh(part.MeshId);
+                mesh = data is not null && part.Entity.Id == data.EntityId
+                    ? SceneTerrainCodec.RestoreMesh(part.MeshId, localMap!)
+                    : PreviewSeed.CreateMesh(part.MeshId);
                 meshes.Add(part.MeshId, mesh);
             }
             return (Entity: part.Entity, Mesh: mesh);
@@ -33,6 +43,8 @@ public sealed partial class PreviewScene
             _bridge.Bind(item.Entity.Id, item.Mesh);
             _objects.Add(new PreviewObject(World, item.Entity.Id, item.Mesh));
         }
+        RegisterLocalTerrain(localMap, data?.EntityId);
+        Restored?.Invoke();
         Publish();
     }
 }

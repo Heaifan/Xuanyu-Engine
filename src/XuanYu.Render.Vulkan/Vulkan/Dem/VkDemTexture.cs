@@ -28,8 +28,12 @@ internal sealed unsafe partial class VkDemTexture : IDisposable
         Queue queue, uint family, RenderWaterAtlas atlas) =>
         new(vk, gpu, device, queue, family, atlas.PackedSamples, (uint)atlas.Side);
 
+    public static VkDemTexture FromTerrainPage(Vk vk, PhysicalDevice gpu, Device device,
+        Queue queue, uint family, ReadOnlyMemory<short> samples) =>
+        new(vk, gpu, device, queue, family, samples, 33, true);
+
     private VkDemTexture(Vk vk, PhysicalDevice gpu, Device device,
-        Queue queue, uint family, ReadOnlyMemory<short> samples, uint side)
+        Queue queue, uint family, ReadOnlyMemory<short> samples, uint side, bool vertexSampling = false)
     {
         if (samples.Length != (int)(side * side))
             throw new ArgumentException("DEM 纹理样本数与边长不匹配。", nameof(samples));
@@ -40,7 +44,7 @@ internal sealed unsafe partial class VkDemTexture : IDisposable
         {
             CreateImage(gpu);
             CreateViewAndSampler();
-            Upload(gpu, queue, family, samples);
+            Upload(gpu, queue, family, samples, vertexSampling);
         }
         catch { Dispose(); throw; }
     }

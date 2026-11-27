@@ -1,10 +1,18 @@
-
 using XuanYu.World.Maps;
 
 namespace XuanYu.Editor.Preview.Terrain;
 
 public static class TerrainPreviewMap
 {
+    public static MapDocument CreateBlank(int cellsX = 100,
+        int cellsY = 100, float spacing = 1f) =>
+        CreateBlank(cellsX, cellsY, spacing, spacing);
+
+    public static MapDocument CreateBlank(int cellsX, int cellsY,
+        float spacingX, float spacingY) =>
+        new("Terrain_01", new TerrainHeightField(
+            cellsX + 1, cellsY + 1, spacingX, spacingY));
+
     public static MapDocument Create()
     {
         MapDocument map = MapDocument.CreateDefault("E4 地形预览");
@@ -33,7 +41,6 @@ public static class TerrainPreviewMap
                 field.SetHeight(x, y, ridge + peak - valley);
             }
         }
-
         return map;
     }
 }

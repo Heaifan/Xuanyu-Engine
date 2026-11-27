@@ -17,6 +17,9 @@ internal sealed partial class RightTerrainInspector
         TerrainHeightField field = map.HeightField;
         NasademTile? tile = _wb.TerrainSourceTile;
 
+        if (_wb.IsTerrainEditMode && _wb.CanEditLocalTerrain)
+            AddEditToolSummary();
+
         AddGroup("地图信息", _showMapInfo, () => _showMapInfo = !_showMapInfo);
         if (_showMapInfo)
         {
@@ -34,6 +37,7 @@ internal sealed partial class RightTerrainInspector
                 $"{field.SpacingXMeters:0.##} × {field.SpacingYMeters:0.##} m");
             AddPair("尺寸", $"{map.WidthMeters:0} × {map.LengthMeters:0} m");
             AddPair("水体掩膜", map.WaterMask is null ? "缺失 SWB" : "SWB 已加载");
+            if (_wb.CanEditLocalTerrain) AddLocalSizeControls();
         }
 
         AddContourControls();
@@ -44,7 +48,7 @@ internal sealed partial class RightTerrainInspector
         if (tile is null)
         {
             AddPair("类型", _wb.TerrainSourcePath is null
-                ? "内置程序地形" : "XYE 地图文档");
+                ? "本地空白地形" : "XYE 地图文档");
             return;
         }
 

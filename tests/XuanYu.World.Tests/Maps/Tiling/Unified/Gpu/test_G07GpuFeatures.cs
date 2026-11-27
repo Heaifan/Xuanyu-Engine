@@ -4,6 +4,7 @@ using Xunit;
 
 namespace XuanYu.World.Tests.Maps;
 
+[Collection("VulkanHardware")]
 public sealed class test_G07GpuFeatures
 {
     [Fact]

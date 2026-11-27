@@ -2,14 +2,12 @@ namespace XuanYu.World.Maps;
 
 public sealed partial class GeoUnifiedLodSession
 {
-    private void Prune(GeoUnifiedTile? blocked)
+    private void Prune(GeoUnifiedSelection selection)
     {
         var keep = new HashSet<GeoUnifiedTile>(Coverage.Leaves);
         foreach (var tile in Coverage.Leaves)
             if (tile.Level < 15) keep.Add(tile.Parent());
-        if (blocked is { Level: > 0 } parent)
-            for (int y = 0; y < 2; y++)
-                for (int x = 0; x < 2; x++) keep.Add(parent.Child(x, y));
+        if (selection.PendingCoverage is { } pending) keep.UnionWith(pending.Leaves);
         foreach (var key in _resources.Keys.Where(key => !keep.Contains(key.Tile)).ToArray())
         {
             var task = _resources[key];

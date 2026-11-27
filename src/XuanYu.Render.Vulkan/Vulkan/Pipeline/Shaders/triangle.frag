@@ -55,12 +55,12 @@ bool sampleRaw(vec2 uv, out float h, out float heightSlope) {
 void shadeContours() {
     if (contourStyle.x <= 0.0 || contourStyle.y <= 0.0) return;
     bool next = contourStyle.z > 0.0 && contourStyle.w > 0.0;
-    float ink;
-    if (rawEnabled != 0) {
-        float h, slope;
-        if (!sampleRaw(rawUv, h, slope)) return;
-        bool gap = false;
-        float gapElevation = 0.0;
+    bool raw = rawEnabled != 0;
+    float h = elevation, slope = fwidth(elevation);
+    if (raw && !sampleRaw(rawUv, h, slope)) return;
+    bool gap = false;
+    float gapElevation = 0.0;
+    if (raw || (pc.label.z > 0.0 && slope > 0.0)) {
         for (int i = 0; i < int(pc.label.y); i++) {
             vec4 entry = contourGaps.entries[int(pc.label.x) + i];
             if (!contourLabelGap(entry)) continue;
@@ -68,15 +68,13 @@ void shadeContours() {
             gapElevation = entry.w;
             break;
         }
-        ink = labeledInk(h, slope, contourStyle.x, gap, gapElevation);
-        if (next) ink = mix(ink,
-            labeledInk(h, slope, contourStyle.z, gap, gapElevation),
-            clamp(contourStyle.w, 0.0, 1.0));
-    } else {
-        ink = legacyInk(elevation, contourStyle.x);
-        if (next) ink = mix(ink, legacyInk(elevation, contourStyle.z),
-            clamp(contourStyle.w, 0.0, 1.0));
     }
+    bool labeled = raw || gap;
+    float ink = labeled ? labeledInk(h, slope, contourStyle.x, gap, gapElevation)
+        : legacyInk(elevation, contourStyle.x);
+    if (next) ink = mix(ink, labeled
+        ? labeledInk(h, slope, contourStyle.z, gap, gapElevation)
+        : legacyInk(elevation, contourStyle.z), clamp(contourStyle.w, 0.0, 1.0));
     ink = clamp(ink * contourStyle.y, 0.0, 1.0);
     outColor.rgb = mix(outColor.rgb, ContourColor, ink);
 }

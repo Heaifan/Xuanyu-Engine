@@ -1,14 +1,12 @@
 using System.Numerics;
 using XuanYu.Editor.Camera;
-using XuanYu.Editor.Pages;
 
 namespace XuanYu.Editor.UI;
 
 internal sealed partial class ViewportNavigationPanel
 {
-    private GlobalCamera? GeoCamera() => _workbench is
-        { CurrentId: PageId.Terrain, IsGeoTerrainPreview: true } wb
-        ? wb.GeoTerrainCamera : null;
+    private GlobalCamera? GeoCamera() => _workbench is { } wb &&
+        wb.IsGeoTerrainPreview && !wb.IsSimulating ? wb.GeoTerrainCamera : null;
 
     private ViewportNavPose? Pose()
     {
