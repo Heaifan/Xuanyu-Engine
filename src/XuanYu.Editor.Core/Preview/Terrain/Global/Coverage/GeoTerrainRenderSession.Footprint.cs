@@ -9,7 +9,6 @@ public sealed partial class GeoTerrainRenderSession
     private Dictionary<GeoTileId, GeoTerrainFootprintTile> _footprintTiles = [];
     private readonly Dictionary<GeoTileId, (GeoTerrainFootprintTile Tile, RenderMesh Mesh)>
         _footprintMeshes = [];
-    private bool _firstFootprintLogged;
 
     private RenderMesh? BuildFootprintBase(GeoTileId id)
     {
@@ -37,11 +36,6 @@ public sealed partial class GeoTerrainRenderSession
                 _footprintMeshes[id] = entry;
             }
             _visibleMeshes[id] = entry.Mesh;
-        }
-        if (!_firstFootprintLogged)
-        {
-            _firstFootprintLogged = true;
-            Notice?.Invoke("G-05C-02：不规则覆盖统一采样格与共享共边已启用");
         }
     }
 

@@ -5,7 +5,7 @@ namespace XuanYu.Render.Vulkan;
 
 internal sealed unsafe partial class VkTerrainPageTransfer
 {
-    private void Record(Image image, (int Layer, bool Reused, ReadOnlyMemory<short> Heights)[] pages)
+    private void Record(Image image, (int Layer, bool Reused, TerrainPoolUpload Upload)[] pages)
     {
         Check(_vk.ResetCommandBuffer(_command, 0), "重置 G07 上传命令");
         var begin = new CommandBufferBeginInfo { SType = StructureType.CommandBufferBeginInfo,
@@ -25,7 +25,7 @@ internal sealed unsafe partial class VkTerrainPageTransfer
                     BaseArrayLayer = (uint)page.Layer, LevelCount = 1, LayerCount = 1 } };
             copies[i] = new BufferImageCopy { BufferOffset = (ulong)(i * PageStride),
                 ImageSubresource = new ImageSubresourceLayers { AspectMask = ImageAspectFlags.ColorBit,
-                    BaseArrayLayer = (uint)page.Layer, LayerCount = 1 }, ImageExtent = new Extent3D(33, 33, 1) };
+                    BaseArrayLayer = (uint)page.Layer, LayerCount = 1 }, ImageExtent = new Extent3D(TerrainPoolUpload.Side, TerrainPoolUpload.PackedRows, 1) };
         }
         fixed (ImageMemoryBarrier* b = barriers)
         fixed (BufferImageCopy* c = copies)

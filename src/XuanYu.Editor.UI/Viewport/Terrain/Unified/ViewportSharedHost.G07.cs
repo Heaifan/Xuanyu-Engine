@@ -13,7 +13,7 @@ public sealed partial class ViewportSharedHost
 {
     private const int G07Capacity = 512, G07UploadLimit = 16;
     private readonly bool _g07Enabled =
-        Environment.GetEnvironmentVariable("XYE_G07_VIEWPORT") == "1";
+        Environment.GetEnvironmentVariable("XYE_G07_VIEWPORT") != "0";
     private GeoTerrainRenderSession? _g07Source;
     private GeoUnifiedLodSession? _g07Cpu;
     private GeoUnifiedGpuSession? _g07Gpu;
@@ -31,14 +31,12 @@ public sealed partial class ViewportSharedHost
             if (!_vk.ShaderFloat64Enabled)
                 throw new NotSupportedException("G07 需要 Vulkan shaderFloat64。");
             ReleaseG07Session();
-            _wb.Log.Write($"[G07/视口] 准备完整数据集：HGT={source.SourceCount}");
             string? path = _wb.TerrainSourcePath;
             _g07Cpu = await Task.Run(() => source.LoadG07DatasetAsync(path, G07Capacity));
             _g07Source = source;
-            _wb.Log.Write($"[G07/视口] 根覆盖={_g07Cpu.Coverage.Leaves.Count} {_g07Cpu.PreparationProfile} 粗层误差=后台抽样估计");
+            _wb.Log.Write($"[G07/视口] 根覆盖={_g07Cpu.Coverage.Leaves.Count} {_g07Cpu.PreparationProfile}");
         }
-        if (source.EnsureG07CameraClearance(_g07Cpu!))
-            _wb.Log.Write($"[G07/防穿透] 已提交地表离地校正，距离={source.Camera.DistanceMeters:F2}m");
+        source.EnsureG07CameraClearance(_g07Cpu!);
         var eye = source.G07Eye;
         var mvp = source.G07Projection(width, height);
         var origin = source.G07Origin;
@@ -78,12 +76,7 @@ public sealed partial class ViewportSharedHost
         _screenLabels = result.Labels;
         _worldLabels = [];
         _lastContourLabelsAt = 0;
-        if (++_g07Frames == 1 || result.Submitted > 0 || result.LabelMs >= 5d || _g07Frames % 60 == 0 || Environment.GetEnvironmentVariable("XYE_G06_PERF") == "1")
-            _wb.Log.Write($"[G07/视口] 帧={_g07Frames} 路径=GPU HGT={source.SourceCount} " +
-                $"LOD={result.Levels} 绘制={result.Drawn} 驻留={result.Resident} 待发布={result.Pending} " +
-                $"上传={result.TotalPages} 高程显存={result.Bytes}B 本帧={result.Ms:F1}ms " +
-                $"切换等待={result.Transition} 容量阻塞={result.Blocked} CPU像素读回=0 " +
-                $"指标={_g07Cpu!.Diagnostic ?? "正常"} 环境={environmentMs:F1}ms {result.Profile}");
+        ReportG07Frame(source.SourceCount, result, environmentMs);
         return result.Profile;
     }
 

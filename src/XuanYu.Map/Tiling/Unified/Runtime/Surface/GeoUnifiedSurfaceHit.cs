@@ -5,6 +5,8 @@ namespace XuanYu.World.Maps;
 public readonly record struct GeoUnifiedSurfaceHit(Vector3 Position, Vector3 A, Vector3 B,
     Vector3 C, Vector3 Heights, float Elevation)
 {
+    public GeoUnifiedTile Tile { get; init; }
+
     public bool TryContour(int interval, out int elevation, out Vector3 point, out Vector3 tangent)
     {
         if (interval <= 0) throw new ArgumentOutOfRangeException(nameof(interval));

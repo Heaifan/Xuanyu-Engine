@@ -28,6 +28,11 @@ public sealed class test_G05MultiImport
         Assert.Equal("N24E120+N24E121", wb.TerrainMultiSourceLabel);
         Assert.Equal(121d, wb.GeoTerrainCamera!.Target.LongitudeDegrees);
         Assert.NotEmpty(wb.ViewportDraws(1280, 720));
+        var summary = Assert.Single(wb.Log.Records, entry => entry.Level == LogLevel.Info &&
+            entry.Message.StartsWith("G-05", StringComparison.Ordinal));
+        Assert.Contains("已导入 2 张 HGT", summary.Message);
+        Assert.Contains("派生缓存命中", summary.Message);
+        Assert.Contains("SWB=", summary.Message);
         string path = System.IO.Path.ChangeExtension(a.Path, ".xymap");
         Assert.Throws<InvalidOperationException>(() => wb.SaveTerrainMap(path));
         Assert.False(File.Exists(path));

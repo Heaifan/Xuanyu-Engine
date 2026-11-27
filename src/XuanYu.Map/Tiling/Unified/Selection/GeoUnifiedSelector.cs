@@ -4,6 +4,8 @@ public readonly record struct GeoUnifiedSelection(
     GeoUnifiedCoverage Coverage, GeoUnifiedTile? BlockedTile, double BlockedPixels)
 {
     public GeoUnifiedCoverage? PendingCoverage { get; init; }
+    public bool CapacityLimited { get; init; }
+    public string? BudgetDiagnostic { get; init; }
 }
 
 public sealed partial class GeoUnifiedSelector

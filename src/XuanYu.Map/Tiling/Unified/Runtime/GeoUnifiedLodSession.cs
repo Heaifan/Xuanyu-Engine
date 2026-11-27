@@ -33,7 +33,8 @@ public sealed partial class GeoUnifiedLodSession : IDisposable
     }
 
     public GeoUnifiedSelection Step(EnuPosition eye, int height, double fov,
-        Func<GeoUnifiedTile, int, bool> gpuReady, Func<GeoUnifiedTile, bool>? visible = null)
+        Func<GeoUnifiedTile, int, bool> gpuReady, Func<GeoUnifiedTile, bool>? visible = null,
+        int gpuCapacity = int.MaxValue, int transitionReserve = 0)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         Diagnostic = null;
@@ -51,7 +52,9 @@ public sealed partial class GeoUnifiedLodSession : IDisposable
         bool Ready(GeoUnifiedTile tile, int mask) => TryResource(tile, mask, out _) && gpuReady(tile, mask);
         bool Visible(GeoUnifiedTile tile) => (domain is null || domain.Intersects(tile)) &&
             (visible is null || visible(tile));
-        var result = _selector.StepWithMetrics(Coverage, Error, Ready, Visible);
+        var result = _selector.StepWithMetrics(Coverage, Error, Ready, Visible, gpuCapacity, transitionReserve);
+        if (result.BudgetDiagnostic is { } budget)
+            Diagnostic = Diagnostic is null ? budget : $"{budget}；{Diagnostic}";
         Coverage = result.Coverage;
         Prune(result);
         return result;

@@ -49,6 +49,7 @@ public sealed class test_G07GpuLodFlow
             {
                 var frame = drive.Tick(near);
                 Assert.True(frame.CapacityBlocked);
+                Assert.Null(frame.PendingCoverage);
                 Assert.Single(frame.Draws);
             }
             Assert.Equal(1, probe.Pool.UploadedPages);
@@ -57,6 +58,10 @@ public sealed class test_G07GpuLodFlow
         }
         await drive.Until(near, frame => frame.Draws.Length == 4, 1);
         Assert.Equal(5, probe.Pool.UploadedPages);
+        Assert.True(cpu.TryPickSurfaceHit(new Vector3((float)near.East + 50, (float)near.North + 50,
+            (float)near.Up + 1000), -Vector3.UnitZ, out var hit));
+        Assert.Equal(0, hit.Tile.Level);
+        Assert.Contains(hit.Tile, cpu.Coverage.Leaves);
         Assert.Equal(4, probe.Pool.ResidentCount);
         await drive.Until(far, frame => frame.Draws.Length == 1, 4);
         Assert.Equal(6, probe.Pool.UploadedPages);

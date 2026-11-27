@@ -32,7 +32,6 @@ public sealed partial class Workbench
     {
         if (_geoPreview is { } geo) geo.SetContourLabelsEnabled(enabled);
         else if (HasLocalTerrainContours) _localContourLabelsEnabled = enabled;
-        Log.Write($"[G06/R06B] 高程数字：{(enabled ? "开启" : "关闭")}");
         Changed?.Invoke();
     }
 }

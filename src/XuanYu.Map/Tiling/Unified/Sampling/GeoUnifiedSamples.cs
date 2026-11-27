@@ -36,11 +36,14 @@ public sealed class GeoUnifiedSamples
         _loader.Install(tile);
     }
 
-    public GeoUnifiedSample Sample(int x, int y)
+    public GeoUnifiedSample Sample(int x, int y) => Sample(x, y, out _);
+
+    internal GeoUnifiedSample Sample(int x, int y, out (int X, int Y) point)
     {
+        point = (x, y);
         var sample = SampleRaw(x, y);
         if (Domain is null || sample.Status != GeoSampleStatus.OutsideCoverage) return sample;
-        var point = Domain.Nearest(x, y);
+        point = Domain.Nearest(x, y);
         return SampleRaw(point.X, point.Y);
     }
 

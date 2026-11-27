@@ -83,9 +83,13 @@ public sealed partial class GeoUnifiedPageLoader
     private static bool Intersects(GeoUnifiedTile tile, int south, int west)
     {
         int x = (west + 180) * 3600, y = (south + 90) * 3600;
-        return tile.West <= x + 3600 && tile.West + tile.Span >= x &&
-            tile.South <= y + 3600 && tile.South + tile.Span >= y;
+        if (tile.South - 1 > y + 3600 || tile.South + tile.Span + 1 < y) return false;
+        int left = tile.West - 1, right = tile.West + tile.Span + 1;
+        return Overlaps(left, right, x) || Overlaps(left, right, x - 1296000) ||
+            Overlaps(left, right, x + 1296000);
     }
+
+    private static bool Overlaps(int left, int right, int x) => left <= x + 3600 && right >= x;
 
     private sealed class Pending
     {

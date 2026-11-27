@@ -31,11 +31,7 @@ public sealed partial class ViewportSharedHost
 
     private void ReportTerrainClick(Point point)
     {
-        if (_wb.IsGeoTerrainPreview)
-        {
-            _wb.Log.Write("G06 地理读数：请查看视口左下角 HUD；点击固定点尚未接入");
-            return;
-        }
+        if (_wb.IsGeoTerrainPreview) return;
         Vector3? hit = PickTerrainAtPointer(point);
         _wb.Log.Write(hit is { } position
             ? $"E4 地形定位：{FormatTerrainPoint(position)}"

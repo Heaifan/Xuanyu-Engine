@@ -14,6 +14,9 @@ public sealed partial class GeoUnifiedCoverage
         Leaves = Array.AsReadOnly(leaves.ToArray());
     }
 
+    internal int TransitionPageCount(GeoUnifiedCoverage candidate) =>
+        _leaves.Count + candidate.Leaves.Count(tile => !_leaves.Contains(tile));
+
     public bool TryRefine(GeoUnifiedTile parent, Func<GeoUnifiedTile, bool> ready,
         out GeoUnifiedCoverage result)
     {

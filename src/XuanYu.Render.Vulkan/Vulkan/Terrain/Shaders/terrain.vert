@@ -12,20 +12,9 @@ layout(location = 6) out vec3 slopeNormal;
 layout(location = 7) centroid out vec2 mapGrid;
 
 vec3 pageNormal(ivec2 grid) {
-    ivec2 lo = max(grid - ivec2(1), ivec2(0));
-    ivec2 hi = min(grid + ivec2(1), ivec2(32));
-    float dx = float(texelFetch(heightPage, ivec2(hi.x, grid.y), 0).r -
-        texelFetch(heightPage, ivec2(lo.x, grid.y), 0).r) / float(hi.x - lo.x);
-    float dy = float(texelFetch(heightPage, ivec2(grid.x, hi.y), 0).r -
-        texelFetch(heightPage, ivec2(grid.x, lo.y), 0).r) / float(hi.y - lo.y);
-    dvec2 lat = terrainRotate(p.baseSinCos.x, p.baseSinCos.y, double(grid.y) * p.originEcefAndStep.w);
-    float s = float(lat.x), c = float(lat.y);
-    const float e2 = 0.00669437999014;
-    float w = sqrt(1.0 - e2 * s * s);
-    float n = 6378137.0 / w;
-    float m = n * (1.0 - e2) / (w * w);
-    vec2 spacing = vec2(max(n * c, 1.0), m) * float(p.originEcefAndStep.w);
-    return normalize(vec3(-vec2(dx, dy) / spacing, 1.0));
+    vec2 uv = vec2(texelFetch(heightPage, grid + ivec2(0, 33), 0).r,
+        texelFetch(heightPage, grid + ivec2(0, 66), 0).r) / 32767.0;
+    return normalize(vec3(uv, max(0.0, 1.0 - abs(uv.x) - abs(uv.y))));
 }
 
 void main() {

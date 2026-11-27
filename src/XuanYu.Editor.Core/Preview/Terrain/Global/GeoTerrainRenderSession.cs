@@ -73,8 +73,6 @@ public sealed partial class GeoTerrainRenderSession
             _firstSurfaceLogged = true;
             Notice?.Invoke("G-04-03B-R3：完整覆盖与局部父片兜底已启用");
             Notice?.Invoke($"G-04：首帧绘制 {DrawCount} 片，选片 {SelectedCount}，待细化 {PendingCount} 片");
-            int lit = surface.Count(d => !d.Mesh.TerrainShadedColors.IsEmpty);
-            Notice?.Invoke($"G06-04B：地形晕渲通道 {lit}/{DrawCount} 片，西北光源 45°，环境光 75%");
         }
         CaptureMonitorHistory();
         if (profile) Notice?.Invoke($"[G06/R08-03B/帧] 帧={_monitorFrame} 覆盖={Stopwatch.GetElapsedTime(start, cover).TotalMilliseconds:F1}ms Native及Raw={Stopwatch.GetElapsedTime(cover, native).TotalMilliseconds:F1}ms " +

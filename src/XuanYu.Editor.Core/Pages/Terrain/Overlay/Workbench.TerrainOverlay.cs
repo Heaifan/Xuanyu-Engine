@@ -56,7 +56,7 @@ public sealed partial class Workbench
         try { GeoOverlayPreferencesStore.Save(_geoOverlay); }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
-            Log.Write($"[G06/UX02] 地理叠层设置保存失败：{error.Message}");
+            Log.Warn($"[G06/UX02] 地理叠层设置保存失败：{error.Message}");
         }
         Changed?.Invoke();
     }

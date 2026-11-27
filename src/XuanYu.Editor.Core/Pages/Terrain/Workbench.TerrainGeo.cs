@@ -30,7 +30,12 @@ public sealed partial class Workbench
         _geoPreview = geo ?? (tile is null ? null : new GeoTerrainRenderSession(tile));
         if (_geoPreview is not null)
         {
-            _geoPreview.Notice += Log.Write;
+            _geoPreview.Notice += message =>
+            {
+                if (message.StartsWith("[G06/", StringComparison.Ordinal))
+                    Log.WriteDebug(message, "地形诊断");
+                else Log.Write(message);
+            };
             Log.Write($"G-03 地形正式视口已接入：{_geoPreview.SourceLabel}");
         }
     }
@@ -76,7 +81,6 @@ public sealed partial class Workbench
         if (_geoPreview is { } geo)
         {
             geo.SetContoursEnabled(enabled);
-            Log.Write($"G-06 等高线：{(enabled ? "开启" : "关闭")}");
             Changed?.Invoke();
         }
         else if (HasLocalTerrainContours)

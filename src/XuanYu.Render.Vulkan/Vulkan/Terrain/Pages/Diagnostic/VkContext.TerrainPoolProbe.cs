@@ -54,9 +54,8 @@ public sealed unsafe partial class VkContext
             t.Any(index => (uint)index >= 1089))) throw new ArgumentException("G07 需要16组合法拓扑。");
         foreach (var frame in frames)
         {
-            if (frame.Uploads.Select(p => p.Key).Distinct().Count() != frame.Uploads.Count ||
-                frame.Uploads.Any(p => p.Heights.Length != 1089 || p.Heights.Span.Contains(short.MinValue)))
-                throw new ArgumentException("G07 上传要求唯一页键及完整有效高程。");
+            if (frame.Uploads.Select(p => p.Key).Distinct().Count() != frame.Uploads.Count)
+                throw new ArgumentException("G07 上传要求唯一页键。");
             if (frame.Draws.Select(p => p.Key).Distinct().Count() != frame.Draws.Count ||
                 frame.Draws.Any(p => p.Step <= 0 || (uint)p.Mask > 15))
                 throw new ArgumentException("G07 绘制要求唯一页键及合法步长、掩码。");

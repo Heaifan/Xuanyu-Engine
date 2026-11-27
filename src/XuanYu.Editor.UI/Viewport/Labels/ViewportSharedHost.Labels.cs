@@ -11,7 +11,6 @@ public sealed partial class ViewportSharedHost
     private IReadOnlyList<GeoContourLabel> _worldLabels = [];
     private GeoContourLabel[] _screenLabels = [];
     private long _lastContourLabelsAt;
-    private bool _firstLabelsLogged;
 
     private RenderDraw[] PrepareContourLabels(
         IReadOnlyList<RenderDraw> draws, uint width, uint height)
@@ -42,10 +41,5 @@ public sealed partial class ViewportSharedHost
     {
         double scale = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1d;
         _contourLabels.Show(_screenLabels, scale);
-        if (!_firstLabelsLogged && _screenLabels.Length > 0)
-        {
-            _firstLabelsLogged = true;
-            _wb.Log.Write($"[G06/R06C] 同步标高={_screenLabels.Length}");
-        }
     }
 }

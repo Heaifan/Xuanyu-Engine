@@ -39,7 +39,7 @@ internal sealed class G07GpuLodDriver(GeoUnifiedGpuSession session, VkTerrainLod
                 observedPending = true;
             if (complete(frame))
             {
-                if (previousCount != 0) Assert.True(observedPending, "未观察到旧覆盖保护阶段。");
+                if (previousCount != 0 && !frame.CapacityBlocked) Assert.True(observedPending, "未观察到旧覆盖保护阶段。");
                 Console.WriteLine($"[G07/LOD联动] 覆盖={frame.Draws.Length} 阻塞={frame.CapacityBlocked} 驻留={probe.Pool.ResidentCount} 累计上传={probe.Pool.UploadedPages}");
                 return;
             }

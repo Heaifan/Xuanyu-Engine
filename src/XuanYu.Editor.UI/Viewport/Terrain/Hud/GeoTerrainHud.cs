@@ -15,6 +15,8 @@ internal sealed partial class GeoTerrainHud : Border
         { FontSize = 10, Foreground = MainInk };
     private readonly TextBlock _elevation = new()
         { FontSize = 10, Foreground = SubInk };
+    private readonly TextBlock _lod = new()
+        { FontSize = 10, Foreground = SubInk, IsVisible = false };
     private readonly TextBlock _scaleText = new()
         { FontSize = 10, Foreground = MainInk };
     private readonly Border _scaleBar = new()
@@ -39,6 +41,7 @@ internal sealed partial class GeoTerrainHud : Border
         ruler.Children.Add(_scaleText);
         content.Children.Add(_coordinates);
         content.Children.Add(_elevation);
+        content.Children.Add(_lod);
         content.Children.Add(ruler);
         Child = content;
         ShowPoint(null);
@@ -47,6 +50,7 @@ internal sealed partial class GeoTerrainHud : Border
 
     public void ShowLocalPoint(Vector3? value)
     {
+        _lod.IsVisible = false;
         _coordinates.Text = value is { } point
             ? $"X {point.X:0.##} m    Y {point.Y:0.##} m" : "X —    Y —";
         _elevation.Text = value is { } p ? $"Z {p.Z:0.##} m" : "Z —";
@@ -56,6 +60,7 @@ internal sealed partial class GeoTerrainHud : Border
     {
         if (value is not { } point)
         {
+            _lod.IsVisible = false;
             _coordinates.Text = "纬度 —    经度 —";
             _elevation.Text = "高程 —    ·    瓦片 —";
             return;
@@ -65,5 +70,7 @@ internal sealed partial class GeoTerrainHud : Border
         _coordinates.Text = $"{Math.Abs(point.Latitude):F6}°{ns}  " +
             $"{Math.Abs(point.Longitude):F6}°{ew}";
         _elevation.Text = $"高程 {point.ElevationMeters:N1} m    ·    {point.TileId}";
+        _lod.Text = point.LodText;
+        _lod.IsVisible = point.LodText is not null;
     }
 }

@@ -29,7 +29,7 @@ internal sealed unsafe partial class VkTerrainPageArray : IDisposable
                 throw new NotSupportedException("设备不支持 R16_SINT 高程采样。");
             var info = new ImageCreateInfo { SType = StructureType.ImageCreateInfo,
                 ImageType = ImageType.Type2D, Format = Format.R16Sint,
-                Extent = new Extent3D(33, 33, 1), MipLevels = 1, ArrayLayers = (uint)capacity,
+                Extent = new Extent3D(TerrainPoolUpload.Side, TerrainPoolUpload.PackedRows, 1), MipLevels = 1, ArrayLayers = (uint)capacity,
                 Samples = SampleCountFlags.Count1Bit, Tiling = ImageTiling.Optimal,
                 Usage = ImageUsageFlags.TransferDstBit | ImageUsageFlags.SampledBit,
                 SharingMode = SharingMode.Exclusive, InitialLayout = ImageLayout.Undefined };

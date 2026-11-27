@@ -3,7 +3,11 @@ using XuanYu.Core.Geodesy;
 
 namespace XuanYu.Render.Vulkan;
 
-public readonly record struct TerrainPoolUpload(long Key, ReadOnlyMemory<short> Heights);
+public readonly record struct TerrainPoolUpload(long Key, ReadOnlyMemory<short> Heights,
+    ReadOnlyMemory<short> Normals = default)
+{
+    public const int Side = 33, SampleCount = Side * Side, PackedRows = Side * 3;
+}
 public readonly record struct TerrainGridStyle(bool Geographic, double StepX, double StepY,
     long CenterX, long CenterY)
 {

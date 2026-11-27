@@ -39,7 +39,8 @@ internal static class GeoUnifiedSurface
             var heights = new Vector3(page.HeightAt(a % 33, a / 33)!.Value,
                 page.HeightAt(b % 33, b / 33)!.Value, page.HeightAt(c % 33, c / 33)!.Value);
             float elevation = Vector3.Dot(heights, new Vector3(1 - u - v, u, v));
-            hit = new(origin + ray * t, vertices[a], vertices[b], vertices[c], heights, elevation);
+            hit = new(origin + ray * t, vertices[a], vertices[b], vertices[c], heights, elevation)
+                { Tile = page.Tile };
         }
     }
 

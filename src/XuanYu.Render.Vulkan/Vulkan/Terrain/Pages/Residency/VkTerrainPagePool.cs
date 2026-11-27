@@ -63,7 +63,11 @@ public sealed partial class VkTerrainPagePool : IDisposable
         int[] free = Enumerable.Range(0, _used.Length).Except(_slots.Values).Take(_limit).ToArray();
         var batch = requests.Where(p => !_slots.ContainsKey(p.Key)).Take(free.Length).ToArray();
         if (batch.Length == 0) return 0;
-        var copies = batch.Select((p, i) => (free[i], _used[free[i]], p.Heights)).ToArray();
+        foreach (var page in batch)
+            if (page.Heights.Length != TerrainPoolUpload.SampleCount || page.Heights.Span.Contains(short.MinValue) ||
+                (!page.Normals.IsEmpty && page.Normals.Length != 2 * TerrainPoolUpload.SampleCount))
+                throw new ArgumentException("G07 页上传要求完整有效高程及两组编码法线。");
+        var copies = batch.Select((p, i) => (free[i], _used[free[i]], p)).ToArray();
         _transfer.Submit(_image.Handle, copies);
         for (int i = 0; i < batch.Length; i++)
         {

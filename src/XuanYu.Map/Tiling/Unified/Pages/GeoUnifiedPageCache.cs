@@ -14,6 +14,7 @@ public sealed class GeoUnifiedPageCache
         this.loader = loader;
         this.source = source;
     }
+    // 每采样点预留64字节，包含原采样结构与新增4字节编码法线。
     internal const long PageCharge = 33L * 33 * 64;
     private readonly object _gate = new();
     private readonly Dictionary<GeoUnifiedTile, Entry> _pages = [];
@@ -42,6 +43,8 @@ public sealed class GeoUnifiedPageCache
                         for (int x = 0; x < 33; x++)
                             if (page.StatusAt(x, y) != GeoSampleStatus.Valid)
                                 throw new InvalidOperationException("高程页数据未全部就绪或无效。");
+                    if (!page.NormalsReady)
+                        throw new InvalidOperationException("坡面邻域原始高程尚未就绪。");
                     entry = new Entry(page);
                     _pages.Add(tile, entry);
                 }
