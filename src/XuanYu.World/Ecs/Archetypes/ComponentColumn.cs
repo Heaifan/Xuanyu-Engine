@@ -16,4 +16,7 @@ internal sealed class ComponentColumn<T> : IComponentColumn where T : unmanaged
         if (row != last) _values[row] = _values[last];
         _values.RemoveAt(last);
     }
+
+    public void CopyTo(int row, IComponentColumn target, int targetRow) =>
+        ((ComponentColumn<T>)target)._values[targetRow] = _values[row];
 }
