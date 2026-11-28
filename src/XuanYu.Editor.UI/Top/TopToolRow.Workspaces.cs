@@ -7,7 +7,7 @@ namespace XuanYu.Editor.UI;
 
 internal sealed partial class TopToolRow
 {
-    private Button _createCube = null!, _worldGrid = null!, _sky = null!;
+    private Button _createCube = null!, _createUnit = null!, _worldGrid = null!, _sky = null!;
     private Button _select = null!, _translate = null!, _rotate = null!, _scale = null!, _ground = null!;
     private Button _start = null!, _stop = null!;
     private Button _openScene = null!, _saveScene = null!;
@@ -22,9 +22,11 @@ internal sealed partial class TopToolRow
         _saveScene.Click += async (_, _) => await scene.SaveAsync();
     }
 
-    private void BuildWorld(Action createCube)
+    private void BuildWorld(Action createCube, Action? createUnit)
     {
         _createCube = Add(_world, "创建立方体", createCube);
+        _createUnit = Add(_world, "创建单位", createUnit);
+        _createUnit.IsVisible = createUnit is not null;
         _select = Add(_world, "选择", () => _wb.SetG07TranslateMode(false));
         _translate = Add(_world, "平移", () => _wb.SetG07TranslateMode(true));
         _rotate = Add(_world, "旋转", () => _wb.SetG07GizmoMode(GeoGizmoMode.Rotate));
@@ -51,7 +53,7 @@ internal sealed partial class TopToolRow
     private void RefreshWorkspaces()
     {
         _createCube.Content = _wb.IsGeoTerrainPreview ? "创建全球立方体（200m）" : "创建立方体";
-        _createCube.IsEnabled = !_wb.IsSimulating;
+        _createCube.IsEnabled = _createUnit.IsEnabled = !_wb.IsSimulating;
         bool edit = !_wb.IsSimulating;
         bool geo = _wb.IsGeoTerrainPreview && edit;
         _select.IsEnabled = _translate.IsEnabled = _rotate.IsEnabled = _scale.IsEnabled = edit;

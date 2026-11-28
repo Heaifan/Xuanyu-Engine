@@ -8,6 +8,7 @@ public readonly record struct RenderDraw(
     bool Visible,
     bool Selected)
 {
+    public bool IsBillboard { get; init; }
     public bool OutlineThroughOcclusion { get; init; }
     public bool DisableTerrainHillshade { get; init; }
     public float ContourIntervalMeters { get; init; }

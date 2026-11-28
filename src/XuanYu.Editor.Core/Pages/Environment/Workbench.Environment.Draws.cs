@@ -41,14 +41,14 @@ public sealed partial class Workbench
         {
             Matrix4x4 projection = runtime is null ? scene.ViewProjection(width, height)
                 : camera?.ViewProjection(width, height) ?? Matrix4x4.Identity;
-            draws.AddRange(runtime is not null ? runtime.Snapshot(projection)
+            draws.AddRange(runtime is not null ? runtime.Snapshot(projection, width: width, height: height)
                 : preview is null ? Scene.ViewportDraws(width, height)
                 : preview.ViewportDraws(width, height));
             bool showGrid = terrainPage ? TerrainGridEnabled : WorldGridEnabled;
             if (showGrid && camera is not null)
                 draws.Add(_metricGrid.Draw(camera, projection));
             if (preview is not null && !ReferenceEquals(preview.Scene, Scene))
-                draws.AddRange(Scene.RenderWithProjection(projection).Where(
+                draws.AddRange(Scene.RenderWithProjection(projection, width, height).Where(
                     draw => !draw.Mesh.AssetId.StartsWith(
                         "terrain/local/", StringComparison.Ordinal)));
         }

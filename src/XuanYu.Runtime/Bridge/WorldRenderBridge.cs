@@ -1,12 +1,11 @@
-using System.Numerics;
 using XuanYu.Render;
 using XuanYu.World;
-using XuanYu.World.Ecs;
 
 namespace XuanYu.Runtime;
 
-public sealed class WorldRenderBridge(WorldScene world)
+public sealed partial class WorldRenderBridge(WorldScene world)
 {
+    private readonly WorldScene _world = world;
     private readonly Dictionary<Guid, EntityRenderBinding> _bindings = [];
 
     public void Bind(Guid id, RenderMesh mesh) =>
@@ -16,12 +15,18 @@ public sealed class WorldRenderBridge(WorldScene world)
     {
         RequireEntity(id);
         ArgumentNullException.ThrowIfNull(mesh);
-        if (kind is not (EntityRepresentationKind.Mesh or EntityRepresentationKind.Proxy))
+        if (kind is not (EntityRepresentationKind.Mesh or EntityRepresentationKind.Proxy or
+            EntityRepresentationKind.Point or EntityRepresentationKind.Symbol))
             throw new ArgumentOutOfRangeException(nameof(kind));
         if (!_bindings.TryGetValue(id, out var binding))
             binding = new(null, null, kind);
-        _bindings[id] = kind == EntityRepresentationKind.Mesh
-            ? binding with { Mesh = mesh } : binding with { Proxy = mesh };
+        _bindings[id] = kind switch
+        {
+            EntityRepresentationKind.Mesh => binding with { Mesh = mesh },
+            EntityRepresentationKind.Proxy => binding with { Proxy = mesh },
+            EntityRepresentationKind.Point => binding with { Point = mesh },
+            _ => binding with { Symbol = mesh }
+        };
     }
 
     public EntityRepresentationKind GetRepresentation(Guid id)
@@ -33,7 +38,7 @@ public sealed class WorldRenderBridge(WorldScene world)
     public void SetRepresentation(Guid id, EntityRepresentationKind kind)
     {
         RequireEntity(id);
-        if (kind is not (EntityRepresentationKind.None or EntityRepresentationKind.Mesh or EntityRepresentationKind.Proxy))
+        if (!Enum.IsDefined(kind))
             throw new ArgumentOutOfRangeException(nameof(kind));
         if (!_bindings.TryGetValue(id, out var binding))
         {
@@ -46,32 +51,6 @@ public sealed class WorldRenderBridge(WorldScene world)
     }
 
     public bool Unbind(Guid id) => _bindings.Remove(id);
-
-    public RenderDraw[] Snapshot(Matrix4x4 worldToClip, Guid? selectedId = null)
-    {
-        List<RenderDraw> draws = [];
-        foreach (WorldEntity entity in world.Entities)
-        {
-            if (entity.Transform.Spatial.Space != SpatialSpace.Local ||
-                GetActiveMesh(entity.Id) is not { } mesh) continue;
-            draws.Add(new RenderDraw(mesh, entity.Transform.ToMatrix() * worldToClip,
-                entity.IsVisible, entity.Id == selectedId));
-        }
-        return [.. draws];
-    }
-
-    public RenderDraw[] SnapshotGeographic(GeoRenderFrame frame, Guid? selectedId = null)
-    {
-        List<RenderDraw> draws = [];
-        foreach (WorldEntity entity in world.Entities)
-        {
-            if (entity.Transform.Spatial.Space != SpatialSpace.Ecef ||
-                GetActiveMesh(entity.Id) is not { } mesh) continue;
-            draws.Add(new RenderDraw(mesh, frame.ModelToClip(entity.Transform),
-                entity.IsVisible, entity.Id == selectedId));
-        }
-        return [.. draws];
-    }
 
     public RenderMesh? GetActiveMesh(Guid id) =>
         _bindings.TryGetValue(id, out var binding) ? binding.ActiveMesh : null;
@@ -86,7 +65,7 @@ public sealed class WorldRenderBridge(WorldScene world)
 
     private void RequireEntity(Guid id)
     {
-        if (world.Find(id) is null)
+        if (_world.Find(id) is null)
             throw new KeyNotFoundException($"World 实体不存在：{id}");
     }
 }

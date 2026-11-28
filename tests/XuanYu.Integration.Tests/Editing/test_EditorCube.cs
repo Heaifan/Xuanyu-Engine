@@ -20,7 +20,7 @@ public sealed class test_EditorCube
         Assert.Equal(2, scene.World.Entities.Count);
         Assert.Equal(2, scene.Objects.Count);
         Assert.Equal(created.Id, scene.SelectedId);
-        Assert.Equal(36, created.Mesh.VertexCount);
+        Assert.Equal(36, created.Mesh!.VertexCount);
         Assert.Equal(2, scene.ViewportDraws(800, 600).Count);
         Assert.Equal(1.9f, scene.World.Find(created.Id)!.Transform.Position.X);
     }

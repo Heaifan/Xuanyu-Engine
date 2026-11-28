@@ -16,7 +16,7 @@ public sealed class test_E505AViewportSculpt
         var scene = wb.TerrainScene;
         var camera = scene.Camera!;
         var terrain = Assert.Single(scene.Objects);
-        var before = terrain.Mesh;
+        var before = terrain.Mesh!;
         var transform = terrain.ModelToClip;
         var pixel = Project(Vector3.Zero, camera.ViewProjection(800, 600));
         Assert.True(wb.TryBeginTerrainSculpt(pixel, 800, 600, lower));
@@ -26,10 +26,10 @@ public sealed class test_E505AViewportSculpt
         Assert.Same(terrain, Assert.Single(scene.Objects));
         Assert.Same(camera, scene.Camera);
         Assert.Equal(transform, terrain.ModelToClip);
-        Assert.Equal(before.AssetId, terrain.Mesh.AssetId);
+        Assert.Equal(before.AssetId, terrain.Mesh!.AssetId);
         Assert.NotSame(before, terrain.Mesh);
         Assert.Contains(scene.Draws, draw => ReferenceEquals(draw.Mesh, terrain.Mesh));
-        var vertices = terrain.Mesh.Vertices.Span;
+        var vertices = terrain.Mesh!.Vertices.Span;
         bool found = false;
         for (int i = 0; i < vertices.Length; i += 7)
         {

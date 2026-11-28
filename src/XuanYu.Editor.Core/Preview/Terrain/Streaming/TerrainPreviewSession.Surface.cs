@@ -5,7 +5,7 @@ namespace XuanYu.Editor.Preview.Terrain;
 
 public sealed partial class TerrainPreviewSession
 {
-    private float? SampleSurface(Vector2 scaledPoint)
+    internal float? SampleSurface(Vector2 scaledPoint)
     {
         TerrainHeightField field = Map.HeightField;
         float u = (scaledPoint.X / DisplayScale + OriginMeters.X)

@@ -1,4 +1,3 @@
-
 using Xunit;
 using XuanYu.Editor.Preview.Terrain;
 using XuanYu.World.Maps;
@@ -15,6 +14,8 @@ public sealed class TestTerrainLodDefault
         var preview = new TerrainPreviewSession(map);
 
         var chunk = Assert.Single(preview.Scene.Objects);
-        Assert.Equal(1914, chunk.Mesh.VertexCount);
+        var mesh = chunk.Mesh;
+        Assert.NotNull(mesh);
+        Assert.Equal(1914, mesh.VertexCount);
     }
 }

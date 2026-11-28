@@ -22,7 +22,7 @@ internal sealed partial class TopToolRow : Border
     };
 
     public TopToolRow(Workbench wb, SceneFileCommands scene, SimulationMenu simulation,
-        Action createCube)
+        Action createCube, Action? createUnit = null)
     {
         _wb = wb;
         Background = EditorTheme.PanelHeaderBg;
@@ -30,7 +30,7 @@ internal sealed partial class TopToolRow : Border
         BorderThickness = new Thickness(0, 1, 0, 0);
         Padding = new Thickness(8, 3);
         BuildProject(scene);
-        BuildWorld(createCube);
+        BuildWorld(createCube, createUnit);
         BuildTerrain();
         BuildSimulation(simulation);
         BuildTools();

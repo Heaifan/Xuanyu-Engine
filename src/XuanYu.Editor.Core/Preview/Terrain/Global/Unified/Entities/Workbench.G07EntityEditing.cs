@@ -50,8 +50,17 @@ public sealed partial class Workbench
         if (IsSimulating || G07PreviewSource is not { } source ||
             Scene.Selected is not { Visible: true } item || !item.IsGeographic) return false;
         var transform = World.Find(item.Id)!.Transform;
+        double radius = EntityRadius(item, transform);
+        source.Camera.FrameTop(transform.Spatial.ToGeo(), Math.Max(8d, radius * 4d));
+        Log.Write($"[E6/全球实体] F：聚焦 {item.Name}");
+        return true;
+    }
+
+    private static double EntityRadius(PreviewObject item, Transform transform)
+    {
+        if (item.Mesh is not { } mesh) return 0d;
         double radius = 0d;
-        var vertices = item.Mesh.Vertices.Span;
+        var vertices = mesh.Vertices.Span;
         for (int i = 0; i < vertices.Length; i += 7)
         {
             double x = vertices[i] * (double)transform.Scale.X;
@@ -59,8 +68,6 @@ public sealed partial class Workbench
             double z = vertices[i + 2] * (double)transform.Scale.Z;
             radius = Math.Max(radius, Math.Sqrt(x * x + y * y + z * z));
         }
-        source.Camera.FrameTop(transform.Spatial.ToGeo(), Math.Max(8d, radius * 4d));
-        Log.Write($"[E6/全球实体] F：聚焦 {item.Name}");
-        return true;
+        return radius;
     }
 }

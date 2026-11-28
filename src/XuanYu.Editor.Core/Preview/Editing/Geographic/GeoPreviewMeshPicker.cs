@@ -10,6 +10,8 @@ public static class GeoPreviewMeshPicker
     public static Guid? Pick(PreviewScene scene, GeoUnifiedLodSession cpu,
         GeoRenderFrame frame, Vector2 pixel, uint width, uint height)
     {
+        var symbol = PreviewMeshPicker.PickBillboard(scene, pixel, width, height, frame.RelativeProjection, frame);
+        if (symbol is not null) return symbol;
         if (!ViewportScreenRay.TryCreate(frame.RelativeProjection, pixel, width, height,
             out var start, out var ray)) return null;
         Guid? selected = null;
@@ -18,7 +20,8 @@ public static class GeoPreviewMeshPicker
         {
             if (!item.Visible || !item.IsGeographic ||
                 scene.GetActiveMesh(item.Id) is not { } mesh) continue;
-            var model = frame.ModelToClip(scene.World.Find(item.Id)!.Transform);
+            var model = scene.GeographicDrawMatrix(item.Id,frame,width,height);
+            if (WorldRenderBridge.IsBillboard(scene.GetRepresentation(item.Id))) continue;
             if (!ViewportScreenRay.TryCreate(model, pixel, width, height,
                 out var localStart, out var localRay)) continue;
             var data = mesh.Vertices.Span;
@@ -32,8 +35,11 @@ public static class GeoPreviewMeshPicker
                 selected = item.Id;
             }
         }
-        if (selected is not null && cpu.TryPickSurfaceHit(start, ray, out var hit, frame.Eye) &&
-            Depth(hit.Position, frame.RelativeProjection) <= closest) return null;
+        if (selected is not null && cpu.TryPickSurfaceHit(start, ray, out var hit, frame.Eye))
+        {
+            float terrainDepth=Depth(hit.Position,frame.RelativeProjection);
+            if (terrainDepth <= closest) return null;
+        }
         return selected;
     }
 

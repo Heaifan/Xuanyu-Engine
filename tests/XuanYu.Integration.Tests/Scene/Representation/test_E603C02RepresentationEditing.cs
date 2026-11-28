@@ -67,7 +67,7 @@ public sealed class test_E603C02RepresentationEditing
     }
 
     [Fact]
-    public void SaveKeepsOriginalMeshAndReloadRestoresDefaultView()
+    public void SaveKeepsOriginalMeshAndReloadRestoresActiveView()
     {
         var scene = new PreviewScene(); var cube = scene.CreateCube();
         scene.SetRepresentation(cube.Id, EntityRepresentationKind.None);
@@ -77,7 +77,9 @@ public sealed class test_E603C02RepresentationEditing
             SceneFile.Save(scene, path);
             SceneFile.Load(scene, path);
             Assert.Equal(cube.Id, Assert.Single(scene.Objects).Id);
-            Assert.Equal(EntityRepresentationKind.Mesh, scene.GetRepresentation(cube.Id));
+            Assert.Equal(EntityRepresentationKind.None, scene.GetRepresentation(cube.Id));
+            Assert.Empty(scene.Draws);
+            scene.SetRepresentation(cube.Id, EntityRepresentationKind.Mesh);
             Assert.Equal("builtin/cube", Assert.Single(scene.Draws).Mesh.AssetId);
         }
         finally { File.Delete(path); }

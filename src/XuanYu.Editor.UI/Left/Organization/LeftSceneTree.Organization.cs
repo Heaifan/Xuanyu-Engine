@@ -8,7 +8,7 @@ internal sealed partial class LeftSceneTree
     {
         var nodes = new Dictionary<Guid, LeftTreeNode>();
         foreach (PreviewObject item in _scene.Objects)
-            nodes.Add(item.Id, new LeftTreeNode(item.Name, "Nodes/mesh", item)
+            nodes.Add(item.Id, new LeftTreeNode(item.Name, item.Mesh is null ? "Nodes/file" : "Nodes/mesh", item)
             { IsExpanded = !_collapsed.Contains(item.Id) });
         _collapsed.RemoveWhere(id => !nodes.ContainsKey(id));
         foreach (var (id, node) in nodes)

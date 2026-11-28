@@ -1,4 +1,3 @@
-
 using Avalonia.Controls;
 using Avalonia.Media;
 using XuanYu.Editor.Preview;
@@ -30,32 +29,25 @@ internal sealed class PreviewInspector : StackPanel
         Spacing = 10;
         _name.Foreground = EditorTheme.TextMain;
         _details.Foreground = EditorTheme.TextSub;
-
         Children.Add(_name);
         Children.Add(_details);
         Children.Add(_visible);
-
         _visible.Click += (_, _) =>
         {
             if (_scene.Selected is { } item)
                 _scene.SetVisible(item.Id, _visible.IsChecked == true);
         };
-
         Refresh();
     }
 
     public void Refresh()
     {
         PreviewObject? item = _scene.Selected;
-
         _name.Text = item?.Name ?? "未选中对象";
-        _details.Text = item is null
-            ? "在 Left 中选择一个对象。"
-            : $"网格：{item.Mesh.AssetId}\n" +
-              $"顶点：{item.Mesh.VertexCount}\n" +
-              $"三角面：{item.Mesh.TriangleCount}\n" +
-              "拓扑：TriangleList";
-
+        _details.Text = item is null ? "在 Left 中选择一个对象。"
+            : item.Mesh is { } mesh
+                ? $"网格：{mesh.AssetId}\n顶点：{mesh.VertexCount}\n三角面：{mesh.TriangleCount}\n拓扑：TriangleList"
+                : "实体：无主网格";
         _visible.IsEnabled = item is not null;
         _visible.IsChecked = item?.Visible ?? false;
     }

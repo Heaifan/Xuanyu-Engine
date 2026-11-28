@@ -4,5 +4,7 @@ public enum EntityRepresentationKind
 {
     None,
     Mesh,
-    Proxy
+    Proxy,
+    Point,
+    Symbol
 }

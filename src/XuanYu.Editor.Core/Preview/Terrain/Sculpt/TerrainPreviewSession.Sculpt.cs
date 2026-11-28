@@ -9,7 +9,7 @@ public sealed partial class TerrainPreviewSession
         Guid id = TerrainObjectId!.Value;
         var item = Scene.Objects.First(obj => obj.Id == id);
         var geometry = Geometry!;
-        var mesh = LocalTerrainMeshUpdate.Apply(Map.HeightField, geometry, item.Mesh);
+        var mesh = LocalTerrainMeshUpdate.Apply(Map.HeightField, geometry, item.Mesh!);
         if (mesh is null) return;
         Scene.ReplaceMesh(id, mesh);
         RefreshLocalCameraBounds();

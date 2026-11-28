@@ -35,6 +35,8 @@ internal sealed partial class VkMeshScene
                 new VkMeshBuffer(_vk, _gpu, _device, draw.Mesh, draw.DemUV));
             VertexBufferCreateCount++;
             VertexBufferUploadBytes += FullBytes(draw.Mesh);
+            if (draw.IsBillboard)
+                Console.WriteLine($"[C03/GPU] 二维缓冲区新建：{draw.Mesh.AssetId}，{draw.Mesh.VertexCount} 顶点");
             if (LocalUploadProbe && LocalTerrainVertexChanges.IsLocal(draw.Mesh))
                 Console.WriteLine($"[E5/GPU] 新建本地顶点缓冲区：{draw.Mesh.VertexCount} 顶点，{FullBytes(draw.Mesh)} 字节");
         }

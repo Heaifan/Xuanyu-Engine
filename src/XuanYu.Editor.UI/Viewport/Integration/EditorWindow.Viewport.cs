@@ -49,6 +49,27 @@ public sealed partial class EditorWindow
         else _wb.Log.Warn("当前视口尚未接入全球实体创建。");
     }
 
+    private void CreateWorldLogicEntity()
+    {
+        if (_wb.CurrentId != PageId.World || _wb.IsSimulating) return;
+        if (!_wb.IsGeoTerrainPreview) _wb.Scene.CreateLogicEntity();
+        else if (_sharedViewport is { } view) view.CreateG07LogicAtTarget();
+        else _wb.Log.Warn("当前视口尚未接入全球实体创建。");
+    }
+
+    private void CreateWorldUnit()
+    {
+        if (_wb.CurrentId != PageId.World || _wb.IsSimulating) return;
+        try
+        {
+            string path = _wb.Scene.UnitIcons.RecentPath;
+            if (!_wb.IsGeoTerrainPreview) _wb.CreateLocalUnit(path);
+            else if (_sharedViewport is { } view) view.CreateG07UnitAtTarget(path);
+            else _wb.Log.Warn("当前视口尚未接入全球实体创建。");
+        }
+        catch (Exception error) { _wb.Log.Error($"[C03/二维] 创建单位失败：{error.Message}"); }
+    }
+
     private void OnViewportClicked(int x, int y)
     {
         if (_wb.CurrentId != PageId.World || _wb.IsSimulating) return;
@@ -60,8 +81,7 @@ public sealed partial class EditorWindow
         var (width, height) = _sharedViewport?.PixelSize ??
             _nativeViewport?.PixelSize ?? (0u, 0u);
         Guid? hit = PreviewMeshPicker.Pick(_wb.Scene, x, y, width, height);
-        if (_wb.Scene.SelectedId == hit)
-            return;
+        if (_wb.Scene.SelectedId == hit) return;
         _wb.Scene.Select(hit);
         _wb.Log.Write(hit is null
             ? "视口点击空白，已取消选择"

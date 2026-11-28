@@ -4,7 +4,7 @@ using XuanYu.World.Ecs;
 
 namespace XuanYu.Editor.Preview.Persistence;
 
-public static class SceneFile
+public static partial class SceneFile
 {
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -16,12 +16,9 @@ public static class SceneFile
     public static void Save(PreviewScene scene, string path)
     {
         var entities = scene.World.Entities;
-        if (entities.Any(entity => entity.Transform.Spatial.Space != SpatialSpace.Local))
-            throw new InvalidOperationException("当前场景文件仅支持本地实体。");
-        if (scene.World.HasOrganizationRelations &&
-            !entities.Select(entity => entity.Id).ToHashSet().SetEquals(scene.Objects.Select(item => item.Id)))
-            throw new InvalidOperationException("当前场景格式无法完整保存无网格的组织实体。");
-        string json = JsonSerializer.Serialize(scene.Capture(), Options);
+        if (!entities.Select(entity => entity.Id).ToHashSet().SetEquals(scene.Objects.Select(item => item.Id)))
+            throw new InvalidOperationException("场景包含未登记到编辑器的实体，无法完整保存。");
+        string json = JsonSerializer.Serialize(MapAssetPaths(scene.Capture(), path, saving: true), Options);
         File.WriteAllText(path, json);
     }
 
@@ -38,12 +35,12 @@ public static class SceneFile
             throw new InvalidDataException("场景 JSON 格式错误。", error);
         }
         Validate(document);
-        scene.Restore(document!);
+        scene.Restore(MapAssetPaths(document!, path, saving: false));
     }
 
     private static void Validate(SceneDocument? document)
     {
-        if (document is null || document.Version is not (1 or 2) || document.Entities is null)
+        if (document is null || document.Version is not (1 or 2 or 3 or 4) || document.Entities is null)
             throw new InvalidDataException("场景版本或实体列表无效。");
         SceneTerrainData? terrain = document.LocalTerrain;
         if (terrain is not null)
@@ -60,11 +57,13 @@ public static class SceneFile
             if (document.Version == 1 && part.OrganizationParentId is not null)
                 throw new InvalidDataException("v1 场景不支持组织关系。");
             bool local = terrain is not null && entity.Id == terrain.EntityId &&
-                part.MeshId.StartsWith("terrain/local/", StringComparison.Ordinal);
-            if (!local && part.MeshId is not ("builtin/cube" or
+                part.MeshId?.StartsWith("terrain/local/", StringComparison.Ordinal) == true;
+            bool meshless = document.Version >= 3 && part.MeshId is null;
+            if (!local && !meshless && part.MeshId is not ("builtin/cube" or
                 "demo/colored-face" or "demo/quad"))
                 throw new InvalidDataException($"不支持的网格资产：{part.MeshId}");
-            if (!Valid(entity.Transform))
+            ValidateRepresentation(part, document.Version, local);
+            if (!Valid(entity.Transform, document.Version, local))
                 throw new InvalidDataException($"实体 Transform 无效：{entity.Name}");
         }
     }
@@ -84,16 +83,4 @@ public static class SceneFile
             throw new InvalidDataException("场景中的本地 Terrain 高程数据无效。");
     }
 
-    private static bool Valid(XuanYu.World.Transform value) =>
-        value.Spatial.Space == SpatialSpace.Local &&
-        Finite(value.Position) && Finite(value.Scale) &&
-        Finite(value.Rotation) && value.Rotation.LengthSquared() > 1e-12f;
-
-    private static bool Finite(Vector3 value) =>
-        float.IsFinite(value.X) && float.IsFinite(value.Y) &&
-        float.IsFinite(value.Z);
-
-    private static bool Finite(Quaternion value) =>
-        float.IsFinite(value.X) && float.IsFinite(value.Y) &&
-        float.IsFinite(value.Z) && float.IsFinite(value.W);
 }

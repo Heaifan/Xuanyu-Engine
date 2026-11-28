@@ -33,8 +33,8 @@ public sealed partial class Workbench
             source.GridDraw(terrainPage, width, height, cpu) is { } grid)
             draws.Add(grid);
         frame ??= source.G07RenderFrame(width, height);
-        draws.AddRange(_runtimeBridge is null ? Scene.RenderGeographic(frame)
-            : _runtimeBridge.SnapshotGeographic(frame));
+        draws.AddRange(_runtimeBridge is null ? Scene.RenderGeographic(frame,width,height)
+            : _runtimeBridge.SnapshotGeographic(frame,width: width,height: height));
         return draws;
     }
 }

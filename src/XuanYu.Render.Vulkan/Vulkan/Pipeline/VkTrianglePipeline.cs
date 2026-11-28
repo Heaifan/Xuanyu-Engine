@@ -8,6 +8,7 @@ internal sealed unsafe class VkTrianglePipeline : IDisposable
     private readonly Device _device;
     public PipelineLayout Layout { get; private set; }
     public Pipeline Handle { get; private set; }
+    public Pipeline Billboard { get; private set; }
     public Pipeline Mask { get; private set; }
     public Pipeline Outline { get; private set; }
     public Pipeline OverlayMask { get; private set; }
@@ -41,6 +42,7 @@ internal sealed unsafe class VkTrianglePipeline : IDisposable
         {
             using var shaders = new VkTriangleShaders(vk, device);
             Handle = Create(shaders.Vertex, shaders.Fragment, VkSelectionPass.Base);
+            Billboard = Create(shaders.Vertex, shaders.Fragment, VkSelectionPass.Billboard);
             Mask = Create(shaders.Vertex, shaders.Fragment, VkSelectionPass.Mask);
             Outline = Create(shaders.Vertex, shaders.Fragment, VkSelectionPass.Outline);
             OverlayMask = Create(shaders.Vertex, shaders.Fragment, VkSelectionPass.OverlayMask);
@@ -55,6 +57,8 @@ internal sealed unsafe class VkTrianglePipeline : IDisposable
 
     public void Dispose()
     {
+        if (Billboard.Handle != 0) _vk.DestroyPipeline(_device, Billboard, null);
+        Billboard = default;
         if (OverlayOutline.Handle != 0) _vk.DestroyPipeline(_device, OverlayOutline, null);
         if (OverlayMask.Handle != 0) _vk.DestroyPipeline(_device, OverlayMask, null);
         if (Outline.Handle != 0) _vk.DestroyPipeline(_device, Outline, null);

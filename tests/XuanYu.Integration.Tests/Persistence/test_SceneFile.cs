@@ -33,7 +33,7 @@ public sealed class test_SceneFile
             Assert.Equal(first.Id, restored.Objects[0].Id);
             Assert.Equal(second.Id, restored.Objects[1].Id);
             Assert.Equal("MainCube", restored.Objects[0].Name);
-            Assert.Equal("builtin/cube", restored.Objects[0].Mesh.AssetId);
+            Assert.Equal("builtin/cube", restored.Objects[0].Mesh!.AssetId);
             Assert.False(restored.Objects[0].Visible);
             Assert.Equal(transform, restored.World.Find(first.Id)!.Transform);
             Assert.Null(restored.SelectedId);

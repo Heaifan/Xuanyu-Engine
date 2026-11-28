@@ -27,8 +27,8 @@ public sealed partial class EditorWindow : Window
         Width = 1280; Height = 800;
         MinWidth = 1100; MinHeight = 600;
         Background = EditorTheme.WindowBg;
-        _topBar = new TopBar(_wb, this, CreateWorldCube);
-        _leftPanel = new LeftWorkspacePanel(_wb.Scene, CreateWorldCube);
+        _topBar = new TopBar(_wb, this, CreateWorldCube, CreateWorldUnit);
+        _leftPanel = new LeftWorkspacePanel(_wb.Scene, CreateWorldCube, CreateWorldLogicEntity, CreateWorldUnit);
         _leftPanel.BindTerrain(_wb);
         _inspector = new RightPreviewInspector(_wb.Scene,
             id => _sharedViewport?.ReadG07EntityHeights(id),
@@ -59,6 +59,7 @@ public sealed partial class EditorWindow : Window
         _leftPanel.SetPage(info, leftDetail);
         _leftPanel.IsEnabled = !_wb.IsSimulating || (!isWorld && !isTerrain);
         _inspector.IsEnabled = !_wb.IsSimulating;
+        _inspector.SetViewportSpace(_wb.IsGeoTerrainPreview);
         if (isWorld) _rightHost.Content = _inspector;
         else if (isTerrain) SyncTerrainInspector();
         else
@@ -72,7 +73,7 @@ public sealed partial class EditorWindow : Window
     private (string Left, string Right) WorkspaceDetails(PageInfo info) => info.Id switch
     {
         PageId.Project => (
-            $"当前编辑场景\n网格对象：{_wb.Scene.Objects.Count}\n\n项目目录尚未接入。",
+            $"当前编辑场景\n实体：{_wb.Scene.Objects.Count}\n\n项目目录尚未接入。",
             "未选中项目资产。\n\n可通过 TOP 打开或保存 .xyscene 场景；项目资产管理尚未开放。"),
         PageId.Simulation => (
             $"状态：{(_wb.IsSimulating ? "运行中" : "已停止")}\n" +

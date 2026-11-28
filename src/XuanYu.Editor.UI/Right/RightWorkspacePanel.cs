@@ -24,7 +24,7 @@ public class RightWorkspacePanel : Border
         {
             Content = _body, HorizontalContentAlignment = HorizontalAlignment.Stretch,
             HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
-            VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden
+            VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
         };
         var root = new DockPanel { LastChildFill = true };
         DockPanel.SetDock(heading, Dock.Top);
@@ -51,6 +51,7 @@ public class RightWorkspacePanel : Border
             return;
         }
         _body.Children.Add(new RightObjectHeader(snapshot, _iconFactory));
+        if (displayEditor is not null) AddDisplay(snapshot, setVisible, displayEditor);
         if (transformEditor is not null)
             _body.Children.Add(transformEditor);
         foreach (var section in snapshot.Sections)
@@ -61,13 +62,16 @@ public class RightWorkspacePanel : Border
             _body.Children.Add(group);
         }
         if (beforeDisplay is not null) _body.Children.Add(beforeDisplay);
-        if (snapshot.Visible is bool visible && setVisible is not null)
-        {
-            var display = CreateGroup("显示设置");
-            display.AddVisibility(visible, setVisible);
-            if (displayEditor is not null) display.AddControl(displayEditor);
-            _body.Children.Add(display);
-        }
+        if (displayEditor is null) AddDisplay(snapshot, setVisible, null);
+    }
+
+    private void AddDisplay(RightInspectorSnapshot snapshot, Action<bool>? setVisible, Control? editor)
+    {
+        if (snapshot.Visible is not bool visible || setVisible is null) return;
+        var display = CreateGroup("显示设置");
+        display.AddVisibility(visible, setVisible);
+        if (editor is not null) display.AddControl(editor);
+        _body.Children.Add(display);
     }
 
     protected RightPropertyGroup CreateGroup(string title)

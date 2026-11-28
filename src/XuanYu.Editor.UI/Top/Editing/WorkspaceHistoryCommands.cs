@@ -35,14 +35,14 @@ internal sealed class WorkspaceHistoryCommands
         if (_wb.CurrentId == PageId.World)
         {
             if (redo) _wb.Scene.RedoTransform(); else _wb.Scene.UndoTransform();
-            _wb.Log.Write(redo ? "已重做实体变换" : "已撤销实体变换");
+            _wb.Log.Write(redo ? "已重做实体编辑" : "已撤销实体编辑");
         }
         else if (redo) _wb.RedoTerrain(); else _wb.UndoTerrain();
     }
 
     private void Refresh()
     {
-        string suffix = _wb.CurrentId == PageId.World ? "变换" : _wb.CurrentId == PageId.Terrain ? "地形" : "";
+        string suffix = _wb.CurrentId == PageId.World ? "实体编辑" : _wb.CurrentId == PageId.Terrain ? "地形" : "";
         _undo.Header = "撤销" + suffix; _redo.Header = "重做" + suffix;
         _undo.IsEnabled = CanRun(false); _redo.IsEnabled = CanRun(true);
     }

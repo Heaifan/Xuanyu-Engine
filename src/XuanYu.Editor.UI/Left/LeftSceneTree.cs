@@ -10,19 +10,22 @@ namespace XuanYu.Editor.UI.Left;
 internal sealed partial class LeftSceneTree : StackPanel
 {
     private readonly PreviewScene _scene;
-    private readonly Action _createCube;
+    private readonly Action _createCube, _createLogic;
+    private readonly Action? _createUnit;
     private readonly StackPanel _rows = new();
     private readonly LeftTreeNode _root = new("当前场景", "Nodes/scene");
-    private readonly LeftTreeNode _meshes = new("网格对象", "Nodes/folder");
-    private readonly LeftTreeNode _geoMeshes = new("全球网格对象", "Nodes/folder");
+    private readonly LeftTreeNode _meshes = new("本地实体", "Nodes/folder");
+    private readonly LeftTreeNode _geoMeshes = new("全球实体", "Nodes/folder");
     private readonly Dictionary<Guid, LeftTreeRow> _objectRows = [];
 
     private readonly HashSet<Guid> _collapsed = [];
 
-    public LeftSceneTree(PreviewScene scene, Action? createCube = null)
+    public LeftSceneTree(PreviewScene scene, Action? createCube = null, Action? createLogic = null, Action? createUnit = null)
     {
         _scene = scene;
         _createCube = createCube ?? (() => scene.CreateCube());
+        _createLogic = createLogic ?? (() => scene.CreateLogicEntity());
+        _createUnit = createUnit;
         Spacing = 5;
         _root.Children.Add(_meshes);
         Children.Add(new TextBlock
@@ -38,6 +41,7 @@ internal sealed partial class LeftSceneTree : StackPanel
             (_, _) => Rebuild();
         _scene.EntityRenamed += Rebuild;
         _scene.OrganizationChanged += Rebuild;
+        _scene.SpaceChanged += Rebuild;
         _scene.Changed += Refresh;
         KeyDown += OnTreeKeyDown;
         Rebuild();
@@ -86,11 +90,9 @@ internal sealed partial class LeftSceneTree : StackPanel
             if (node.Item is { } target) _scene.Select(target.Id);
             else ToggleNode(node);
         };
-        if (!node.IsExpanded)
-            return;
+        if (!node.IsExpanded) return;
         bool[] next = depth == 0 ? [] : [.. continuations, !isLast];
         for (int i = 0; i < node.Children.Count; i++)
-            AddNode(node.Children[i], depth + 1, next,
-                i == node.Children.Count - 1);
+            AddNode(node.Children[i], depth + 1, next, i == node.Children.Count - 1);
     }
 }

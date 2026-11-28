@@ -2,7 +2,7 @@ using Silk.NET.Vulkan;
 
 namespace XuanYu.Render.Vulkan;
 
-internal enum VkSelectionPass { Base, Mask, Outline, OverlayMask, OverlayOutline }
+internal enum VkSelectionPass { Base, Mask, Outline, OverlayMask, OverlayOutline, Billboard }
 
 internal static class VkSelectionPipelineState
 {
@@ -11,6 +11,20 @@ internal static class VkSelectionPipelineState
         ref PipelineColorBlendAttachmentState color)
     {
         if (pass == VkSelectionPass.Base) return;
+        if (pass == VkSelectionPass.Billboard)
+        {
+            // 二维标绘覆盖地表，地球遮挡由全球表现桥判定。
+            depth.DepthTestEnable = false;
+            depth.DepthWriteEnable = false;
+            color.BlendEnable = true;
+            color.SrcColorBlendFactor = BlendFactor.SrcAlpha;
+            color.DstColorBlendFactor = BlendFactor.OneMinusSrcAlpha;
+            color.ColorBlendOp = BlendOp.Add;
+            color.SrcAlphaBlendFactor = BlendFactor.One;
+            color.DstAlphaBlendFactor = BlendFactor.OneMinusSrcAlpha;
+            color.AlphaBlendOp = BlendOp.Add;
+            return;
+        }
         bool mask = pass is VkSelectionPass.Mask or VkSelectionPass.OverlayMask;
         bool overlay = pass is VkSelectionPass.OverlayMask or VkSelectionPass.OverlayOutline;
         uint bit = overlay ? 2u : 1u;

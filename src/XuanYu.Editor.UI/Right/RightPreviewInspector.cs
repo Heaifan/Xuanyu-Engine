@@ -25,6 +25,7 @@ public sealed partial class RightPreviewInspector : RightWorkspacePanel
         _move = move;
         _scene.Changed += Refresh;
         _scene.TransformHistoryReplayed += RefreshTransform;
+        _scene.SpaceChanged += RefreshTransform;
         BindOrganization();
         Refresh();
     }
@@ -52,26 +53,11 @@ public sealed partial class RightPreviewInspector : RightWorkspacePanel
         }
         if (_shownId == item.Id && _shownName == item.Name &&
             _shownVisible == item.Visible)
-        { _representationEditor?.Refresh(); return; }
+        { _representationEditor?.Refresh(); RefreshSpaceHint(item); return; }
         _shownId = item.Id;
         _shownName = item.Name;
         _shownVisible = item.Visible;
-        var snapshot = new RightInspectorSnapshot(
-            item.Name, "网格对象", item.IsGeographic ? "全球空间" : "本地空间", "Nodes/mesh",
-            [
-                new RightInspectorSection("基本信息",
-                [
-                    new("名称", item.Name),
-                    new("对象类型", "网格实例")
-                ]),
-                new RightInspectorSection("网格数据",
-                [
-                    new("资产", item.Mesh.AssetId),
-                    new("顶点数", $"{item.Mesh.VertexCount}"),
-                    new("三角面数", $"{item.Mesh.TriangleCount}"),
-                    new("拓扑", "TriangleList")
-                ])
-            ], item.Visible);
+        var snapshot = CreateSnapshot(item);
         Transform current = _scene.World.Find(item.Id)!.Transform;
         var orientation = new RightTransformEditor(current, next =>
             _scene.SetTransform(item.Id, item.IsGeographic
@@ -79,6 +65,7 @@ public sealed partial class RightPreviewInspector : RightWorkspacePanel
             dragging => { if (dragging) _scene.BeginTransformEdit(item.Id); else _scene.EndTransformEdit(true); });
         Control editor = orientation;
         _geoEditor = null;
+        _spaceHint = null;
         if (item.IsGeographic)
         {
             _geoEditor = new RightGeographicPositionEditor(
@@ -89,9 +76,10 @@ public sealed partial class RightPreviewInspector : RightWorkspacePanel
             var group = new RightPropertyGroup("地理位置 · WGS84", (key, size) => LeftSvgIcon.Create(key, size));
             group.AddControl(_geoEditor);
             editor = new StackPanel { Children = { group, orientation,
-                new TextBlock { Text = "视口快捷键：G 平移 · R 旋转 · S 缩放 · B 底部贴地 · F 聚焦",
+                new TextBlock { Text = "视口快捷键：G 平移 · R 旋转 · S 缩放 · B 贴地 · F 聚焦",
                     FontSize = 11, TextWrapping = Avalonia.Media.TextWrapping.Wrap } } };
         }
+        if (item.Mesh is null) editor = new StackPanel { Children = { CreateSpaceGroup(item), editor } };
         _representationEditor = PreviewScene.SupportsRepresentation(item)
             ? new RightRepresentationEditor(_scene, item.Id) : null;
         Show(snapshot, visible => _scene.SetVisible(item.Id, visible), editor,

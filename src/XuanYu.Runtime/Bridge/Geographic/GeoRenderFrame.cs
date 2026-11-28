@@ -7,6 +7,7 @@ namespace XuanYu.Runtime;
 public sealed class GeoRenderFrame
 {
     private readonly EnuFrame _anchor;
+    private readonly EcefPosition _eyeEcef;
     public EnuPosition Eye { get; }
     public Matrix4x4 RelativeProjection { get; }
 
@@ -14,6 +15,7 @@ public sealed class GeoRenderFrame
         float aspect, float near, float far)
     {
         _anchor = anchor;
+        _eyeEcef = eye;
         Eye = anchor.ToEnu(eye);
         Matrix4x4 view = Matrix4x4.CreateLookAt(Vector3.Zero, ToRelative(target), Vector3.UnitZ);
         var projection = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 3f, aspect, near, far);
@@ -24,6 +26,8 @@ public sealed class GeoRenderFrame
     // 仅供仍以数据集 ENU float 顶点存储的外部网格兼容使用。
     public Matrix4x4 AnchorProjection => Matrix4x4.CreateTranslation(
         -(float)Eye.East, -(float)Eye.North, -(float)Eye.Up) * RelativeProjection;
+
+    public bool IsAboveHorizon(EcefPosition position) => GeoHorizon.Visible(_eyeEcef, position);
 
     public Vector3 ToRelative(EcefPosition position)
     {

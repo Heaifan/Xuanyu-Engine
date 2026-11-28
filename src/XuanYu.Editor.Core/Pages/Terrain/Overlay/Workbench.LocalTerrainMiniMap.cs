@@ -14,7 +14,7 @@ public sealed partial class Workbench
         if (!HasLocalTerrainContours) return null;
         var session = _terrainPreview!;
         var item = session.Scene.Objects.FirstOrDefault(o => o.Id == session.TerrainObjectId);
-        return item is { Visible: true } ? (session, item.Mesh) : null;
+        return item is { Visible: true, Mesh: { } mesh } ? (session, mesh) : null;
     }
 
     private GeoTerrainMiniMapData? LocalTerrainMiniMap()

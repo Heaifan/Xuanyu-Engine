@@ -7,12 +7,15 @@ namespace XuanYu.Editor.Preview;
 
 public sealed partial class PreviewScene
 {
-    internal SceneDocument Capture() => new(2,
-        _objects.Select(item => new SceneEntityData(
-            World.Find(item.Id)!, item.Mesh.AssetId,
-            World.GetOrganizationParent(item.Id))).ToArray(),
-        LocalTerrainId is Guid id && LocalTerrainMap is { } map
+    internal SceneDocument Capture()
+    {
+        var entities = _objects.Select(item => new SceneEntityData(World.Find(item.Id)!, item.Mesh?.AssetId,
+            World.GetOrganizationParent(item.Id), CaptureRepresentation(item))).ToArray();
+        int version = entities.Any(part => part.Representation is not null || part.Entity.Transform.Spatial.Space == XuanYu.World.Ecs.SpatialSpace.Ecef)
+            ? 4 : entities.Any(part => part.MeshId is null) ? 3 : 2;
+        return new(version, entities, LocalTerrainId is Guid id && LocalTerrainMap is { } map
             ? SceneTerrainCodec.Capture(id, map) : null);
+    }
 
     internal void Restore(SceneDocument document)
     {
@@ -24,27 +27,26 @@ public sealed partial class PreviewScene
         Dictionary<string, RenderMesh> meshes = [];
         var items = document.Entities.Select(part =>
         {
-            if (!meshes.TryGetValue(part.MeshId, out RenderMesh? mesh))
+            if (part.MeshId is not { } meshId)
+                return (Entity: part.Entity, Mesh: (RenderMesh?)null);
+            if (!meshes.TryGetValue(meshId, out RenderMesh? mesh))
             {
                 mesh = data is not null && part.Entity.Id == data.EntityId
-                    ? SceneTerrainCodec.RestoreMesh(part.MeshId, localMap!)
-                    : PreviewSeed.CreateMesh(part.MeshId);
-                meshes.Add(part.MeshId, mesh);
+                    ? SceneTerrainCodec.RestoreMesh(meshId, localMap!)
+                    : PreviewSeed.CreateMesh(meshId);
+                meshes.Add(meshId, mesh);
             }
-            return (Entity: part.Entity, Mesh: mesh);
+            return (Entity: part.Entity, Mesh: (RenderMesh?)mesh);
         }).ToArray();
 
+        var representations = PrepareRepresentations(document);
         ReplaceWorld(document);
         ClearTransformHistory();
-        foreach (PreviewObject item in _objects)
-            _bridge.Unbind(item.Id);
+        foreach (PreviewObject item in _objects) _bridge.Unbind(item.Id);
         SelectedId = null;
         _objects.Clear();
-        foreach (var item in items)
-        {
-            _bridge.Bind(item.Entity.Id, item.Mesh);
-            _objects.Add(new PreviewObject(World, item.Entity.Id, item.Mesh));
-        }
+        foreach (var item in items) RegisterObject(item.Entity.Id, item.Mesh);
+        foreach (var (id, state) in representations) RestoreRepresentation(id, state);
         RegisterLocalTerrain(localMap, data?.EntityId);
         Restored?.Invoke();
         Publish();

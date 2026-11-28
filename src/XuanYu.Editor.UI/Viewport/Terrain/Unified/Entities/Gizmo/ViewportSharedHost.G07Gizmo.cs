@@ -68,6 +68,9 @@ public sealed partial class ViewportSharedHost
         if (CanShowGizmo && _gizmoRendered is { } snapshot && _wb.Scene.SelectedId == snapshot.Id &&
             geographic == _wb.Scene.Selected!.IsGeographic && (!geographic || _g07EntityFrame is not null))
         {
+            if (geographic && XuanYu.Runtime.WorldRenderBridge.IsBillboard(_wb.Scene.GetRepresentation(snapshot.Id)) &&
+                !_g07EntityFrame!.IsAboveHorizon(snapshot.Value.Spatial.ToEcef()))
+            { RefreshG07GizmoPaint(); return; }
             _gizmoSize = ((uint)Math.Max(0, Math.Round(Bounds.Width)), (uint)Math.Max(0, Math.Round(Bounds.Height)));
             var mode = _wb.G07GizmoMode;
             var rotation = mode == GeoGizmoMode.Scale ? snapshot.Value.Rotation : Quaternion.Identity;

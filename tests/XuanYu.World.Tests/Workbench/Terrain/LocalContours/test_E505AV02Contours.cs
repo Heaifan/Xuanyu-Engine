@@ -42,15 +42,15 @@ public sealed class test_E505AV02Contours
         wb.SelectTerrainElevationTool(true);
         wb.SetTerrainElevation(8848, false);
         var obj = Assert.Single(wb.Scene.Objects);
-        CheckChannel(obj.Mesh, 0f);
+        CheckChannel(obj.Mesh!, 0f);
         Assert.True(wb.TryBeginTerrainSculpt(new(400, 300), 800, 600, false));
         wb.AdvanceTerrainSculpt(1);
         wb.EndTerrainSculpt();
-        CheckChannel(obj.Mesh, 8848f);
+        CheckChannel(obj.Mesh!, 8848f);
         wb.UndoTerrain();
-        CheckChannel(obj.Mesh, 0f);
+        CheckChannel(obj.Mesh!, 0f);
         wb.RedoTerrain();
-        CheckChannel(obj.Mesh, 8848f);
+        CheckChannel(obj.Mesh!, 8848f);
     }
 
     [Fact]

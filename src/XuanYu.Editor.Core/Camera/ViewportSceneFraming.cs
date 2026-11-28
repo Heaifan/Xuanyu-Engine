@@ -27,20 +27,24 @@ public static class ViewportSceneFraming
             if (!item.Visible || item.IsGeographic)
                 continue;
             Matrix4x4 modelToWorld = item.ModelToClip;
-            ReadOnlySpan<float> vertices = item.Mesh.Vertices.Span;
+            if (item.Mesh is not { } mesh)
+            {
+                Vector3 origin = modelToWorld.Translation;
+                min = Vector3.Min(min, origin);
+                max = Vector3.Max(max, origin);
+                continue;
+            }
+            ReadOnlySpan<float> vertices = mesh.Vertices.Span;
             for (int i = 0; i < vertices.Length; i += 7)
             {
-                Vector3 local = new(vertices[i], vertices[i + 1],
-                    vertices[i + 2]);
+                Vector3 local = new(vertices[i], vertices[i + 1], vertices[i + 2]);
                 Vector3 world = Vector3.Transform(local, modelToWorld);
                 min = Vector3.Min(min, world);
                 max = Vector3.Max(max, world);
             }
         }
 
-        if (float.IsPositiveInfinity(min.X))
-            return false;
-
+        if (float.IsPositiveInfinity(min.X)) return false;
         camera.Frame((min + max) * 0.5f,
             Vector3.Distance(min, max) * 0.5f, aspect);
         return true;

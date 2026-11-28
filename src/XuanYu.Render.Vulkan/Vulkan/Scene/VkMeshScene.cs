@@ -17,6 +17,7 @@ internal sealed partial class VkMeshScene : IDisposable
     private readonly Dictionary<RenderMesh, VkMeshBuffer> _buffers = [];
     public RenderPass RenderPass => _pass.Handle;
     public Pipeline Pipeline => _pipeline.Handle;
+    public Pipeline BillboardPipeline => _pipeline.Billboard;
     public Pipeline SelectionMaskPipeline => _pipeline.Mask;
     public Pipeline SelectionOutlinePipeline => _pipeline.Outline;
     public Pipeline OverlayMaskPipeline => _pipeline.OverlayMask;

@@ -16,9 +16,9 @@ internal sealed partial class LeftWorkspacePanel : Border
     { FontSize = 12, FontFamily = TreeFont,
       TextWrapping = TextWrapping.Wrap, Foreground = EditorTheme.TextSub };
     internal event Action? OrganizationFocusRequested;
-    public LeftWorkspacePanel(PreviewScene scene, Action? createCube = null)
+    public LeftWorkspacePanel(PreviewScene scene, Action? createCube = null, Action? createLogic = null, Action? createUnit = null)
     {
-        _tree = new LeftSceneTree(scene, createCube);
+        _tree = new LeftSceneTree(scene, createCube, createLogic, createUnit);
         _tree.OrganizationFocusRequested += () => OrganizationFocusRequested?.Invoke();
         _sceneMenu = _tree.CreateSceneMenu();
         Background = EditorTheme.PanelBg;

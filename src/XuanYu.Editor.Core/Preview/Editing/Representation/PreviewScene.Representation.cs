@@ -9,7 +9,7 @@ public sealed partial class PreviewScene
     private static readonly RenderMesh CubeProxyMesh = PreviewCubeProxyMesh.Create();
 
     public static bool SupportsRepresentation(PreviewObject item) =>
-        item.Mesh.AssetId == "builtin/cube";
+        item.Mesh is null || item.Mesh.AssetId == "builtin/cube";
 
     public EntityRepresentationKind GetRepresentation(Guid id) =>
         _bridge.GetRepresentation(id);
@@ -20,11 +20,15 @@ public sealed partial class PreviewScene
     {
         var item = _objects.First(x => x.Id == id);
         if (!SupportsRepresentation(item))
-            throw new InvalidOperationException("当前仅支持立方体的表现切换。");
+            throw new InvalidOperationException("当前资产不支持表现切换。");
         if (_bridge.GetRepresentation(id) == kind) return;
-        if (kind == EntityRepresentationKind.Proxy)
+        var before = _bridge.CaptureRepresentation(id);
+        if (kind == EntityRepresentationKind.Proxy && item.Mesh?.AssetId == "builtin/cube")
             _bridge.BindRepresentation(id, kind, CubeProxyMesh);
+        if (kind == EntityRepresentationKind.Point)
+            _bridge.BindRepresentation(id, kind, PointMesh);
         _bridge.SetRepresentation(id, kind);
+        RecordRepresentation(id, before);
         Publish();
     }
 

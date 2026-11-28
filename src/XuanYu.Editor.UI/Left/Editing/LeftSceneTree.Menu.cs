@@ -39,6 +39,15 @@ internal sealed partial class LeftSceneTree
         MenuItem cube = LeftMenuStyle.Item("立方体", "□");
         cube.Click += (_, _) => _createCube();
         create.Items.Add(cube);
+        MenuItem logic = LeftMenuStyle.Item("无网格实体", "◇");
+        logic.Click += (_, _) => _createLogic();
+        create.Items.Add(logic);
+        if (_createUnit is { } createUnit)
+        {
+            MenuItem unit = LeftMenuStyle.Item("单位", "▣");
+            unit.Click += (_, _) => createUnit();
+            create.Items.Add(unit);
+        }
         return create;
     }
 }

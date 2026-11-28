@@ -36,7 +36,7 @@ public sealed class test_E602E03BR02InspectionCube
         Assert.Equal(100d, source.G07EntityHeights(cpu, geo).AboveGround!.Value, 5);
         Assert.Equal(transform.Scale.X, transform.Scale.Y);
         Assert.Equal(transform.Scale.X, transform.Scale.Z);
-        var vertices = cube.Mesh.Vertices.ToArray();
+        var vertices = cube.Mesh!.Vertices.ToArray();
         float min = float.PositiveInfinity, max = float.NegativeInfinity;
         for (int i = 0; i < vertices.Length; i += 7)
         {

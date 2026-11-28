@@ -62,19 +62,26 @@ public sealed partial class Workbench
         var geo = current.Spatial.ToGeo();
         var sample = cpu.SampleElevation(geo);
         if (sample.Status != GeoSampleStatus.Valid) return sample.Status;
-        var matrix = Matrix4x4.CreateScale(current.Scale) * Matrix4x4.CreateFromQuaternion(current.Rotation);
-        double bottom = double.PositiveInfinity;
-        var vertices = item.Mesh.Vertices.Span;
-        for (int i = 0; i < vertices.Length; i += 7)
-        {
-            var point = Vector3.Transform(new Vector3(vertices[i], vertices[i + 1], vertices[i + 2]), matrix);
-            bottom = Math.Min(bottom, point.Z);
-        }
+        double bottom = MeshBottom(item, current);
         // 贴地基准是实体中心经纬度的原始 DEM，而不是整个模型投影范围。
         var target = new GeoCoordinate(geo.LatitudeDegrees, geo.LongitudeDegrees, sample.HeightMeters!.Value - bottom);
         var position = G07PreviewSource!.ResolveG07Orthometric(target);
         grounded = Transform.FromSpatial(position, current.Rotation, current.Scale);
         return GeoSampleStatus.Valid;
+    }
+
+    private static double MeshBottom(PreviewObject item, Transform current)
+    {
+        if (item.Mesh is not { } mesh) return 0d;
+        var matrix = Matrix4x4.CreateScale(current.Scale) * Matrix4x4.CreateFromQuaternion(current.Rotation);
+        double bottom = double.PositiveInfinity;
+        var vertices = mesh.Vertices.Span;
+        for (int i = 0; i < vertices.Length; i += 7)
+        {
+            var point = Vector3.Transform(new Vector3(vertices[i], vertices[i + 1], vertices[i + 2]), matrix);
+            bottom = Math.Min(bottom, point.Z);
+        }
+        return bottom;
     }
 
     private (PreviewObject Item, Transform Current) EditableGeoEntity(Guid id)

@@ -12,8 +12,7 @@ public sealed partial class PreviewScene
 
     public PreviewObject CreateCube()
     {
-        int number = NextCubeNumber();
-
+        int number = NextNumber("Cube");
         PreviewObject cube = Add($"Cube_{number:000}", CubeMesh,
             Matrix4x4.CreateTranslation((number - 1) * 1.9f, 0f, 0f));
         Select(cube.Id);
@@ -24,18 +23,32 @@ public sealed partial class PreviewScene
     {
         if (position.Space != SpatialSpace.Ecef)
             throw new ArgumentException("全球立方体需要 ECEF 位置。", nameof(position));
-        var entity = World.Create($"Cube_{NextCubeNumber():000}", position);
-        var item = new PreviewObject(World, entity.Id, CubeMesh);
-        _bridge.Bind(entity.Id, CubeMesh);
-        _objects.Add(item);
+        var entity = World.Create($"Cube_{NextNumber("Cube"):000}", position);
+        var item = RegisterObject(entity.Id, CubeMesh);
         Publish();
         return item;
     }
 
-    private int NextCubeNumber()
+    public PreviewObject CreateLogicEntity(SpatialPosition position = default)
+    {
+        var entity = World.Create($"Entity_{NextNumber("Entity"):000}", position);
+        var item = RegisterObject(entity.Id, null);
+        Select(item.Id);
+        return item;
+    }
+
+    private PreviewObject RegisterObject(Guid id, RenderMesh? mesh)
+    {
+        var item = new PreviewObject(World, id, mesh);
+        if (mesh is not null) _bridge.Bind(id, mesh);
+        _objects.Add(item);
+        return item;
+    }
+
+    private int NextNumber(string prefix)
     {
         int number = 1;
-        while (World.Entities.Any(x => x.Name == $"Cube_{number:000}")) number++;
+        while (World.Entities.Any(x => x.Name == $"{prefix}_{number:000}")) number++;
         return number;
     }
 

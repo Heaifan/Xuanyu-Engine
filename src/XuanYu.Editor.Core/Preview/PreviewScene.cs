@@ -25,30 +25,30 @@ public sealed partial class PreviewScene
     {
         Objects = new ReadOnlyObservableCollection<PreviewObject>(_objects);
         _bridge = new WorldRenderBridge(World);
+        UnitIcons = new UnitIconLibrary(SvgAssets, Environment.CurrentDirectory);
     }
 
     public Matrix4x4 ViewProjection(uint width, uint height) =>
         Camera?.ViewProjection(width, height) ?? Matrix4x4.Identity;
 
     public IReadOnlyList<RenderDraw> ViewportDraws(uint width, uint height) =>
-        RenderWithProjection(ViewProjection(width, height));
+        RenderWithProjection(ViewProjection(width, height), width, height);
 
-    public IReadOnlyList<RenderDraw> RenderWithProjection(Matrix4x4 projection) =>
-        _bridge.Snapshot(projection, SelectedId);
+    public IReadOnlyList<RenderDraw> RenderWithProjection(Matrix4x4 projection, uint width = 0, uint height = 0) =>
+        _bridge.Snapshot(projection, SelectedId, width, height);
 
-    public IReadOnlyList<RenderDraw> RenderGeographic(GeoRenderFrame frame) =>
-        _bridge.SnapshotGeographic(frame, SelectedId);
+    public IReadOnlyList<RenderDraw> RenderGeographic(GeoRenderFrame frame, uint width = 0, uint height = 0) =>
+        _bridge.SnapshotGeographic(frame, SelectedId, width, height);
 
     public PreviewObject Add(string name, RenderMesh mesh, Matrix4x4 modelToClip)
     {
+        ArgumentNullException.ThrowIfNull(mesh);
         if (!Matrix4x4.Decompose(modelToClip, out Vector3 scale,
             out Quaternion rotation, out Vector3 position))
             throw new ArgumentException("对象矩阵无法分解。", nameof(modelToClip));
         WorldEntity entity = World.Create(name);
         World.SetTransform(entity.Id, new Transform(position, rotation, scale));
-        var item = new PreviewObject(World, entity.Id, mesh);
-        _bridge.Bind(entity.Id, mesh);
-        _objects.Add(item);
+        var item = RegisterObject(entity.Id, mesh);
         Publish();
         return item;
     }

@@ -4,8 +4,8 @@ namespace XuanYu.Editor.Preview;
 
 public sealed partial class PreviewScene
 {
-    private readonly record struct TransformChange(Guid Id, Transform Before, Transform After);
-    private readonly Stack<TransformChange> _transformUndo = new(), _transformRedo = new();
+    private readonly record struct EditChange(Action Undo, Action Redo);
+    private readonly Stack<EditChange> _transformUndo = new(), _transformRedo = new();
     private (Guid Id, Transform Before)? _transformEdit;
     public bool CanUndoTransform => _transformEdit is null && _transformUndo.Count > 0;
     public bool CanRedoTransform => _transformEdit is null && _transformRedo.Count > 0;
@@ -31,8 +31,12 @@ public sealed partial class PreviewScene
 
     private void RecordTransform(Guid id, Transform before, Transform after)
     {
-        if (before == after) return;
-        _transformUndo.Push(new(id, before, after));
+        if (before != after) RecordEdit(() => World.SetTransform(id, before), () => World.SetTransform(id, after));
+    }
+
+    private void RecordEdit(Action undo, Action redo)
+    {
+        _transformUndo.Push(new(undo, redo));
         _transformRedo.Clear();
     }
 
@@ -40,7 +44,7 @@ public sealed partial class PreviewScene
     {
         if (!CanUndoTransform) return;
         var change = _transformUndo.Pop();
-        World.SetTransform(change.Id, change.Before);
+        change.Undo();
         _transformRedo.Push(change);
         Publish();
         TransformHistoryReplayed?.Invoke();
@@ -50,7 +54,7 @@ public sealed partial class PreviewScene
     {
         if (!CanRedoTransform) return;
         var change = _transformRedo.Pop();
-        World.SetTransform(change.Id, change.After);
+        change.Redo();
         _transformUndo.Push(change);
         Publish();
         TransformHistoryReplayed?.Invoke();

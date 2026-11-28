@@ -13,11 +13,12 @@ public sealed class test_Preview3D
     {
         var scene = PreviewSeed.Create3D();
         var cube = Assert.Single(scene.Objects);
-        Assert.Equal(36, cube.Mesh.VertexCount);
-        Assert.Equal(12, cube.Mesh.TriangleCount);
+        var mesh = Assert.IsType<XuanYu.Render.RenderMesh>(cube.Mesh);
+        Assert.Equal(36, mesh.VertexCount);
+        Assert.Equal(12, mesh.TriangleCount);
         Assert.Equal(cube.Id, Assert.Single(scene.World.Entities).Id);
-        float[] values = cube.Mesh.Vertices.ToArray();
-        var points = Enumerable.Range(0, cube.Mesh.VertexCount)
+        float[] values = mesh.Vertices.ToArray();
+        var points = Enumerable.Range(0, mesh.VertexCount)
             .Select(i => new Vector3(values[i * 7], values[i * 7 + 1],
                 values[i * 7 + 2])).ToArray();
         Assert.Contains(points, p => p.Z < -0.6f);

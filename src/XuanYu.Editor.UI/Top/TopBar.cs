@@ -20,7 +20,7 @@ public sealed class TopBar : Border
     };
     private readonly TopToolRow _tools;
 
-    public TopBar(Workbench wb, Window owner, Action createCube)
+    public TopBar(Workbench wb, Window owner, Action createCube, Action? createUnit = null)
     {
         Background = EditorTheme.PanelBg;
         BorderBrush = EditorTheme.Border;
@@ -40,7 +40,7 @@ public sealed class TopBar : Border
         first.Children.Add(menu);
         first.Children.Add(_pages);
         first.Children.Add(_status);
-        _tools = new TopToolRow(wb, scene, simulation, createCube);
+        _tools = new TopToolRow(wb, scene, simulation, createCube, createUnit);
         var root = new Grid { RowDefinitions = new RowDefinitions("38,36") };
         Grid.SetRow(_tools, 1);
         root.Children.Add(first);

@@ -26,7 +26,7 @@ public sealed class TestTerrainLodIdle
     {
         var field = new TerrainHeightField(901, 901, 2f);
         var preview = new TerrainPreviewSession(new MapDocument("LOD 缓存", field));
-        var initial = preview.Scene.Objects.ToDictionary(x => x.Id, x => x.Mesh);
+        var initial = preview.Scene.Objects.ToDictionary(x => x.Id, x => x.Mesh!);
         var camera = preview.Scene.Camera!;
         camera.Zoom(5f);
         PreviewObject? changed = null;
@@ -35,7 +35,7 @@ public sealed class TestTerrainLodIdle
         {
             preview.ViewportDraws(800, 600);
             changed = preview.Scene.Objects.FirstOrDefault(x =>
-                x.Mesh.VertexCount > initial[x.Id].VertexCount);
+                x.Mesh!.VertexCount > initial[x.Id].VertexCount);
             if (changed is null) await Task.Delay(10);
         }
         PreviewObject selected = Assert.IsType<PreviewObject>(changed);
