@@ -12,7 +12,7 @@ internal sealed class RightTransformEditor : StackPanel
     private Transform _current;
     private Vector3 _degrees;
 
-    public RightTransformEditor(Transform initial, Action<Transform> apply)
+    public RightTransformEditor(Transform initial, Action<Transform> apply, Action<bool>? scrub = null)
     {
         _apply = apply;
         _current = initial;
@@ -23,21 +23,24 @@ internal sealed class RightTransformEditor : StackPanel
         if (initial.Spatial.Space == SpatialSpace.Local)
         {
             group.AddSubheading("位置");
-            group.AddNumber("X", initial.Position.X, v => SetPosition(0, v));
-            group.AddNumber("Y", initial.Position.Y, v => SetPosition(1, v));
-            group.AddNumber("Z", initial.Position.Z, v => SetPosition(2, v));
+            AddNumber("X", initial.Position.X, v => SetPosition(0, v));
+            AddNumber("Y", initial.Position.Y, v => SetPosition(1, v));
+            AddNumber("Z", initial.Position.Z, v => SetPosition(2, v));
         }
 
         group.AddSubheading("旋转（°）");
-        group.AddNumber("X", _degrees.X, v => SetRotation(0, v), 1f);
-        group.AddNumber("Y", _degrees.Y, v => SetRotation(1, v), 1f);
-        group.AddNumber("Z", _degrees.Z, v => SetRotation(2, v), 1f);
+        AddNumber("X", _degrees.X, v => SetRotation(0, v), 1f);
+        AddNumber("Y", _degrees.Y, v => SetRotation(1, v), 1f);
+        AddNumber("Z", _degrees.Z, v => SetRotation(2, v), 1f);
 
         group.AddSubheading("缩放");
-        group.AddNumber("X", initial.Scale.X, v => SetScale(0, v));
-        group.AddNumber("Y", initial.Scale.Y, v => SetScale(1, v));
-        group.AddNumber("Z", initial.Scale.Z, v => SetScale(2, v));
+        AddNumber("X", initial.Scale.X, v => SetScale(0, v));
+        AddNumber("Y", initial.Scale.Y, v => SetScale(1, v));
+        AddNumber("Z", initial.Scale.Z, v => SetScale(2, v));
         Children.Add(group);
+
+        void AddNumber(string name, float value, Action<float> changed, float step = 0.1f) =>
+            group.AddControl(new RightNumberField(name, value, step, changed, scrub));
     }
 
     private void SetPosition(int axis, float number)

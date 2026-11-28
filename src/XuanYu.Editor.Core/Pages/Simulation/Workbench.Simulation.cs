@@ -1,5 +1,4 @@
 using XuanYu.Editor.Camera;
-using XuanYu.Editor.Preview;
 using XuanYu.Runtime;
 
 namespace XuanYu.Editor.Pages;
@@ -9,8 +8,7 @@ public sealed partial class Workbench
     private ViewportCamera? _runtimeCamera;
     private GameCameraKey _heldCameraKeys;
 
-    public bool CanNavigateRuntimeCamera => CurrentId == PageId.World ||
-        (IsGeoTerrainPreview && CurrentId == PageId.Simulation);
+    public bool CanNavigateRuntimeCamera => CurrentId is PageId.World or PageId.Simulation;
 
     public ViewportCamera? ActiveCamera => _geoPreview is not null
         ? null
@@ -88,11 +86,6 @@ public sealed partial class Workbench
     private bool Has(GameCameraKey key) =>
         (_heldCameraKeys & key) != 0;
 
-    private WorldRenderBridge CreateRuntimeBridge()
-    {
-        var bridge = new WorldRenderBridge(Simulation.RunningWorld!);
-        foreach (PreviewObject item in Scene.Objects)
-            bridge.Bind(item.Id, item.Mesh);
-        return bridge;
-    }
+    private WorldRenderBridge CreateRuntimeBridge() =>
+        Scene.CreateRuntimeBridge(Simulation.RunningWorld!);
 }

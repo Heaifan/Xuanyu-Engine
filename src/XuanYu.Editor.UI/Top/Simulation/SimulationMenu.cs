@@ -1,4 +1,6 @@
 using Avalonia.Controls;
+using Avalonia.Input;
+using XuanYu.Editor.Camera;
 using Avalonia.Threading;
 using XuanYu.Editor.Pages;
 using XuanYu.Runtime;
@@ -19,6 +21,19 @@ internal sealed class SimulationMenu
         };
         _timer.Tick += (_, _) => wb.AdvanceSimulationTick();
         owner.Closed += (_, _) => _timer.Stop();
+        owner.KeyDown += (_, e) => RouteCameraKey(e, true);
+        owner.KeyUp += (_, e) => RouteCameraKey(e, false);
+        owner.Deactivated += (_, _) => wb.SetGameCameraKey(GameCameraKey.None, false);
+    }
+
+    private void RouteCameraKey(KeyEventArgs e, bool down)
+    {
+        if (!_wb.IsSimulating || !_wb.CanNavigateRuntimeCamera || e.Source is TextBox ||
+            (down && e.KeyModifiers != KeyModifiers.None)) return;
+        var key = ViewportSharedHost.MapGameKey(e.Key);
+        if (key == GameCameraKey.None) return;
+        _wb.SetGameCameraKey(key, down);
+        e.Handled = true;
     }
 
     public void Start()

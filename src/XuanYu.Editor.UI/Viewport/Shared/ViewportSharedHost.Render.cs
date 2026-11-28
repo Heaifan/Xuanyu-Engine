@@ -35,6 +35,7 @@ public sealed partial class ViewportSharedHost
             uint width = texture.Width, height = texture.Height;
             long stage = profile ? Stopwatch.GetTimestamp() : 0;
             var geo = _wb.G07PreviewSource;
+            if (geo is null) CaptureLocalGizmo(width, height);
             RenderDraw[] draws = geo is null
                 ? PrepareContourLabels(_wb.ViewportDraws(width, height), width, height) : [];
             long prepared = profile ? Stopwatch.GetTimestamp() : 0;

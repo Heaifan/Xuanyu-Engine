@@ -17,6 +17,8 @@ internal sealed partial class LeftSceneTree : StackPanel
     private readonly LeftTreeNode _geoMeshes = new("全球网格对象", "Nodes/folder");
     private readonly Dictionary<Guid, LeftTreeRow> _objectRows = [];
 
+    private readonly HashSet<Guid> _collapsed = [];
+
     public LeftSceneTree(PreviewScene scene, Action? createCube = null)
     {
         _scene = scene;
@@ -35,6 +37,7 @@ internal sealed partial class LeftSceneTree : StackPanel
         ((INotifyCollectionChanged)_scene.Objects).CollectionChanged +=
             (_, _) => Rebuild();
         _scene.EntityRenamed += Rebuild;
+        _scene.OrganizationChanged += Rebuild;
         _scene.Changed += Refresh;
         KeyDown += OnTreeKeyDown;
         Rebuild();
@@ -50,8 +53,7 @@ internal sealed partial class LeftSceneTree : StackPanel
     {
         _meshes.Children.Clear();
         _geoMeshes.Children.Clear();
-        foreach (PreviewObject item in _scene.Objects)
-            (item.IsGeographic ? _geoMeshes : _meshes).Children.Add(new LeftTreeNode(item.Name, "Nodes/mesh", item));
+        PopulateOrganization();
         _root.Children.Remove(_geoMeshes);
         if (_geoMeshes.Children.Count > 0) _root.Children.Add(_geoMeshes);
         _rows.Children.Clear();
@@ -78,15 +80,11 @@ internal sealed partial class LeftSceneTree : StackPanel
                 }
             };
         }
+        row.ExpandRequested += () => ToggleNode(node);
         row.Click += (_, _) =>
         {
-            if (node.Children.Count == 0 && node.Item is { } target)
-                _scene.Select(target.Id);
-            else
-            {
-                node.IsExpanded = !node.IsExpanded;
-                Rebuild();
-            }
+            if (node.Item is { } target) _scene.Select(target.Id);
+            else ToggleNode(node);
         };
         if (!node.IsExpanded)
             return;

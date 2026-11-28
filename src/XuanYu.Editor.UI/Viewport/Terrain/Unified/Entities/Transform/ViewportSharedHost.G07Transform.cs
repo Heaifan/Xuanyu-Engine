@@ -17,9 +17,10 @@ public sealed partial class ViewportSharedHost
             else if (e.Key == Key.Enter) FinishG07Drag(true);
             return true;
         }
-        if (_wb.IsSimulating || _wb.CurrentId != PageId.World || !G07EntitiesReady ||
-            e.KeyModifiers != KeyModifiers.None || e.Key is not (Key.G or Key.R or Key.S or Key.B) ||
-            _wb.Scene.Selected is not { IsGeographic: true, Visible: true } item) return false;
+        if (!CanUseEntityGizmo || e.KeyModifiers != KeyModifiers.None ||
+            e.Key is not (Key.G or Key.R or Key.S or Key.B)) return false;
+        var item = _wb.Scene.Selected!;
+        if (e.Key == Key.B && !item.IsGeographic) return false;
         if (e.Key == Key.B) GroundSelectedG07Entity(item.Id);
         else _wb.SetG07GizmoMode(e.Key switch
         {

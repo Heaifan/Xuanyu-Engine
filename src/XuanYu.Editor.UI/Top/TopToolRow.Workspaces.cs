@@ -52,13 +52,14 @@ internal sealed partial class TopToolRow
     {
         _createCube.Content = _wb.IsGeoTerrainPreview ? "创建全球立方体（200m）" : "创建立方体";
         _createCube.IsEnabled = !_wb.IsSimulating;
-        bool geo = _wb.IsGeoTerrainPreview && !_wb.IsSimulating;
-        _select.IsEnabled = _translate.IsEnabled = _rotate.IsEnabled = _scale.IsEnabled = geo;
+        bool edit = !_wb.IsSimulating;
+        bool geo = _wb.IsGeoTerrainPreview && edit;
+        _select.IsEnabled = _translate.IsEnabled = _rotate.IsEnabled = _scale.IsEnabled = edit;
         _ground.IsEnabled = geo && _wb.G07TranslateMode;
-        Paint(_select, geo && _wb.G07GizmoMode == GeoGizmoMode.Select);
-        Paint(_translate, geo && _wb.G07TranslateMode);
-        Paint(_rotate, geo && _wb.G07GizmoMode == GeoGizmoMode.Rotate);
-        Paint(_scale, geo && _wb.G07GizmoMode == GeoGizmoMode.Scale);
+        Paint(_select, edit && _wb.G07GizmoMode == GeoGizmoMode.Select);
+        Paint(_translate, edit && _wb.G07TranslateMode);
+        Paint(_rotate, edit && _wb.G07GizmoMode == GeoGizmoMode.Rotate);
+        Paint(_scale, edit && _wb.G07GizmoMode == GeoGizmoMode.Scale);
         Paint(_ground, geo && _wb.G07TranslateMode && _wb.G07GroundTranslation);
         _openScene.IsEnabled = !_wb.IsSimulating;
         _saveScene.IsEnabled = !_wb.IsSimulating;

@@ -15,9 +15,10 @@ public static class PreviewMeshPicker
         for (int i = scene.Objects.Count - 1; i >= 0; i--)
         {
             PreviewObject item = scene.Objects[i];
-            if (!item.Visible || item.IsGeographic) continue;
+            if (!item.Visible || item.IsGeographic ||
+                scene.GetActiveMesh(item.Id) is not { } mesh) continue;
             Matrix4x4 transform = item.ModelToClip * camera;
-            ReadOnlySpan<float> data = item.Mesh.Vertices.Span;
+            ReadOnlySpan<float> data = mesh.Vertices.Span;
             for (int offset = 0; offset < data.Length; offset += 21)
             {
                 Vector2 a = Project(data, offset, transform, width, height);

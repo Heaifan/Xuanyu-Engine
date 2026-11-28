@@ -16,11 +16,12 @@ public static class GeoPreviewMeshPicker
         float closest = 1f;
         foreach (var item in scene.Objects)
         {
-            if (!item.Visible || !item.IsGeographic) continue;
+            if (!item.Visible || !item.IsGeographic ||
+                scene.GetActiveMesh(item.Id) is not { } mesh) continue;
             var model = frame.ModelToClip(scene.World.Find(item.Id)!.Transform);
             if (!ViewportScreenRay.TryCreate(model, pixel, width, height,
                 out var localStart, out var localRay)) continue;
-            var data = item.Mesh.Vertices.Span;
+            var data = mesh.Vertices.Span;
             for (int i = 0; i < data.Length; i += 21)
             {
                 if (!Intersect(localStart, localRay, Vertex(data, i), Vertex(data, i + 7),
@@ -45,8 +46,7 @@ public static class GeoPreviewMeshPicker
         return clip.W > 0f ? clip.Z / clip.W : float.PositiveInfinity;
     }
 
-    private static bool Intersect(Vector3 origin, Vector3 ray, Vector3 a,
-        Vector3 b, Vector3 c, out float distance)
+    private static bool Intersect(Vector3 origin, Vector3 ray, Vector3 a, Vector3 b, Vector3 c, out float distance)
     {
         distance = 0f;
         Vector3 ab = b - a, ac = c - a;

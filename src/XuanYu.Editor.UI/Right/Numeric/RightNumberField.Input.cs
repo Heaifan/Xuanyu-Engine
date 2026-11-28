@@ -11,7 +11,7 @@ internal sealed partial class RightNumberField
         _surface.PointerPressed += OnPointerPressed;
         _surface.PointerMoved += OnPointerMoved;
         _surface.PointerReleased += OnPointerReleased;
-        _surface.PointerCaptureLost += (_, _) => _pressed = false;
+        _surface.PointerCaptureLost += (_, _) => FinishPointerScrub();
         _edit.GotFocus += (_, _) => _edit.SelectAll();
         _edit.LostFocus += (_, _) => FinishEdit();
         _edit.KeyDown += OnKeyDown;
@@ -30,10 +30,8 @@ internal sealed partial class RightNumberField
 
     private void FinishEdit()
     {
-        if (!_editing)
-            return;
-        if (TransformNumber.TryParse(_edit.Text, out float parsed))
-            Apply(parsed);
+        if (!_editing) return;
+        if (TransformNumber.TryParse(_edit.Text, out float parsed)) Apply(parsed);
         _editing = false;
         _surface.Child = _display;
         ClearError();
@@ -48,8 +46,7 @@ internal sealed partial class RightNumberField
         }
         else if (e.Key == Key.Enter)
         {
-            if (TransformNumber.TryParse(_edit.Text, out _))
-                FinishEdit();
+            if (TransformNumber.TryParse(_edit.Text, out _)) FinishEdit();
             else
             {
                 _surface.BorderBrush = Brushes.IndianRed;
@@ -59,34 +56,28 @@ internal sealed partial class RightNumberField
         else if (e.Key is Key.Up or Key.Down)
         {
             float direction = e.Key == Key.Up ? 1f : -1f;
-            if ((e.KeyModifiers & KeyModifiers.Shift) != 0)
-                direction *= 10;
-            float start = TransformNumber.TryParse(_edit.Text, out float typed)
-                ? typed : _value;
+            if ((e.KeyModifiers & KeyModifiers.Shift) != 0) direction *= 10;
+            float start = TransformNumber.TryParse(_edit.Text, out float typed) ? typed : _value;
             Apply(TransformNumber.Step(start, _step, direction));
             _edit.SelectAll();
         }
-        else
-            return;
+        else return;
         e.Handled = true;
     }
 
     private void Apply(float next)
     {
-        if (!float.IsFinite(next))
-            return;
+        if (!float.IsFinite(next)) return;
         _display.Text = TransformNumber.Display(next);
         _edit.Text = _display.Text;
-        if (_value == next)
-            return;
+        if (_value == next) return;
         _value = next;
         _changed(next);
     }
 
     private void ClearError()
     {
-        _surface.BorderBrush = _editing
-            ? EditorTheme.Accent : EditorTheme.Border;
+        _surface.BorderBrush = _editing ? EditorTheme.Accent : EditorTheme.Border;
         ToolTip.SetTip(_edit, null);
     }
 }

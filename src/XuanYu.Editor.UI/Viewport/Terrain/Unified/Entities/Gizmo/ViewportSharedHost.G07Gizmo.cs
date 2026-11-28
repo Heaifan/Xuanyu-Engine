@@ -24,9 +24,12 @@ public sealed partial class ViewportSharedHost
     private (uint Width, uint Height) _gizmoSize;
     internal event Action? G07PositionChanged;
 
-    private bool CanShowGizmo => G07EntitiesReady && !_wb.IsSimulating &&
-        _wb.CurrentId == PageId.World && _wb.G07GizmoMode != GeoGizmoMode.Select &&
-        _wb.Scene.Selected is { Visible: true, IsGeographic: true };
+    private Matrix4x4 _localGizmoProjection;
+    private bool CanUseEntityGizmo => !_wb.IsSimulating && _wb.CurrentId == PageId.World &&
+        _wb.Scene.Selected is { Visible: true } item && (item.IsGeographic
+            ? G07EntitiesReady && _wb.IsGeoTerrainPreview
+            : !_wb.IsGeoTerrainPreview && _wb.Scene.Camera is not null);
+    private bool CanShowGizmo => CanUseEntityGizmo && _wb.G07GizmoMode != GeoGizmoMode.Select;
 
     private void AttachG07Gizmo()
     {
@@ -53,17 +56,23 @@ public sealed partial class ViewportSharedHost
             ? (item.Id, _wb.World.Find(item.Id)!.Transform) : null;
     }
 
+    private void CaptureLocalGizmo(uint width, uint height)
+    {
+        CaptureG07Gizmo();
+        _localGizmoProjection = _wb.Scene.ViewProjection(width, height);
+    }
+
     private void DisplayG07Gizmo(bool geographic)
     {
         _gizmoLayout = null;
-        if (geographic && CanShowGizmo && _g07EntityFrame is { } frame &&
-            _gizmoRendered is { } snapshot && _wb.Scene.SelectedId == snapshot.Id)
+        if (CanShowGizmo && _gizmoRendered is { } snapshot && _wb.Scene.SelectedId == snapshot.Id &&
+            geographic == _wb.Scene.Selected!.IsGeographic && (!geographic || _g07EntityFrame is not null))
         {
             _gizmoSize = ((uint)Math.Max(0, Math.Round(Bounds.Width)), (uint)Math.Max(0, Math.Round(Bounds.Height)));
             var mode = _wb.G07GizmoMode;
             var rotation = mode == GeoGizmoMode.Scale ? snapshot.Value.Rotation : Quaternion.Identity;
             var neutral = Transform.FromSpatial(snapshot.Value.Spatial, rotation, Vector3.One);
-            _gizmoMatrix = frame.ModelToClip(neutral);
+            _gizmoMatrix = geographic ? _g07EntityFrame!.ModelToClip(neutral) : neutral.ToMatrix() * _localGizmoProjection;
             _gizmoLayout = GeoGizmoLayout.Create(_gizmoMatrix, _gizmoSize.Width, _gizmoSize.Height, mode);
         }
         RefreshG07GizmoPaint();
@@ -71,13 +80,13 @@ public sealed partial class ViewportSharedHost
 
     private void RefreshG07GizmoPaint()
     {
-        _gizmo.SetFrame(_gizmoLayout, _gizmoDrag?.Handle ?? _gizmoHover);
+        _gizmo.SetFrame(_gizmoLayout, _gizmoDrag?.Handle ?? _gizmoHover, _wb.IsGeoTerrainPreview);
         _gizmoStatus.IsVisible = _gizmoDrag is not null || _gizmoLayout is not null;
         if (_gizmoDrag is null) _gizmoText.Text = _wb.G07GizmoMode switch
         {
-            GeoGizmoMode.Rotate => "旋转 · 当地 ENU · Ctrl 5° · Shift 微调 · Esc 取消",
+            GeoGizmoMode.Rotate => _wb.IsGeoTerrainPreview ? "旋转 · 当地 ENU · Ctrl 5° · Shift 微调 · Esc 取消" : "旋转 · 世界 XYZ · Ctrl 5° · Shift 微调 · Esc 取消",
             GeoGizmoMode.Scale => "缩放 · 模型 XYZ · Ctrl 0.1倍 · Shift 微调 · Esc 取消",
-            _ => "平移 · 当地 ENU · Ctrl 吸附 · Shift 微调 · Esc 取消"
+            _ => _wb.IsGeoTerrainPreview ? "平移 · 当地 ENU · Ctrl 吸附 · Shift 微调 · Esc 取消" : "平移 · 世界 XYZ · Ctrl 1m · Shift 微调 · Esc 取消"
         };
     }
 }

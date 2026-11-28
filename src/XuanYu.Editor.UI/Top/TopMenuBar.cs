@@ -19,6 +19,7 @@ internal static class TopMenuBar
             owner.Width = 1280;
             owner.Height = 800;
         };
+        var history = new WorkspaceHistoryCommands(owner, wb);
         return new Menu
         {
             Background = EditorTheme.PanelBg,
@@ -26,15 +27,7 @@ internal static class TopMenuBar
             ItemsSource = new MenuItem[]
             {
                 new() { Header = "文件", ItemsSource = SceneFileMenu.Create(owner, wb, scene) },
-                new()
-                {
-                    Header = "编辑",
-                    ItemsSource = new MenuItem[]
-                    {
-                        CreateHistoryItem(wb, "撤销地形", wb.UndoTerrain, () => wb.CanUndoTerrain),
-                        CreateHistoryItem(wb, "重做地形", wb.RedoTerrain, () => wb.CanRedoTerrain)
-                    }
-                },
+                new() { Header = "编辑", ItemsSource = history.Create() },
                 new() { Header = "地图", ItemsSource = TerrainFileMenu.Create(owner, wb) },
                 new()
                 {
@@ -77,14 +70,6 @@ internal static class TopMenuBar
                     new TextBlock { Text = $"UI 程序集版本：{typeof(EditorWindow).Assembly.GetName().Version}\n.NET：{Environment.Version}" }, close } };
             await dialog.ShowDialog(owner);
         };
-        return item;
-    }
-
-    private static MenuItem CreateHistoryItem(Workbench wb, string title, Action run, Func<bool> canRun)
-    {
-        var item = new MenuItem { Header = title, IsEnabled = canRun() };
-        item.Click += (_, _) => run();
-        wb.Changed += () => item.IsEnabled = canRun();
         return item;
     }
 }

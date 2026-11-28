@@ -13,6 +13,7 @@ internal sealed partial class LeftTreeRow : Button
     private readonly IBrush _normalIconStroke;
     private readonly FontWeight _normalWeight;
     private readonly LeftTreeNode _node;
+    public event Action? ExpandRequested;
 
     public LeftTreeRow(LeftTreeNode node, int depth,
         bool[] continuations, bool isLast)
@@ -42,15 +43,9 @@ internal sealed partial class LeftTreeRow : Button
         {
             ColumnDefinitions = new ColumnDefinitions(
                 isLeaf ? "Auto,5,21,*" : "Auto,17,21,*"),
-            Children =
-            {
-                new LeftTreeGuide(depth, continuations, isLast, isLeaf)
-            }
+            Children = { new LeftTreeGuide(depth, continuations, isLast, isLeaf) }
         };
-        Control expander = isLeaf
-            ? new Border { Width = 5 }
-            : LeftSvgIcon.Create(node.IsExpanded
-                ? "Controls/chevron-down" : "Controls/chevron-right", 12);
+        Control expander = isLeaf ? new Border { Width = 5 } : CreateExpander(node);
         Grid.SetColumn(expander, 1);
         columns.Children.Add(expander);
         _icon = LeftSvgIcon.Create(node.Icon);
@@ -60,6 +55,23 @@ internal sealed partial class LeftTreeRow : Button
         Grid.SetColumn(_title, 3);
         columns.Children.Add(_title);
         Content = columns;
+    }
+
+    private Border CreateExpander(LeftTreeNode node)
+    {
+        var arrow = new Border
+        {
+            Background = Brushes.Transparent,
+            Child = LeftSvgIcon.Create(node.IsExpanded
+                ? "Controls/chevron-down" : "Controls/chevron-right", 12)
+        };
+        arrow.PointerPressed += (_, e) =>
+        {
+            if (!e.GetCurrentPoint(arrow).Properties.IsLeftButtonPressed) return;
+            e.Handled = true;
+            ExpandRequested?.Invoke();
+        };
+        return arrow;
     }
 
     public void Refresh(bool selected)

@@ -69,15 +69,19 @@ public sealed partial class PreviewScene
         Publish();
     }
 
-    public void SetTransform(Guid id, Transform transform)
+    public void SetTransform(Guid id, Transform transform, bool recordHistory = true)
     {
-        World.SetTransform(id, transform);
+        var before = World.Find(id)?.Transform ?? throw new KeyNotFoundException($"实体不存在：{id}");
+        if (before == transform) return;
+        var after = World.SetTransform(id, transform).Transform;
+        if (recordHistory && _transformEdit?.Id != id) RecordTransform(id, before, after);
         Publish();
     }
 
     public bool Delete(Guid id)
     {
         if (!World.Delete(id)) return false;
+        ClearTransformHistory();
         ClearLocalTerrain(id);
         _bridge.Unbind(id);
         PreviewObject? item = _objects.FirstOrDefault(x => x.Id == id);

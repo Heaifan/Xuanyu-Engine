@@ -50,6 +50,27 @@ public sealed partial class Workbench
         if (next != current) Scene.SetTransform(id, next);
     }
 
+    public void DragLocalEntity(Guid id, Transform original, EnuPosition delta)
+    {
+        RequireLocalGizmoEntity(id);
+        var p = original.Spatial;
+        var next = SpatialPosition.FromLocal(p.X + delta.East, p.Y + delta.North, p.Z + delta.Up);
+        Scene.SetTransform(id, Transform.FromSpatial(next, original.Rotation, original.Scale));
+    }
+
+    public void DragLocalOrientation(Guid id, Transform original, GeoGizmoMode mode, Vector3 value)
+    {
+        RequireLocalGizmoEntity(id);
+        Scene.SetTransform(id, mode == GeoGizmoMode.Rotate ? Rotated(original, value) : Scaled(original, value));
+    }
+
+    private void RequireLocalGizmoEntity(Guid id)
+    {
+        if (IsSimulating || IsGeoTerrainPreview || Scene.Objects.FirstOrDefault(x => x.Id == id)
+            is not { IsGeographic: false, Visible: true })
+            throw new InvalidOperationException("请选择可见本地实体。");
+    }
+
     private static Transform Translated(Transform original, EnuPosition delta)
     {
         if (delta == default) return original;

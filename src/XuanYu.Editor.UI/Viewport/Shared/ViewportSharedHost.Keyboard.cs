@@ -39,7 +39,7 @@ public sealed partial class ViewportSharedHost
         e.Handled = _wb.IsSimulating;
     }
 
-    private static GameCameraKey MapGameKey(Key key) => key switch
+    internal static GameCameraKey MapGameKey(Key key) => key switch
     {
         Key.W => GameCameraKey.Forward,
         Key.S => GameCameraKey.Backward,

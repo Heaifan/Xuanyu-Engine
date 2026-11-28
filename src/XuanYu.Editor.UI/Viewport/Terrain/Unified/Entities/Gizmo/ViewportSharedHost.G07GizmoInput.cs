@@ -4,9 +4,7 @@ using XuanYu.Core.Geodesy;
 using XuanYu.Editor.Preview;
 using XuanYu.World;
 using XuanYu.World.Maps;
-
 namespace XuanYu.Editor.UI;
-
 public sealed partial class ViewportSharedHost
 {
     private sealed record GizmoDrag(Guid Id, Transform Original, GeoGizmoMode Mode,
@@ -28,7 +26,8 @@ public sealed partial class ViewportSharedHost
         if (layout.Mode == GeoGizmoMode.Translate && math is null) return true;
         var orientation = math is null ? new GeoGizmoOrientationDrag(layout, handle, pixel) : null;
         _gizmoDrag = new(snapshot.Id, snapshot.Value, layout.Mode, handle, math, orientation, e.Pointer, _gizmoSize,
-            _wb.G07GroundTranslation && !handle.HasFlag(GeoGizmoHandle.U));
+            _wb.IsGeoTerrainPreview && _wb.G07GroundTranslation && !handle.HasFlag(GeoGizmoHandle.U));
+        _wb.Scene.BeginTransformEdit(snapshot.Id);
         Focus(); e.Pointer.Capture(this);
         RefreshG07GizmoPaint();
         return true;
@@ -52,15 +51,23 @@ public sealed partial class ViewportSharedHost
         if (drag.Orientation is { } orientation)
         {
             var value = orientation.Value(pixel, fine, snap);
-            _wb.DragG07Orientation(drag.Id, drag.Original, drag.Mode, value);
+            if (_wb.IsGeoTerrainPreview) _wb.DragG07Orientation(drag.Id, drag.Original, drag.Mode, value);
+            else _wb.DragLocalOrientation(drag.Id, drag.Original, drag.Mode, value);
             _gizmoText.Text = drag.Mode == GeoGizmoMode.Rotate ?
-                $"旋转 · E {value.X:0.0}° · N {value.Y:0.0}° · U {value.Z:0.0}°" :
+                $"旋转 · {(_wb.IsGeoTerrainPreview ? "E" : "X")} {value.X:0.0}° · {(_wb.IsGeoTerrainPreview ? "N" : "Y")} {value.Y:0.0}° · {(_wb.IsGeoTerrainPreview ? "U" : "Z")} {value.Z:0.0}°" :
                 $"缩放 · X {value.X:0.000}倍 · Y {value.Y:0.000}倍 · Z {value.Z:0.000}倍";
             return true;
         }
         if (!drag.Math!.TryDelta(pixel, out var delta)) return true;
         double Adjust(double v, double step) => fine ? v * .2 : snap ? Math.Round(v / step) * step : v;
-        delta = new(Adjust(delta.East, 10), Adjust(delta.North, 10), Adjust(delta.Up, 5));
+        bool geographic = _wb.IsGeoTerrainPreview;
+        delta = new(Adjust(delta.East, geographic ? 10 : 1), Adjust(delta.North, geographic ? 10 : 1), Adjust(delta.Up, geographic ? 5 : 1));
+        if (!geographic)
+        {
+            _wb.DragLocalEntity(drag.Id, drag.Original, delta);
+            _gizmoText.Text = $"平移 · X {delta.East:+0.000;-0.000;0.000}m · Y {delta.North:+0.000;-0.000;0.000}m · Z {delta.Up:+0.000;-0.000;0.000}m";
+            return true;
+        }
         var result = _wb.DragG07Entity(_g07Cpu!, drag.Id, drag.Original, delta, drag.Ground);
         _gizmoText.Text = result == GeoSampleStatus.Valid ?
             $"平移 · E {delta.East:+0.000;-0.000;0.000}m · N {delta.North:+0.000;-0.000;0.000}m · U {delta.Up:+0.000;-0.000;0.000}m" +
@@ -81,13 +88,12 @@ public sealed partial class ViewportSharedHost
     {
         if (_gizmoDrag is not { } drag) return;
         _gizmoDrag = null;
-        if (!commit && _wb.World.Find(drag.Id) is { } entity && entity.Transform != drag.Original)
-            _wb.Scene.SetTransform(drag.Id, drag.Original);
+        _wb.Scene.EndTransformEdit(commit);
         if (ReferenceEquals(drag.Pointer.Captured, this)) drag.Pointer.Capture(null);
         _gizmoHover = GeoGizmoHandle.None;
         G07PositionChanged?.Invoke();
         RefreshG07GizmoPaint();
-        if (drag.Mode != GeoGizmoMode.Translate) G07TransformCommitted?.Invoke();
+        if (!_wb.IsGeoTerrainPreview || drag.Mode != GeoGizmoMode.Translate) G07TransformCommitted?.Invoke();
         string name = drag.Mode == GeoGizmoMode.Rotate ? "旋转" : drag.Mode == GeoGizmoMode.Scale ? "缩放" : "平移";
         _wb.Log.Write($"[E6/Gizmo] {name}{(commit ? "确认" : "取消")}");
     }

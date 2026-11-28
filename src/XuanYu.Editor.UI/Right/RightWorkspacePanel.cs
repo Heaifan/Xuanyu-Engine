@@ -35,7 +35,8 @@ public class RightWorkspacePanel : Border
     }
 
     public void Show(RightInspectorSnapshot? snapshot,
-        Action<bool>? setVisible = null, Control? transformEditor = null)
+        Action<bool>? setVisible = null, Control? transformEditor = null,
+        RightPropertyGroup? beforeDisplay = null, Control? displayEditor = null)
     {
         _body.Children.Clear();
         if (snapshot is null)
@@ -59,15 +60,17 @@ public class RightWorkspacePanel : Border
                 group.AddText(field.Name, field.Value);
             _body.Children.Add(group);
         }
+        if (beforeDisplay is not null) _body.Children.Add(beforeDisplay);
         if (snapshot.Visible is bool visible && setVisible is not null)
         {
             var display = CreateGroup("显示设置");
             display.AddVisibility(visible, setVisible);
+            if (displayEditor is not null) display.AddControl(displayEditor);
             _body.Children.Add(display);
         }
     }
 
-    private RightPropertyGroup CreateGroup(string title)
+    protected RightPropertyGroup CreateGroup(string title)
     {
         var group = new RightPropertyGroup(title, _iconFactory);
         if (_expanded.TryGetValue(title, out bool expanded))

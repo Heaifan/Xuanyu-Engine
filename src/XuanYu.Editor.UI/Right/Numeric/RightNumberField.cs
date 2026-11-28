@@ -12,6 +12,7 @@ internal sealed partial class RightNumberField : Grid
     private readonly TextBlock _display;
     private readonly TextBox _edit;
     private readonly Action<float> _changed;
+    private readonly Action<bool>? _scrub;
     private readonly float _step;
     private float _value;
     private float _startValue;
@@ -21,11 +22,12 @@ internal sealed partial class RightNumberField : Grid
     private bool _editing;
 
     public RightNumberField(string axis, float initial,
-        float step, Action<float> changed)
+        float step, Action<float> changed, Action<bool>? scrub = null)
     {
         _value = initial;
         _step = step;
         _changed = changed;
+        _scrub = scrub;
         Height = 25;
         Margin = new Thickness(8, 0);
         ColumnDefinitions = new ColumnDefinitions("22,*,90");

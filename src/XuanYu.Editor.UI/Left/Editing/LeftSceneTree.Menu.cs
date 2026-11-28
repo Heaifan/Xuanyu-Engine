@@ -27,6 +27,7 @@ internal sealed partial class LeftSceneTree
         delete.Click += (_, _) => _scene.Delete(item.Id);
         menu.Items.Add(LeftMenuStyle.Divider());
         menu.Items.Add(rename);
+        menu.Items.Add(CreateOrganizationMenu(menu, item.Id));
         menu.Items.Add(delete);
         return menu;
     }

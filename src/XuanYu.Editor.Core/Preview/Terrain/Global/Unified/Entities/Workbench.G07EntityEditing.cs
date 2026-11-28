@@ -18,7 +18,7 @@ public sealed partial class Workbench
         if (cube is null) return sample;
         // builtin/cube 的原始边长为 1.4m，验收对象的缩放是真实空间尺寸。
         var transform = World.Find(cube.Id)!.Transform;
-        Scene.SetTransform(cube.Id, transform with { Scale = new Vector3((float)(edge / 1.4d)) });
+        Scene.SetTransform(cube.Id, transform with { Scale = new Vector3((float)(edge / 1.4d)) }, recordHistory: false);
         Scene.Select(cube.Id);
         var geo = transform.Spatial.ToGeo();
         Log.Write($"[E6/全球实体] 创建 {cube.Name} | 纬度={geo.LatitudeDegrees:F6} 经度={geo.LongitudeDegrees:F6} | 边长=200m 原点离地=100m");

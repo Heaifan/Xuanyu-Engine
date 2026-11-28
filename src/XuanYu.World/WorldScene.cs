@@ -54,6 +54,7 @@ public sealed partial class WorldScene
     public bool Delete(Guid id)
     {
         if (!_ecs.TryGetId(id, out EntityId handle)) return false;
+        _organization.Remove(id);
         _ecs.Destroy(handle);
         _names.Remove(id);
         return true;
@@ -62,15 +63,21 @@ public sealed partial class WorldScene
     public WorldScene Clone() => new()
     {
         _ecs = _ecs.Clone(),
-        _names = new Dictionary<Guid, string>(_names)
+        _names = new Dictionary<Guid, string>(_names),
+        _organization = _organization.Clone()
     };
 
-    public void Replace(IReadOnlyList<WorldEntity> entities)
+    public void Replace(IReadOnlyList<WorldEntity> entities,
+        IReadOnlyDictionary<Guid, Guid>? organizationParents = null)
     {
         var replacement = new WorldScene();
         foreach (WorldEntity entity in entities) replacement.Insert(entity);
+        if (organizationParents is not null)
+            foreach (var (child, parent) in organizationParents)
+                replacement.SetOrganizationParent(child, parent);
         _ecs = replacement._ecs;
         _names = replacement._names;
+        _organization = replacement._organization;
     }
 
     private void Insert(WorldEntity entity)

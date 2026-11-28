@@ -19,29 +19,34 @@ internal sealed partial class RightNumberField
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
-        if (!_pressed)
-            return;
+        if (!_pressed) return;
         float pixels = (float)(e.GetPosition(_surface).X - _startX);
-        if (!_dragged && MathF.Abs(pixels) < 4f)
-            return;
-        _dragged = true;
-        float multiplier = (e.KeyModifiers & KeyModifiers.Shift) != 0
-            ? 10f : 1f;
-        Apply(TransformNumber.Scrub(_startValue,
-            _step * multiplier, pixels));
+        if (!_dragged && MathF.Abs(pixels) < 4f) return;
+        if (!_dragged)
+        {
+            _dragged = true;
+            _scrub?.Invoke(true);
+        }
+        float multiplier = (e.KeyModifiers & KeyModifiers.Shift) != 0 ? 10f : 1f;
+        Apply(TransformNumber.Scrub(_startValue, _step * multiplier, pixels));
         e.Handled = true;
     }
 
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
-        if (!_pressed)
-            return;
+        if (!_pressed) return;
         bool wasDrag = _dragged;
-        _pressed = false;
-        if (e.Pointer.Captured == _surface)
-            e.Pointer.Capture(null);
-        if (!wasDrag)
-            BeginEdit();
+        FinishPointerScrub();
+        if (e.Pointer.Captured == _surface) e.Pointer.Capture(null);
+        if (!wasDrag) BeginEdit();
         e.Handled = true;
+    }
+
+    private void FinishPointerScrub()
+    {
+        if (!_pressed) return;
+        _pressed = false;
+        if (_dragged) _scrub?.Invoke(false);
+        _dragged = false;
     }
 }

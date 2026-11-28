@@ -1,8 +1,8 @@
-
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
 
 namespace XuanYu.Editor.UI.Right;
 
@@ -16,14 +16,14 @@ public sealed partial class RightPropertyGroup : StackPanel
         VerticalAlignment = VerticalAlignment.Center
     };
     private readonly Func<string, int, Control>? _iconFactory;
-
+    private readonly Button _toggle;
+    private readonly DispatcherTimer _highlightTimer = new() { Interval = TimeSpan.FromMilliseconds(900) };
     public event Action<bool>? ExpandedChanged;
 
     public RightPropertyGroup(string title, Func<string, int, Control>? iconFactory = null)
     {
         _iconFactory = iconFactory;
         HorizontalAlignment = HorizontalAlignment.Stretch;
-
         var caption = new TextBlock
         {
             Text = title,
@@ -41,23 +41,27 @@ public sealed partial class RightPropertyGroup : StackPanel
         Grid.SetColumn(caption, 1);
         heading.Children.Add(_arrow);
         heading.Children.Add(caption);
-
-        var toggle = new Button
+        _toggle = new Button
         {
             Height = 22,
             MinHeight = 0,
             Padding = new Thickness(8, 0),
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
-            VerticalContentAlignment = VerticalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
             Background = EditorTheme.PanelHeaderBg,
             Foreground = EditorTheme.TextMain,
             BorderThickness = new Thickness(0),
             Content = heading
         };
-        toggle.Click += (_, _) => SetExpanded(!_rows.IsVisible);
-        Children.Add(toggle);
+        _toggle.Click += (_, _) => SetExpanded(!_rows.IsVisible);
+        Children.Add(_toggle);
         Children.Add(_rows);
+        _highlightTimer.Tick += (_, _) =>
+        {
+            _highlightTimer.Stop();
+            _toggle.Background = EditorTheme.PanelHeaderBg;
+        };
         SetExpanded(true);
     }
 
@@ -72,5 +76,14 @@ public sealed partial class RightPropertyGroup : StackPanel
             Foreground = EditorTheme.TextSub
         };
         ExpandedChanged?.Invoke(expanded);
+    }
+
+    internal void Reveal()
+    {
+        SetExpanded(true);
+        _toggle.Background = EditorTheme.AccentSoft;
+        _highlightTimer.Stop();
+        _highlightTimer.Start();
+        Dispatcher.UIThread.Post(() => this.BringIntoView(), DispatcherPriority.Loaded);
     }
 }

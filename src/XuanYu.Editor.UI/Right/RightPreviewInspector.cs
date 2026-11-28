@@ -4,19 +4,17 @@ using XuanYu.World.Ecs;
 using XuanYu.Editor.Preview;
 using XuanYu.Editor.UI.Left;
 using XuanYu.World;
-
 namespace XuanYu.Editor.UI.Right;
-
-public sealed class RightPreviewInspector : RightWorkspacePanel
+public sealed partial class RightPreviewInspector : RightWorkspacePanel
 {
     private readonly PreviewScene _scene;
     private readonly Func<Guid, (double Orthometric, double? AboveGround)?>? _heights;
     private readonly Func<Guid, GeoCoordinate, bool, string?>? _move;
     private RightGeographicPositionEditor? _geoEditor;
+    private RightRepresentationEditor? _representationEditor;
     private Guid? _shownId;
     private string? _shownName;
     private bool _shownVisible;
-
     public RightPreviewInspector(PreviewScene scene,
         Func<Guid, (double Orthometric, double? AboveGround)?>? heights = null,
         Func<Guid, GeoCoordinate, bool, string?>? move = null)
@@ -26,6 +24,8 @@ public sealed class RightPreviewInspector : RightWorkspacePanel
         _heights = heights;
         _move = move;
         _scene.Changed += Refresh;
+        _scene.TransformHistoryReplayed += RefreshTransform;
+        BindOrganization();
         Refresh();
     }
 
@@ -42,20 +42,20 @@ public sealed class RightPreviewInspector : RightWorkspacePanel
         PreviewObject? item = _scene.Selected;
         if (item is null)
         {
-            if (_shownId is null)
-                return;
+            if (_shownId is null) return;
             _shownId = null;
             _geoEditor = null;
+            ClearOrganization();
+            _representationEditor = null;
             Show(null);
             return;
         }
         if (_shownId == item.Id && _shownName == item.Name &&
             _shownVisible == item.Visible)
-            return;
+        { _representationEditor?.Refresh(); return; }
         _shownId = item.Id;
         _shownName = item.Name;
         _shownVisible = item.Visible;
-
         var snapshot = new RightInspectorSnapshot(
             item.Name, "网格对象", item.IsGeographic ? "全球空间" : "本地空间", "Nodes/mesh",
             [
@@ -71,12 +71,12 @@ public sealed class RightPreviewInspector : RightWorkspacePanel
                     new("三角面数", $"{item.Mesh.TriangleCount}"),
                     new("拓扑", "TriangleList")
                 ])
-            ],
-            item.Visible);
+            ], item.Visible);
         Transform current = _scene.World.Find(item.Id)!.Transform;
         var orientation = new RightTransformEditor(current, next =>
             _scene.SetTransform(item.Id, item.IsGeographic
-                ? Transform.FromSpatial(_scene.World.GetSpatialPosition(item.Id), next.Rotation, next.Scale) : next));
+                ? Transform.FromSpatial(_scene.World.GetSpatialPosition(item.Id), next.Rotation, next.Scale) : next),
+            dragging => { if (dragging) _scene.BeginTransformEdit(item.Id); else _scene.EndTransformEdit(true); });
         Control editor = orientation;
         _geoEditor = null;
         if (item.IsGeographic)
@@ -92,6 +92,9 @@ public sealed class RightPreviewInspector : RightWorkspacePanel
                 new TextBlock { Text = "视口快捷键：G 平移 · R 旋转 · S 缩放 · B 底部贴地 · F 聚焦",
                     FontSize = 11, TextWrapping = Avalonia.Media.TextWrapping.Wrap } } };
         }
-        Show(snapshot, visible => _scene.SetVisible(item.Id, visible), editor);
+        _representationEditor = PreviewScene.SupportsRepresentation(item)
+            ? new RightRepresentationEditor(_scene, item.Id) : null;
+        Show(snapshot, visible => _scene.SetVisible(item.Id, visible), editor,
+            CreateOrganizationGroup(item.Id), _representationEditor);
     }
 }

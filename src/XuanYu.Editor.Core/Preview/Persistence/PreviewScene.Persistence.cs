@@ -7,9 +7,10 @@ namespace XuanYu.Editor.Preview;
 
 public sealed partial class PreviewScene
 {
-    internal SceneDocument Capture() => new(1,
+    internal SceneDocument Capture() => new(2,
         _objects.Select(item => new SceneEntityData(
-            World.Find(item.Id)!, item.Mesh.AssetId)).ToArray(),
+            World.Find(item.Id)!, item.Mesh.AssetId,
+            World.GetOrganizationParent(item.Id))).ToArray(),
         LocalTerrainId is Guid id && LocalTerrainMap is { } map
             ? SceneTerrainCodec.Capture(id, map) : null);
 
@@ -33,9 +34,10 @@ public sealed partial class PreviewScene
             return (Entity: part.Entity, Mesh: mesh);
         }).ToArray();
 
+        ReplaceWorld(document);
+        ClearTransformHistory();
         foreach (PreviewObject item in _objects)
             _bridge.Unbind(item.Id);
-        World.Replace(items.Select(item => item.Entity).ToArray());
         SelectedId = null;
         _objects.Clear();
         foreach (var item in items)
@@ -46,5 +48,23 @@ public sealed partial class PreviewScene
         RegisterLocalTerrain(localMap, data?.EntityId);
         Restored?.Invoke();
         Publish();
+    }
+
+    private void ReplaceWorld(SceneDocument document)
+    {
+        var parents = document.Entities.Where(part => part.OrganizationParentId.HasValue)
+            .ToDictionary(part => part.Entity.Id, part => part.OrganizationParentId!.Value);
+        try
+        {
+            World.Replace(document.Entities.Select(part => part.Entity).ToArray(), parents);
+        }
+        catch (KeyNotFoundException error)
+        {
+            throw new InvalidDataException("组织关系引用了不存在的实体。", error);
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new InvalidDataException("组织关系无效。", error);
+        }
     }
 }

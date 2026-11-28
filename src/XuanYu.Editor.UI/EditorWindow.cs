@@ -34,6 +34,7 @@ public sealed partial class EditorWindow : Window
             id => _sharedViewport?.ReadG07EntityHeights(id),
             (id, target, aboveGround) => _sharedViewport is { } view
                 ? view.MoveG07Entity(id, target, aboveGround) : "当前没有可用的 G07 共享视口。");
+        _leftPanel.OrganizationFocusRequested += _inspector.RevealOrganization;
         Control viewport = new TerrainWorkspaceToolbar(_wb, CreateViewport(vk));
         var root = new Grid { RowDefinitions = new("74,*,22") };
         var workspace = BuildWorkspace(viewport);

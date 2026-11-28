@@ -15,8 +15,12 @@ public static class SceneFile
 
     public static void Save(PreviewScene scene, string path)
     {
-        if (scene.World.Entities.Any(entity => entity.Transform.Spatial.Space != SpatialSpace.Local))
+        var entities = scene.World.Entities;
+        if (entities.Any(entity => entity.Transform.Spatial.Space != SpatialSpace.Local))
             throw new InvalidOperationException("当前场景文件仅支持本地实体。");
+        if (scene.World.HasOrganizationRelations &&
+            !entities.Select(entity => entity.Id).ToHashSet().SetEquals(scene.Objects.Select(item => item.Id)))
+            throw new InvalidOperationException("当前场景格式无法完整保存无网格的组织实体。");
         string json = JsonSerializer.Serialize(scene.Capture(), Options);
         File.WriteAllText(path, json);
     }
@@ -39,7 +43,7 @@ public static class SceneFile
 
     private static void Validate(SceneDocument? document)
     {
-        if (document is null || document.Version != 1 || document.Entities is null)
+        if (document is null || document.Version is not (1 or 2) || document.Entities is null)
             throw new InvalidDataException("场景版本或实体列表无效。");
         SceneTerrainData? terrain = document.LocalTerrain;
         if (terrain is not null)
@@ -53,6 +57,8 @@ public static class SceneFile
                 entity.Name != entity.Name.Trim() ||
                 !ids.Add(entity.Id))
                 throw new InvalidDataException("场景包含无效或重复的实体。");
+            if (document.Version == 1 && part.OrganizationParentId is not null)
+                throw new InvalidDataException("v1 场景不支持组织关系。");
             bool local = terrain is not null && entity.Id == terrain.EntityId &&
                 part.MeshId.StartsWith("terrain/local/", StringComparison.Ordinal);
             if (!local && part.MeshId is not ("builtin/cube" or

@@ -14,9 +14,10 @@ internal sealed partial class GeoGizmoOverlay : Control
     private static readonly Pen Shadow = new(Brush("#263645"), 5.5);
     private GeoGizmoLayout? _layout;
     private GeoGizmoHandle _active;
+    private bool _geographic;
     public GeoGizmoOverlay() { IsHitTestVisible = false; ClipToBounds = true; }
-    public void SetFrame(GeoGizmoLayout? layout, GeoGizmoHandle active)
-    { _layout = layout; _active = active; InvalidateVisual(); }
+    public void SetFrame(GeoGizmoLayout? layout, GeoGizmoHandle active, bool geographic = true)
+    { _layout = layout; _active = active; _geographic = geographic; InvalidateVisual(); }
 
     public override void Render(DrawingContext context)
     {
@@ -43,7 +44,7 @@ internal sealed partial class GeoGizmoOverlay : Control
             context.DrawLine(Shadow, Pt(layout.Center), Pt(end));
             context.DrawLine(new Pen(brush, h.Id == _active ? 4.5 : 3.3), Pt(layout.Center), Pt(end));
             Polygon(context, [tip, end+side, end-side], brush, null);
-            var text = new FormattedText(h.Id.ToString(), CultureInfo.InvariantCulture,
+            var text = new FormattedText(_geographic ? h.Id.ToString() : "XYZ"[index].ToString(), CultureInfo.InvariantCulture,
                 FlowDirection.LeftToRight, new Typeface("Arial"), 12, brush);
             var label = tip + direction * 12;
             context.DrawText(text, new Point(label.X - text.Width/2, label.Y - text.Height/2));
