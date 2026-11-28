@@ -7,6 +7,8 @@ namespace XuanYu.Editor.UI.Right;
 
 public sealed partial class RightPropertyGroup
 {
+    public void AddControl(Control control) => _rows.Children.Add(control);
+
     public void AddSubheading(string title)
     {
         _rows.Children.Add(new TextBlock

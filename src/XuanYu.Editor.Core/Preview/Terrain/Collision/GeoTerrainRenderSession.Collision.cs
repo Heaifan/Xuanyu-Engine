@@ -10,6 +10,7 @@ public sealed partial class GeoTerrainRenderSession
         // 保留 G04 眼点精度合同：极高海拔无须触发 HGT 同步读取。
         double? raw = StreamingEnabled && position.HeightMeters > short.MaxValue + 3d
             ? null : _source.Sample(position.LatitudeDegrees, position.LongitudeDegrees);
+        if (_g07Geoid is not null) return G07EllipsoidHeight(position, raw ?? 0d);
         return SampleDisplayHeight(position, raw);
     }
 
@@ -19,6 +20,7 @@ public sealed partial class GeoTerrainRenderSession
         var sampler = StreamingEnabled ? _source.CoarseFor(13) : _source;
         double? height = sampler.Sample(position.LatitudeDegrees,
             position.LongitudeDegrees);
+        if (_g07Geoid is not null) return G07EllipsoidHeight(position, height ?? 0d);
         return SampleDisplayHeight(position, height);
     }
 

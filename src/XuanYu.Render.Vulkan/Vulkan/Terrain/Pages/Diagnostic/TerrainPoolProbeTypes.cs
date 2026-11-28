@@ -4,9 +4,9 @@ using XuanYu.Core.Geodesy;
 namespace XuanYu.Render.Vulkan;
 
 public readonly record struct TerrainPoolUpload(long Key, ReadOnlyMemory<short> Heights,
-    ReadOnlyMemory<short> Normals = default)
+    ReadOnlyMemory<short> Normals = default, ReadOnlyMemory<short> GeoidCentimeters = default)
 {
-    public const int Side = 33, SampleCount = Side * Side, PackedRows = Side * 3;
+    public const int Side = 33, SampleCount = Side * Side, PackedRows = Side * 4;
 }
 public readonly record struct TerrainGridStyle(bool Geographic, double StepX, double StepY,
     long CenterX, long CenterY)
@@ -35,6 +35,7 @@ public readonly record struct TerrainPoolDraw(long Key, int South, int West, int
     GeoCoordinate Origin, Matrix4x4 Mvp, int Mask = 0, IReadOnlyList<Vector4>? ClipRects = null)
 {
     public TerrainVisualStyle? Style { get; init; }
+    public EnuPosition RenderOrigin { get; init; }
 }
 public sealed record TerrainPoolFrame(IReadOnlyList<TerrainPoolUpload> Uploads,
     IReadOnlyList<long> ProtectedKeys, IReadOnlyList<long> EvictKeys,

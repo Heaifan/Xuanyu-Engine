@@ -9,30 +9,31 @@ public static partial class TerrainHeightRayPicker
         Vector3 direction, out TerrainRayHit hit)
     {
         hit = default;
-        float length = direction.Length();
-        if (!float.IsFinite(length) || length <= 0f)
+        var input = ((double)direction.X, (double)direction.Y, (double)direction.Z);
+        double length = Math.Sqrt(Dot(input, input));
+        if (!double.IsFinite(length) || length <= 0d)
             throw new ArgumentException("射线方向无效。", nameof(direction));
-        Vector3 ray = direction / length;
-        float enter = 0f, exit = float.PositiveInfinity;
+        var ray = (X: input.Item1 / length, Y: input.Item2 / length, Z: input.Item3 / length);
+        double enter = 0d, exit = double.PositiveInfinity;
         if (!Clip(origin.X, ray.X, field.WidthMeters, ref enter, ref exit) ||
             !Clip(origin.Y, ray.Y, field.LengthMeters, ref enter, ref exit))
             return false;
 
-        float x = origin.X + ray.X * (enter + 0.0001f);
-        float y = origin.Y + ray.Y * (enter + 0.0001f);
+        double x = origin.X + ray.X * (enter + 0.0001d);
+        double y = origin.Y + ray.Y * (enter + 0.0001d);
         int cx = Math.Clamp((int)(x / field.SpacingXMeters), 0, field.SamplesX - 2);
         int cy = Math.Clamp((int)(y / field.SpacingYMeters), 0, field.SamplesY - 2);
         int sx = Math.Sign(ray.X), sy = Math.Sign(ray.Y);
-        float nextX = NextBoundary(origin.X, ray.X, cx, field.SpacingXMeters);
-        float nextY = NextBoundary(origin.Y, ray.Y, cy, field.SpacingYMeters);
-        float deltaX = sx == 0 ? float.PositiveInfinity :
-            field.SpacingXMeters / MathF.Abs(ray.X);
-        float deltaY = sy == 0 ? float.PositiveInfinity :
-            field.SpacingYMeters / MathF.Abs(ray.Y);
+        double nextX = NextBoundary(origin.X, ray.X, cx, field.SpacingXMeters);
+        double nextY = NextBoundary(origin.Y, ray.Y, cy, field.SpacingYMeters);
+        double deltaX = sx == 0 ? double.PositiveInfinity :
+            field.SpacingXMeters / Math.Abs(ray.X);
+        double deltaY = sy == 0 ? double.PositiveInfinity :
+            field.SpacingYMeters / Math.Abs(ray.Y);
 
         for (int n = 0; n < field.SamplesX + field.SamplesY; n++)
         {
-            float boundary = MathF.Min(exit, MathF.Min(nextX, nextY));
+            double boundary = Math.Min(exit, Math.Min(nextX, nextY));
             if (TryCell(field, cx, cy, origin, ray, enter, boundary, out hit))
                 return true;
             if (boundary >= exit) break;
@@ -49,7 +50,7 @@ public static partial class TerrainHeightRayPicker
     }
 
     private static bool TryCell(TerrainHeightField field, int x, int y,
-        Vector3 origin, Vector3 ray, float enter, float exit,
+        Vector3 origin, (double X, double Y, double Z) ray, double enter, double exit,
         out TerrainRayHit hit)
     {
         hit = default;
@@ -58,14 +59,14 @@ public static partial class TerrainHeightRayPicker
         Vector3 c = field.GetWorldPosition(x, y + 1);
         Vector3 d = field.GetWorldPosition(x + 1, y + 1);
         int first = 2 * (y * (field.SamplesX - 1) + x);
-        if (Intersect(origin, ray, a, b, d, enter, exit, out float t))
+        if (Intersect(origin, ray, a, b, d, enter, exit, out double t, out var point))
         {
-            hit = new TerrainRayHit(origin + ray * t, first, t);
+            hit = new TerrainRayHit(point, first, (float)t);
             return true;
         }
-        if (Intersect(origin, ray, a, d, c, enter, exit, out t))
+        if (Intersect(origin, ray, a, d, c, enter, exit, out t, out point))
         {
-            hit = new TerrainRayHit(origin + ray * t, first + 1, t);
+            hit = new TerrainRayHit(point, first + 1, (float)t);
             return true;
         }
         return false;

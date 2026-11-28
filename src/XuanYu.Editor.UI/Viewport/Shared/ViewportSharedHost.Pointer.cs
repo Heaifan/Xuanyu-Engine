@@ -8,7 +8,7 @@ public sealed partial class ViewportSharedHost
     private void OnViewportPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (!ReferenceEquals(e.Source, this)) return;
-        if (TryHandleBrushAdjustPress(e) || TryHandleSculptPress(e))
+        if (TryG07GizmoPress(e) || TryHandleBrushAdjustPress(e) || TryHandleSculptPress(e))
         {
             e.Handled = true;
             return;
@@ -44,7 +44,7 @@ public sealed partial class ViewportSharedHost
     }
     private void OnViewportPointerMoved(object? sender, PointerEventArgs e)
     {
-        if (TryHandleBrushAdjustMove(e) || TryHandleSculptMove(e))
+        if (TryG07GizmoMove(e) || TryHandleBrushAdjustMove(e) || TryHandleSculptMove(e))
         {
             e.Handled = true;
             return;
@@ -70,9 +70,9 @@ public sealed partial class ViewportSharedHost
         _previous = next;
         e.Handled = true;
     }
-
     private void OnViewportPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
+        if (TryG07GizmoRelease(e)) { e.Handled = true; return; }
         if (TryHandleSculptRelease(e))
         { UpdateGeoHudHover(e.GetPosition(this), force: true); e.Handled = true; return; }
         if (!_dragging) return;
@@ -82,12 +82,11 @@ public sealed partial class ViewportSharedHost
             UpdateGeoHudHover(e.GetPosition(this), force: true);
         e.Handled = true;
     }
-
     private void OnViewportWheel(object? sender, PointerWheelEventArgs e)
     {
         if (!ReferenceEquals(e.Source, this)) return;
         ToolTip.SetIsOpen(this, false);
-        if (_sculptPointer is not null || _adjustOriginal is not null)
+        if (_gizmoDrag is not null || _sculptPointer is not null || _adjustOriginal is not null)
         { e.Handled = true; return; }
         Point cursor = e.GetPosition(this);
         double scale = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;

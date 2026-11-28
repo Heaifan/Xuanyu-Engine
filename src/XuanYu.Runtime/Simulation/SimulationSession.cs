@@ -18,9 +18,7 @@ public sealed class SimulationSession
     {
         if (IsRunning)
             throw new InvalidOperationException("模拟已经启动。");
-        var snapshot = new WorldScene();
-        snapshot.Replace(_source.Entities.ToArray());
-        RunningWorld = snapshot;
+        RunningWorld = _source.Clone();
         TickCount = 0;
     }
 

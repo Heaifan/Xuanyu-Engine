@@ -7,8 +7,8 @@ public sealed partial class ViewportSharedHost
 {
     private void OnCameraGesture(ViewportCameraGesture gesture)
     {
-        if (_wb.IsSimulating && _wb.CurrentId != PageId.World) return;
-        if (_wb.IsGeoTerrainPreview && !_wb.IsSimulating)
+        if (_wb.IsSimulating && !_wb.CanNavigateRuntimeCamera) return;
+        if (_wb.IsGeoTerrainPreview)
         {
             if (gesture.WheelSteps != 0f)
             {
@@ -39,10 +39,19 @@ public sealed partial class ViewportSharedHost
 
     private void OnCameraShortcut(ViewportCameraShortcut shortcut)
     {
-        if (_wb.IsSimulating) return;
+        if (_wb.IsSimulating)
+        {
+            if (_wb.IsGeoTerrainPreview && _wb.CanNavigateRuntimeCamera &&
+                shortcut == ViewportCameraShortcut.Home) _wb.ResetGeoTerrainCamera();
+            return;
+        }
         if (_wb.IsGeoTerrainPreview)
         {
-            _wb.ResetGeoTerrainCamera();
+            if (shortcut == ViewportCameraShortcut.FocusSelection && _wb.CurrentId == PageId.World)
+            {
+                if (!_wb.FocusG07Entity()) _wb.Log.Write("F：请先选中一个可见全球实体");
+            }
+            else _wb.ResetGeoTerrainCamera();
             return;
         }
         var scene = _wb.CurrentId == PageId.Terrain ? _wb.TerrainScene : _wb.Scene;

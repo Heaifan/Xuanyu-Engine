@@ -36,6 +36,9 @@ public sealed partial class PreviewScene
     public IReadOnlyList<RenderDraw> RenderWithProjection(Matrix4x4 projection) =>
         _bridge.Snapshot(projection, SelectedId);
 
+    public IReadOnlyList<RenderDraw> RenderGeographic(GeoRenderFrame frame) =>
+        _bridge.SnapshotGeographic(frame, SelectedId);
+
     public PreviewObject Add(string name, RenderMesh mesh, Matrix4x4 modelToClip)
     {
         if (!Matrix4x4.Decompose(modelToClip, out Vector3 scale,
@@ -75,6 +78,7 @@ public sealed partial class PreviewScene
     public bool Delete(Guid id)
     {
         if (!World.Delete(id)) return false;
+        ClearLocalTerrain(id);
         _bridge.Unbind(id);
         PreviewObject? item = _objects.FirstOrDefault(x => x.Id == id);
         if (item is not null) _objects.Remove(item);

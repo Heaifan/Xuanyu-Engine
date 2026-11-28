@@ -21,22 +21,22 @@ public sealed partial class ViewportSharedHost
         GeoTerrainRenderSession source, GeoUnifiedLodSession cpu, int interval, float scale)
     {
         long start = Stopwatch.GetTimestamp();
-        var visible = cpu.CreateViewportVisibility(mvp);
-        var frame = session.Step(eye, (int)height, Math.PI / 3, mvp, visible);
+        var visible = cpu.CreateViewportVisibility(mvp, eye);
+        var frame = session.Step(eye, (int)height, Math.PI / 3, mvp, visible, eye);
         int submitted = frame.SubmittedPages;
         double selectionMs = frame.SelectionMs;
         // 只在初始覆盖尚未可绘制时等待；正常 LOD 切换继续显示已提交覆盖。
         while (frame.Draws.Length == 0 && pool.PendingCount > 0)
         {
             pool.WaitForUpload();
-            frame = session.Step(eye, (int)height, Math.PI / 3, mvp, visible);
+            frame = session.Step(eye, (int)height, Math.PI / 3, mvp, visible, eye);
             submitted += frame.SubmittedPages;
             selectionMs += frame.SelectionMs;
         }
         if (frame.Draws.Length == 0)
             throw new InvalidOperationException("G07 完整已提交覆盖未能恢复至 GPU 页池。");
         long selected = Stopwatch.GetTimestamp();
-        var labels = G07Labels(source, cpu, mvp, width, height, interval, scale);
+        var labels = G07Labels(source, cpu, mvp, width, height, interval, scale, eye);
         style = style with { LabelGaps = labels.Select(label => LabelGap(label, scale)).ToArray() };
         long labeled = Stopwatch.GetTimestamp();
         string profile = probe.DrawScene(environment, width, height,

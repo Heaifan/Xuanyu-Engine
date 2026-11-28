@@ -4,6 +4,15 @@ internal sealed class ArchetypeCatalog
 {
     private readonly List<Archetype> _tables = [new Archetype()];
     public Archetype Empty => _tables[0];
+    internal IReadOnlyList<Archetype> Tables => _tables;
+
+    internal Archetype AppendSnapshotSchema(Archetype source)
+    {
+        if (source.ComponentCount == 0) return Empty;
+        var table = new Archetype(source.Types.ToArray());
+        _tables.Add(table);
+        return table;
+    }
 
     public Archetype Transition<T>(Archetype source, bool adding) where T : unmanaged
     {

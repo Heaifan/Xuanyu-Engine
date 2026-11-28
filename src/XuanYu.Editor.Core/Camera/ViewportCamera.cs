@@ -4,97 +4,89 @@ namespace XuanYu.Editor.Camera;
 
 public sealed partial class ViewportCamera
 {
-    private const float FieldOfView = MathF.PI / 3f;
-    private const float OrbitSpeed = 0.006f;
-    private float _yaw;
-    private float _pitch;
-    private float _distance;
-    private float _maxDistance = 500f;
-    private float ZoomLimit => _terrainHeight is null ? _maxDistance : MathF.Max(2000f, _maxDistance);
-    public Vector3 Target { get; private set; }
-    public Vector3 Position => Target + _distance * new Vector3(
-        MathF.Cos(_pitch) * MathF.Cos(_yaw),
-        MathF.Cos(_pitch) * MathF.Sin(_yaw),
-        MathF.Sin(_pitch));
+    private const double FieldOfView = Math.PI / 3d;
+    private const double OrbitSpeed = 0.006d;
+    private double _yaw, _pitch, _distance;
+    private double _maxDistance = 500d;
+    private (double X, double Y, double Z) _target;
+    private double ZoomLimit => _terrainHeight is null ? _maxDistance : Math.Max(2000d, _maxDistance);
+    public (double X, double Y, double Z) TargetMeters => _target;
+    public double DistanceMeters => _distance;
+    public (double X, double Y, double Z) PositionMeters
+    {
+        get
+        {
+            var b = Backward;
+            return (_target.X + _distance * b.X, _target.Y + _distance * b.Y,
+                _target.Z + _distance * b.Z);
+        }
+    }
+    public Vector3 Target => ToVector(_target);
+    public Vector3 Position => ToVector(PositionMeters);
 
     public ViewportCamera() => Reset();
     public ViewportCamera Copy() => (ViewportCamera)MemberwiseClone();
 
     public void Reset()
     {
-        Vector3 start = new(3.5f, -5.5f, 3.2f);
-        Target = Vector3.Zero;
-        _distance = start.Length();
-        _yaw = MathF.Atan2(start.Y, start.X);
-        _pitch = MathF.Asin(start.Z / _distance);
+        _target = default;
+        _distance = Math.Sqrt(3.5d * 3.5d + 5.5d * 5.5d + 3.2d * 3.2d);
+        _yaw = Math.Atan2(-5.5d, 3.5d);
+        _pitch = Math.Asin(3.2d / _distance);
         LiftAboveTerrain();
     }
 
-    public void Orbit(float deltaX, float deltaY)
+    public void Orbit(double deltaX, double deltaY)
     {
-        float yaw = _yaw, pitch = _pitch;
+        double yaw = _yaw, pitch = _pitch;
         _yaw -= deltaX * OrbitSpeed;
-        _pitch = Math.Clamp(_pitch + deltaY * OrbitSpeed,
-            -MathF.PI / 2f, MathF.PI / 2f);
+        _pitch = Math.Clamp(_pitch + deltaY * OrbitSpeed, -Math.PI / 2d, Math.PI / 2d);
         if (!IsAboveTerrain()) { _yaw = yaw; _pitch = pitch; }
     }
 
-    public void Pan(float deltaX, float deltaY, uint viewportHeight)
+    public void Pan(double deltaX, double deltaY, uint viewportHeight)
     {
-        Vector3 oldTarget = Target;
-        float unitsPerPixel = 2f * _distance * MathF.Tan(FieldOfView / 2f)
-            / viewportHeight;
-        Target += (-ViewRight * deltaX + ViewUp * deltaY) * unitsPerPixel;
-        if (!IsAboveTerrain()) Target = oldTarget;
+        var oldTarget = _target;
+        double units = 2d * _distance * Math.Tan(FieldOfView / 2d) / viewportHeight;
+        var right = Right;
+        var up = Up;
+        _target = (_target.X + (-right.X * deltaX + up.X * deltaY) * units,
+            _target.Y + (-right.Y * deltaX + up.Y * deltaY) * units,
+            _target.Z + up.Z * deltaY * units);
+        if (!IsAboveTerrain()) _target = oldTarget;
     }
 
-    public void MoveGround(float forward, float right)
+    public void MoveGround(double forward, double right)
     {
-        Vector3 oldTarget = Target;
-        Vector3 heading = Target - Position;
-        heading.Z = 0f;
-        heading = Vector3.Normalize(heading);
-        Vector3 strafe = Vector3.Normalize(Vector3.Cross(heading, Vector3.UnitZ));
-        Target += heading * forward + strafe * right;
-        if (!IsAboveTerrain()) Target = oldTarget;
+        var oldTarget = _target;
+        // 航向直接取 yaw，避免顶视或大坐标相减时丢失水平朝向。
+        _target = (_target.X - Math.Cos(_yaw) * forward - Math.Sin(_yaw) * right,
+            _target.Y - Math.Sin(_yaw) * forward + Math.Cos(_yaw) * right, _target.Z);
+        if (!IsAboveTerrain()) _target = oldTarget;
     }
 
-    public void Zoom(float wheelSteps)
+    public void Zoom(double wheelSteps)
     {
-        float previous = _distance;
-        _distance = Math.Clamp(
-            _distance * MathF.Pow(0.85f, wheelSteps), 0.25f, ZoomLimit);
+        double previous = _distance;
+        _distance = Math.Clamp(_distance * Math.Pow(0.85d, wheelSteps), 0.25d, ZoomLimit);
         ConstrainZoom(previous);
     }
 
-    public void Focus(Vector3 point)
+    public void Focus(Vector3 point) => Focus(point.X, point.Y, point.Z);
+
+    public void Focus(double x, double y, double z)
     {
-        Target = point;
+        _target = (x, y, z);
         LiftAboveTerrain();
     }
 
     public void Frame(Vector3 center, float radius, float aspect)
     {
-        Target = center;
-        float fit = MathF.Min(1f, aspect);
-        float distance = MathF.Max(0.5f, radius) * 1.35f /
-            (MathF.Sin(FieldOfView / 2f) * fit);
-        _maxDistance = MathF.Max(500f, distance * 4f);
-        _distance = Math.Clamp(distance, 0.25f, ZoomLimit);
+        _target = (center.X, center.Y, center.Z);
+        double fit = Math.Min(1d, aspect);
+        double distance = Math.Max(0.5d, radius) * 1.35d / (Math.Sin(FieldOfView / 2d) * fit);
+        _maxDistance = Math.Max(500d, distance * 4d);
+        _distance = Math.Clamp(distance, 0.25d, ZoomLimit);
         LiftAboveTerrain();
-    }
-
-    public Matrix4x4 ViewProjection(uint width, uint height)
-    {
-        Matrix4x4 view = Matrix4x4.CreateLookAt(Position, Target, ViewUp);
-        var (near, far) = ClipDepthRange();
-        Matrix4x4 projection = IsOrthographic
-            ? Matrix4x4.CreateOrthographic(
-                2f * _distance * MathF.Tan(FieldOfView / 2f) * (float)width / height,
-                2f * _distance * MathF.Tan(FieldOfView / 2f), near, far)
-            : Matrix4x4.CreatePerspectiveFieldOfView(
-                FieldOfView, (float)width / height, near, far);
-        projection.M22 = -projection.M22;
-        return view * projection;
     }
 }

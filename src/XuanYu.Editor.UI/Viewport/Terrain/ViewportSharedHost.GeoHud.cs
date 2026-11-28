@@ -27,7 +27,7 @@ public sealed partial class ViewportSharedHost
         if (_wb.CurrentId != PageId.Terrain || !_wb.HasTerrainHud ||
             !_wb.GeoHudVisible || !force && now - _lastHudPickAt < 120) return;
         _lastHudPickAt = now;
-        if (_g07Enabled && _wb.G07PreviewSource is not null)
+        if (_wb.G07PreviewSource is not null)
         {
             _pendingG07HudPoint = point;
             return;

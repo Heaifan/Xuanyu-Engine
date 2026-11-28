@@ -1,8 +1,9 @@
+using System.Numerics;
 using XuanYu.World.Ecs;
 
 namespace XuanYu.World;
 
-public sealed class WorldScene
+public sealed partial class WorldScene
 {
     private EcsWorld _ecs = new();
     private Dictionary<Guid, string> _names = [];
@@ -10,11 +11,14 @@ public sealed class WorldScene
     public IReadOnlyCollection<WorldEntity> Entities =>
         _names.Keys.Select(id => Read(id, Require(id))).ToArray();
 
-    public WorldEntity Create(string name)
+    public WorldEntity Create(string name) => Create(name, default);
+
+    public WorldEntity Create(string name, SpatialPosition position)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         var entity = new WorldEntity(Guid.NewGuid(), name.Trim(),
-            true, Transform.Identity);
+            true, Transform.FromSpatial(position, Quaternion.Identity,
+                Vector3.One));
         Insert(entity);
         return entity;
     }
@@ -36,7 +40,7 @@ public sealed class WorldScene
     public WorldEntity SetTransform(Guid id, Transform transform)
     {
         EntityId handle = Require(id);
-        _ecs.Set(handle, transform);
+        WriteTransform(handle, transform);
         return Read(id, handle);
     }
 
@@ -55,6 +59,12 @@ public sealed class WorldScene
         return true;
     }
 
+    public WorldScene Clone() => new()
+    {
+        _ecs = _ecs.Clone(),
+        _names = new Dictionary<Guid, string>(_names)
+    };
+
     public void Replace(IReadOnlyList<WorldEntity> entities)
     {
         var replacement = new WorldScene();
@@ -66,7 +76,8 @@ public sealed class WorldScene
     private void Insert(WorldEntity entity)
     {
         EntityId handle = _ecs.Create(entity.Id);
-        _ecs.Add(handle, entity.Transform);
+        _ecs.Add(handle, entity.Transform.Spatial);
+        _ecs.Add(handle, new SceneOrientation(entity.Transform.Rotation, entity.Transform.Scale));
         _ecs.Add(handle, new SceneVisibility(entity.IsVisible));
         _names.Add(entity.Id, entity.Name);
     }
@@ -77,5 +88,5 @@ public sealed class WorldScene
 
     private WorldEntity Read(Guid id, EntityId handle) =>
         new(id, _names[id], _ecs.Get<SceneVisibility>(handle).IsVisible,
-            _ecs.Get<Transform>(handle));
+            ReadTransform(handle));
 }

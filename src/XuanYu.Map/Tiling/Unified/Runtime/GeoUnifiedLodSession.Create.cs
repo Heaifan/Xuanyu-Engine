@@ -11,7 +11,8 @@ public sealed partial class GeoUnifiedLodSession
         CreateCoverageAsync(new GeoUnifiedCoverage(root), pages, cache, loader, source, anchor, resourceLimit);
 
     public static async Task<GeoUnifiedLodSession> CreateDatasetAsync(NasademTileCatalog catalog,
-        EnuFrame anchor, int gpuCapacity, long budget = 1280L * 1024 * 1024, int resourceLimit = 2048)
+        EnuFrame anchor, int gpuCapacity, long budget = 1280L * 1024 * 1024, int resourceLimit = 2048,
+        Egm96GeoidGrid? geoid = null)
     {
         var watch = Stopwatch.StartNew();
         var domain = new GeoUnifiedViewportDomain(catalog.Coordinates);
@@ -35,7 +36,7 @@ public sealed partial class GeoUnifiedLodSession
             }
         }
         double rawMs = watch.Elapsed.TotalMilliseconds;
-        var source = new GeoUnifiedSamples(catalog, "g07-viewport", loader, domain);
+        var source = new GeoUnifiedSamples(catalog, "g07-viewport", loader, domain, geoid);
         var cache = new GeoUnifiedPageCache(loader, source);
         var pages = new GeoUnifiedPageLoader(catalog, loader, cache, retainCatalog: true);
         var session = await CreateCoverageAsync(new GeoUnifiedCoverage(domain.Roots), pages, cache,

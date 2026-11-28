@@ -18,10 +18,10 @@ public static partial class GeoUnifiedError
         for (int y = 0; y < 33; y++)
             for (int x = 0; x < 33; x++)
             {
-                if (page.StatusAt(x, y) != GeoSampleStatus.Valid || page.HeightAt(x, y) is not { } height)
+                if (page.StatusAt(x, y) != GeoSampleStatus.Valid || page.HeightAt(x, y) is null)
                     return null;
                 int px = x * step, py = y * step;
-                vertices[y * 33 + x] = new(px, py, Position(anchor, tile.West + px, tile.South + py, height));
+                vertices[y * 33 + x] = new(px, py, page.PositionAt(anchor, x, y));
             }
         var indices = GeoUnifiedGridIndices.Create(edgeMask);
         double maxSquared = 0;
@@ -41,7 +41,7 @@ public static partial class GeoUnifiedError
                     if (wa < 0 || wb < 0 || wc < 0) continue;
                     var sample = source.Sample(tile.West + x, tile.South + y);
                     if (sample.Status != GeoSampleStatus.Valid || sample.Height is not { } height) return null;
-                    EnuPosition actual = Position(anchor, tile.West + x, tile.South + y, height);
+                    EnuPosition actual = Position(source, anchor, tile.West + x, tile.South + y, height);
                     double ax = (a.Position.East * wa + b.Position.East * wb + c.Position.East * wc) / area;
                     double ay = (a.Position.North * wa + b.Position.North * wb + c.Position.North * wc) / area;
                     double az = (a.Position.Up * wa + b.Position.Up * wb + c.Position.Up * wc) / area;
@@ -54,6 +54,6 @@ public static partial class GeoUnifiedError
 
     private static long Cross(long ax, long ay, long bx, long by) => ax * by - ay * bx;
 
-    private static EnuPosition Position(EnuFrame anchor, int x, int y, short height) =>
-        GeoUnifiedPosition.At(anchor, x, y, height);
+    private static EnuPosition Position(GeoUnifiedSamples source, EnuFrame anchor, int x, int y, short height) =>
+        GeoUnifiedPosition.At(anchor, x, y, height, source.GeoidCentimetersAt(x, y));
 }

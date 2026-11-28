@@ -1,6 +1,8 @@
+using XuanYu.Core.Geodesy;
+
 namespace XuanYu.World.Maps;
 
-public sealed class GeoUnifiedSamples
+public sealed partial class GeoUnifiedSamples
 {
     private readonly HashSet<(int South, int West)> _coverage;
     private readonly GeoUnifiedTileLoader _loader;
@@ -9,15 +11,17 @@ public sealed class GeoUnifiedSamples
     private readonly long _generation;
     internal (Guid, long) Identity => (_loader.Identity, _generation);
     internal GeoUnifiedViewportDomain? Domain { get; }
+    internal Egm96GeoidGrid? Geoid { get; }
 
     public GeoUnifiedSamples(NasademTileCatalog catalog, string version)
         : this(catalog, version, new GeoUnifiedTileLoader(catalog, long.MaxValue)) { }
 
-    public GeoUnifiedSamples(NasademTileCatalog catalog, string version, GeoUnifiedTileLoader loader)
-        : this(catalog, version, loader, null) { }
+    public GeoUnifiedSamples(NasademTileCatalog catalog, string version, GeoUnifiedTileLoader loader,
+        Egm96GeoidGrid? geoid = null)
+        : this(catalog, version, loader, null, geoid) { }
 
     internal GeoUnifiedSamples(NasademTileCatalog catalog, string version,
-        GeoUnifiedTileLoader loader, GeoUnifiedViewportDomain? domain)
+        GeoUnifiedTileLoader loader, GeoUnifiedViewportDomain? domain, Egm96GeoidGrid? geoid)
     {
         if (!ReferenceEquals(catalog, loader.Catalog))
             throw new ArgumentException("采样器与加载器必须使用同一数据目录。", nameof(loader));
@@ -26,6 +30,7 @@ public sealed class GeoUnifiedSamples
         _loader = loader;
         _generation = loader.Generation;
         Domain = domain;
+        Geoid = geoid;
     }
 
     public void Add(NasademTile tile)
@@ -78,6 +83,10 @@ public sealed class GeoUnifiedSamples
             }
         return Result(covered ? GeoSampleStatus.NoData : GeoSampleStatus.OutsideCoverage);
     }
+
+    internal short GeoidCentimetersAt(int x, int y) => Geoid is null ? short.MinValue :
+        (short)Math.Round(Geoid.UndulationMeters(new GeoCoordinate(
+            y / 3600d - 90d, x / 3600d - 180d, 0d)) * 100d);
 
     private GeoUnifiedSample Result(GeoSampleStatus status) => new(status, null, _version);
 

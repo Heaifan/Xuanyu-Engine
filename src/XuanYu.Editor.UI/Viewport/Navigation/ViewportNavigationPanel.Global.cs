@@ -6,7 +6,8 @@ namespace XuanYu.Editor.UI;
 internal sealed partial class ViewportNavigationPanel
 {
     private GlobalCamera? GeoCamera() => _workbench is { } wb &&
-        wb.IsGeoTerrainPreview && !wb.IsSimulating ? wb.GeoTerrainCamera : null;
+        wb.IsGeoTerrainPreview && (!wb.IsSimulating || wb.CanNavigateRuntimeCamera)
+            ? wb.GeoTerrainCamera : null;
 
     private ViewportNavPose? Pose()
     {

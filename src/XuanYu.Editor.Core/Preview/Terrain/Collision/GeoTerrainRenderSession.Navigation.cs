@@ -36,8 +36,9 @@ public sealed partial class GeoTerrainRenderSession
     private bool TryPickZoomAnchor(Vector2 pixel, uint width, uint height,
         out Vector3 anchor)
     {
+        anchor = default;
         Matrix4x4 projection = ViewProjection(width, height);
-        if (GeoTerrainCursorPicker.TryPick(projection, pixel, width,
+        if (_g07Geoid is null && GeoTerrainCursorPicker.TryPick(projection, pixel, width,
             height, _visibleMeshes.Values, out anchor)) return true;
         if (!ViewportScreenRay.TryCreate(projection, pixel, width, height,
             out Vector3 start, out Vector3 ray) || MathF.Abs(ray.Z) < 1e-4f)
@@ -55,7 +56,7 @@ public sealed partial class GeoTerrainRenderSession
                 geo.LongitudeDegrees);
             if (sampled is null) return false;
             z = _anchor.ToEnu(Wgs84.ToEcef(new GeoCoordinate(
-                geo.LatitudeDegrees, geo.LongitudeDegrees, sampled.Value))).Up;
+                geo.LatitudeDegrees, geo.LongitudeDegrees, G07EllipsoidHeight(geo, sampled.Value)))).Up;
         }
         double t = (z - start.Z) / ray.Z;
         anchor = new Vector3((float)(start.X + ray.X * t),

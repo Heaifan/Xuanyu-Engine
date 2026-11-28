@@ -24,7 +24,7 @@ public static class ViewportSceneFraming
 
         foreach (PreviewObject item in objects)
         {
-            if (!item.Visible)
+            if (!item.Visible || item.IsGeographic)
                 continue;
             Matrix4x4 modelToWorld = item.ModelToClip;
             ReadOnlySpan<float> vertices = item.Mesh.Vertices.Span;

@@ -76,9 +76,9 @@ public sealed unsafe partial class VkContext : IDisposable
         DetachSurface();
         if (_device.Handle != 0)
         {
-            Console.WriteLine($"[G06/退出] {Environment.TickCount64} VkContext 等待设备空闲");
+            Console.WriteLine($"[GPU/退出] {Environment.TickCount64} VkContext 等待设备空闲");
             _vk.DeviceWaitIdle(_device);
-            Console.WriteLine($"[G06/退出] {Environment.TickCount64} VkContext 设备空闲");
+            Console.WriteLine($"[GPU/退出] {Environment.TickCount64} VkContext 设备空闲");
             _vk.DestroyDevice(_device, null);
             _device = default;
         }

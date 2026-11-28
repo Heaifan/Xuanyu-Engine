@@ -7,11 +7,11 @@ namespace XuanYu.Render.Vulkan;
 
 internal static class VkTerrainDrawParameters
 {
-    public const int ByteSize = 576;
+    public const int ByteSize = 608;
 
     public static byte[] Create(int south, int west, int step, GeoCoordinate origin, Matrix4x4 mvp,
         IReadOnlyList<Vector4>? clipRects = null, TerrainVisualStyle? style = null,
-        RenderWaterAtlas? water = null)
+        RenderWaterAtlas? water = null, EnuPosition renderOrigin = default)
     {
         var bytes = new byte[ByteSize];
         MemoryMarshal.Write(bytes.AsSpan(), in mvp);
@@ -46,6 +46,8 @@ internal static class VkTerrainDrawParameters
             }
         }
         WriteOverlays(bytes, south, west, step, style);
+        Span<double> eye = stackalloc double[4] { renderOrigin.East, renderOrigin.North, renderOrigin.Up, 0d };
+        MemoryMarshal.AsBytes(eye).CopyTo(bytes.AsSpan(576));
         return bytes;
     }
     private static void WriteOverlays(byte[] bytes, int south, int west, int step,

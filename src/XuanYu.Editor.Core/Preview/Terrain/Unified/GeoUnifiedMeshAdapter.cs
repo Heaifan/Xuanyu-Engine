@@ -14,14 +14,12 @@ public static class GeoUnifiedMeshAdapter
         const int count = 33 * 33;
         var vertices = new float[count * 7];
         var valid = new bool[count];
-        int step = 1 << page.Tile.Level;
         for (int y = 0; y < 33; y++)
             for (int x = 0; x < 33; x++)
             {
                 int i = y * 33 + x;
                 if (page.HeightAt(x, y) is not short height) continue;
-                var p = GeoUnifiedPosition.At(anchor, page.Tile.West + x * step,
-                    page.Tile.South + y * step, height);
+                var p = page.PositionAt(anchor, x, y);
                 float t = Math.Clamp(height / 4000f, 0f, 1f);
                 int v = i * 7;
                 vertices[v] = (float)p.East; vertices[v + 1] = (float)p.North; vertices[v + 2] = (float)p.Up;

@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Text.Json;
+using XuanYu.World.Ecs;
 
 namespace XuanYu.Editor.Preview.Persistence;
 
@@ -14,6 +15,8 @@ public static class SceneFile
 
     public static void Save(PreviewScene scene, string path)
     {
+        if (scene.World.Entities.Any(entity => entity.Transform.Spatial.Space != SpatialSpace.Local))
+            throw new InvalidOperationException("当前场景文件仅支持本地实体。");
         string json = JsonSerializer.Serialize(scene.Capture(), Options);
         File.WriteAllText(path, json);
     }
@@ -76,6 +79,7 @@ public static class SceneFile
     }
 
     private static bool Valid(XuanYu.World.Transform value) =>
+        value.Spatial.Space == SpatialSpace.Local &&
         Finite(value.Position) && Finite(value.Scale) &&
         Finite(value.Rotation) && value.Rotation.LengthSquared() > 1e-12f;
 

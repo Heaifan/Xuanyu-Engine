@@ -22,7 +22,7 @@ public sealed partial class GeoTerrainRenderSession
         GeoCoordinate point = Wgs84.ToGeo(_anchor.ToEcef(
             new EnuPosition(local.X, local.Y, local.Z)));
         Camera.Focus(new GeoCoordinate(point.LatitudeDegrees,
-            point.LongitudeDegrees, 0d));
+            point.LongitudeDegrees, G07EllipsoidHeight(point, 0d)));
     }
 
     public RenderDraw? GridDraw(bool geographic, uint width, uint height,
@@ -46,7 +46,8 @@ public sealed partial class GeoTerrainRenderSession
             _gridInitialized = true;
             _gridKey = key;
             Func<double, double, double?> sample = g07 is not null ?
-                (lat, lon) => g07.Domain is { } domain && !domain.Contains(lat, lon) ? 0d : null :
+                (lat, lon) => g07.Domain is { } domain && !domain.Contains(lat, lon)
+                    ? G07EllipsoidHeight(new GeoCoordinate(lat, lon, 0d), 0d) : null :
                 Camera.DistanceMeters > 20_000d ? _source.CoarseFor(9).Sample : _source.SampleResident;
             _gridMesh = GeoTerrainGridMesh.Create(_anchor,
                 sample, target, step, geographic, x, y, g07 is null ? null : lonStep, half);

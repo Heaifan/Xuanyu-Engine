@@ -37,10 +37,10 @@ public sealed partial class ViewportSharedHost : Grid
         _timer.Stop();
         await _frame;
         ReleaseG07Session();
-        Console.WriteLine($"[G06/退出] {Environment.TickCount64} 最后一帧已结束");
+        Console.WriteLine($"[GPU/退出] {Environment.TickCount64} 最后一帧已结束");
         await ReleaseTargetAsync(_image, _probe, _texture);
         _image = null; _probe = null; _texture = null;
-        Console.WriteLine($"[G06/退出] {Environment.TickCount64} 共享目标已释放");
+        Console.WriteLine($"[GPU/退出] {Environment.TickCount64} 共享目标已释放");
     }
     public event Action<int, int>? Clicked;
 
@@ -95,5 +95,6 @@ public sealed partial class ViewportSharedHost : Grid
         LostFocus += (_, _) => _wb.SetGameCameraKey(
             XuanYu.Editor.Camera.GameCameraKey.None, false);
         AttachTerrainBrushOverlay();
+        AttachG07Gizmo();
     }
 }

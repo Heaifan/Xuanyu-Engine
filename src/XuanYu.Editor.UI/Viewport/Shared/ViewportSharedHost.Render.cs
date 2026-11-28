@@ -34,7 +34,7 @@ public sealed partial class ViewportSharedHost
             var image = next?.Image ?? _image!;
             uint width = texture.Width, height = texture.Height;
             long stage = profile ? Stopwatch.GetTimestamp() : 0;
-            var geo = _g07Enabled ? _wb.G07PreviewSource : null;
+            var geo = _wb.G07PreviewSource;
             RenderDraw[] draws = geo is null
                 ? PrepareContourLabels(_wb.ViewportDraws(width, height), width, height) : [];
             long prepared = profile ? Stopwatch.GetTimestamp() : 0;
@@ -52,7 +52,12 @@ public sealed partial class ViewportSharedHost
             DisplayContourLabels();
             UpdateGeoHudScale();
             UpdateGeoMiniMap();
-            if (geo is not null) DisplayG07HudHover(geo, width, height);
+            if (geo is not null)
+            {
+                DisplayG07HudHover(geo, width, height);
+                DisplayG07EntityPick(geo, width, height);
+            }
+            DisplayG07Gizmo(geo is not null);
             long uiUpdated = profile ? Stopwatch.GetTimestamp() : 0;
 
             if (next is { } ready)

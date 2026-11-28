@@ -33,7 +33,7 @@ public sealed partial class GeoUnifiedGpuSession
 
     // Call after the previous graphics fence; the pool and CPU session have one serial owner.
     public GeoUnifiedGpuFrame Step(EnuPosition eye, int height, double fov,
-        Matrix4x4 mvp, Func<GeoUnifiedTile, bool>? visible = null)
+        Matrix4x4 mvp, Func<GeoUnifiedTile, bool>? visible = null, EnuPosition renderOrigin = default)
     {
         _pool.Poll();
         var coverage = _cpu.Coverage;
@@ -58,7 +58,7 @@ public sealed partial class GeoUnifiedGpuSession
         int submitted = SubmitMissing(coverage, blocked ? null : pending);
         TerrainPoolDraw[] draws = coverage.Leaves.All(tile => _pool.IsReady(Key(tile)))
             ? coverage.Leaves.Select(tile => new TerrainPoolDraw(Key(tile), tile.South, tile.West,
-                1 << tile.Level, _origin, mvp, coverage.EdgeMask(tile), _cpu.Domain?.ClipRects(tile))).ToArray() : [];
+                1 << tile.Level, _origin, mvp, coverage.EdgeMask(tile), _cpu.Domain?.ClipRects(tile)) { RenderOrigin = renderOrigin }).ToArray() : [];
         return new(coverage, pending, draws, submitted, blocked || limited) { SelectionMs = selectionMs };
     }
 

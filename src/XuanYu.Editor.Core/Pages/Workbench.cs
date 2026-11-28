@@ -21,13 +21,8 @@ public sealed partial class Workbench
         _runtimeBridge is null ? Scene.Draws
         : _runtimeBridge.Snapshot(Matrix4x4.Identity);
 
-    public IReadOnlyList<RenderDraw> ViewportDraws(uint width, uint height)
-    {
-        if (_runtimeBridge is not null && CurrentId != PageId.Terrain)
-            return _runtimeBridge.Snapshot(
-                ActiveCamera?.ViewProjection(width, height) ?? Matrix4x4.Identity);
-        return ComposeEditorDraws(width, height);
-    }
+    public IReadOnlyList<RenderDraw> ViewportDraws(uint width, uint height) =>
+        ComposeEditorDraws(width, height);
 
     public SimulationSession Simulation { get; }
     public bool IsSimulating => Simulation.IsRunning;

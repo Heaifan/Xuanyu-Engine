@@ -81,10 +81,8 @@ public sealed partial class TerrainPreviewSession
         out TerrainRayHit hit, TerrainHeightField? reference = null)
     {
         hit = default;
-        if (width == 0 || height == 0 || Scene.Camera is not { } camera)
-            return false;
-        if (!ViewportScreenRay.TryCreate(
-            camera.ViewProjection(width, height), pixel, width, height,
+        if (Scene.Camera is not { } camera) return false;
+        if (!camera.TryCreateScreenRay(pixel, width, height,
             out Vector3 origin, out Vector3 direction))
             return false;
         Vector3 dataOrigin = origin / DisplayScale +

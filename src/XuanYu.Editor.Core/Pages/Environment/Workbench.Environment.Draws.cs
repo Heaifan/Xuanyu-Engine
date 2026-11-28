@@ -11,13 +11,14 @@ public sealed partial class Workbench
         if (width < 2 || height < 2) return [];
         bool terrainPage = CurrentId == PageId.Terrain;
         var geo = _geoPreview;
-        var preview = geo is not null ? null : terrainPage
+        var runtime = geo is null && !terrainPage ? _runtimeBridge : null;
+        var preview = geo is not null || runtime is not null ? null : terrainPage
             ? _terrainPreview ??= CreateTerrainPreview()
             : _terrainPreview is { } shared &&
                 ReferenceEquals(shared.Scene, Scene)
                 ? shared : null;
         var scene = preview?.Scene ?? Scene;
-        var camera = scene.Camera;
+        var camera = runtime is null ? scene.Camera : ActiveCamera;
         var draws = new List<RenderDraw>();
 
         if (SkyEnabled)
@@ -38,9 +39,10 @@ public sealed partial class Workbench
         }
         else
         {
-            Matrix4x4 projection = scene.ViewProjection(width, height);
-            draws.AddRange(preview is null
-                ? Scene.ViewportDraws(width, height)
+            Matrix4x4 projection = runtime is null ? scene.ViewProjection(width, height)
+                : camera?.ViewProjection(width, height) ?? Matrix4x4.Identity;
+            draws.AddRange(runtime is not null ? runtime.Snapshot(projection)
+                : preview is null ? Scene.ViewportDraws(width, height)
                 : preview.ViewportDraws(width, height));
             bool showGrid = terrainPage ? TerrainGridEnabled : WorldGridEnabled;
             if (showGrid && camera is not null)

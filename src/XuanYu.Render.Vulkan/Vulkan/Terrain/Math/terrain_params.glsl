@@ -13,4 +13,5 @@ layout(std140, set = 0, binding = 1) uniform TerrainParams {
     vec4 overlayFlags;
     vec4 labelGaps[8];
     vec4 gridNext;
+    dvec4 renderOrigin;
 } p;

@@ -14,7 +14,9 @@ public sealed partial class GlobalCamera
             target.LongitudeDegrees, ground);
     }
 
-    public void FocusForCursorZoom(GeoCoordinate target)
+    public void FocusForCursorZoom(GeoCoordinate target) => FocusForCursorZoom(target, true);
+
+    internal void FocusForCursorZoom(GeoCoordinate target, bool recoverClearance)
     {
         GeoCoordinate next = GroundedFocus(target);
         EcefPosition previousEye = PositionEcef;
@@ -37,7 +39,7 @@ public sealed partial class GlobalCamera
         Target = next;
         YawRadians = Math.Atan2(local.East, -local.North);
         PitchRadians = pitch;
-        if (!IsAboveTerrain()) RestoreTerrainClearance();
+        if (recoverClearance && !IsAboveTerrain()) RestoreTerrainClearance();
         if (IsAboveTerrain() && (_sweepTerrain is null ||
             _sweepTerrain(previousEye, PositionEcef, TerrainClearanceMeters) == 1d)) return;
         Target = oldTarget;

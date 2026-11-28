@@ -16,16 +16,18 @@ public sealed partial class GeoUnifiedLodSession
         return found;
     }
 
-    public bool TryPickSurfaceHit(Vector3 origin, Vector3 ray, out GeoUnifiedSurfaceHit hit)
+    // 命中点及三角形坐标与射线使用同一相对原点；默认是数据集 ENU。
+    public bool TryPickSurfaceHit(Vector3 origin, Vector3 ray, out GeoUnifiedSurfaceHit hit,
+        EnuPosition renderOrigin = default)
     {
         float closest = float.PositiveInfinity;
         hit = default;
         foreach (var entry in SurfaceEntries())
         {
-            if (!GeoUnifiedSurface.Intersects(entry.Bounds, origin, ray, closest)) continue;
+            if (!GeoUnifiedSurface.Intersects(entry.Bounds.RelativeTo(renderOrigin), origin, ray, closest)) continue;
             using var lease = _cache.TryAcquire(entry.Tile);
             if (lease is null) continue;
-            GeoUnifiedSurface.Pick(lease.Page, _anchor, entry.Mask, entry.Clips, origin, ray, ref closest, ref hit);
+            GeoUnifiedSurface.Pick(lease.Page, _anchor, entry.Mask, entry.Clips, origin, ray, renderOrigin, ref closest, ref hit);
         }
         return float.IsFinite(closest);
     }
@@ -53,18 +55,17 @@ public sealed partial class GeoUnifiedLodSession
         Domain is { } domain && !domain.Contains(latitude, longitude)
             ? 0d : SampleImportedHeight(latitude, longitude);
 
+    public GeoElevationSample SampleElevation(GeoCoordinate position)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return _source.SampleElevation(position);
+    }
+
     public double? SampleImportedHeight(double latitude, double longitude)
     {
-        double x = (longitude + 180d) * 3600d, y = (latitude + 90d) * 3600d;
-        int left = (int)Math.Floor(x), right = (int)Math.Ceiling(x);
-        int bottom = (int)Math.Floor(y), top = (int)Math.Ceiling(y);
-        var a = _source.SampleRaw(left, bottom).Height;
-        var b = _source.SampleRaw(right, bottom).Height;
-        var c = _source.SampleRaw(left, top).Height;
-        var d = _source.SampleRaw(right, top).Height;
-        if (a is null || b is null || c is null || d is null) return null;
-        double u = x - left, v = y - bottom;
-        return (a.Value * (1 - u) + b.Value * u) * (1 - v) +
-            (c.Value * (1 - u) + d.Value * u) * v;
+        if (!double.IsFinite(latitude) || !double.IsFinite(longitude) ||
+            latitude is < -90d or > 90d || longitude is < -180d or > 180d)
+            return null;
+        return SampleElevation(new GeoCoordinate(latitude, longitude, 0d)).HeightMeters;
     }
 }

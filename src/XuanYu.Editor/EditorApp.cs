@@ -39,9 +39,9 @@ public sealed class EditorApp : Application
                 : new EditorWindow(workbench, _gpu);
             desktop.Exit += (_, _) =>
             {
-                Console.WriteLine($"[G06/退出] {Environment.TickCount64} 开始释放 Vulkan 设备");
+                Console.WriteLine($"[GPU/退出] {Environment.TickCount64} 开始释放 Vulkan 设备");
                 _gpu?.Dispose();
-                Console.WriteLine($"[G06/退出] {Environment.TickCount64} Vulkan 设备已释放");
+                Console.WriteLine($"[GPU/退出] {Environment.TickCount64} Vulkan 设备已释放");
             };
         }
         base.OnFrameworkInitializationCompleted();

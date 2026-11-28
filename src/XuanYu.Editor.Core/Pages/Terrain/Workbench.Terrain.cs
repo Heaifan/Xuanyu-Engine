@@ -76,6 +76,7 @@ public sealed partial class Workbench
         string sourcePath, string? mapPath, GeoTerrainRenderSession? geo = null,
         IReadOnlyList<TerrainDemEntry>? entries = null)
     {
+        if (IsSimulating) throw new InvalidOperationException("请先停止模拟，再替换地形。");
         _terrainPreview = new TerrainPreviewSession(map);
         BindTerrainScene(_terrainPreview.Scene);
         TerrainSourceTile = tile;

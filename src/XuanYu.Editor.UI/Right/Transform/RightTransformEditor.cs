@@ -2,6 +2,7 @@ using System.Numerics;
 using Avalonia.Controls;
 using XuanYu.Editor.UI.Left;
 using XuanYu.World;
+using XuanYu.World.Ecs;
 
 namespace XuanYu.Editor.UI.Right;
 
@@ -19,10 +20,13 @@ internal sealed class RightTransformEditor : StackPanel
         var group = new RightPropertyGroup("变换",
             (key, size) => LeftSvgIcon.Create(key, size));
 
-        group.AddSubheading("位置");
-        group.AddNumber("X", initial.Position.X, v => SetPosition(0, v));
-        group.AddNumber("Y", initial.Position.Y, v => SetPosition(1, v));
-        group.AddNumber("Z", initial.Position.Z, v => SetPosition(2, v));
+        if (initial.Spatial.Space == SpatialSpace.Local)
+        {
+            group.AddSubheading("位置");
+            group.AddNumber("X", initial.Position.X, v => SetPosition(0, v));
+            group.AddNumber("Y", initial.Position.Y, v => SetPosition(1, v));
+            group.AddNumber("Z", initial.Position.Z, v => SetPosition(2, v));
+        }
 
         group.AddSubheading("旋转（°）");
         group.AddNumber("X", _degrees.X, v => SetRotation(0, v), 1f);
@@ -38,10 +42,12 @@ internal sealed class RightTransformEditor : StackPanel
 
     private void SetPosition(int axis, float number)
     {
-        _current = _current with
-        {
-            Position = Replace(_current.Position, axis, number)
-        };
+        var p = _current.Spatial;
+        var position = SpatialPosition.FromLocal(
+            axis == 0 ? number : p.X,
+            axis == 1 ? number : p.Y,
+            axis == 2 ? number : p.Z);
+        _current = Transform.FromSpatial(position, _current.Rotation, _current.Scale);
         _apply(_current);
     }
 

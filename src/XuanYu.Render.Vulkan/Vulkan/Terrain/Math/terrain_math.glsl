@@ -5,16 +5,26 @@ dvec2 terrainRotate(double sine, double cosine, double delta) {
     return dvec2(sine * cd + cosine * sd, cosine * cd - sine * sd);
 }
 
-dvec3 terrainPosition(ivec2 grid, int height, dvec4 baseSinCos, dvec4 anchorSinCos, dvec4 originEcefAndStep) {
+dvec3 terrainPositionWithHeight(ivec2 grid, double height, bool ellipsoidal,
+    dvec4 baseSinCos, dvec4 anchorSinCos, dvec4 originEcefAndStep) {
     dvec2 lat = terrainRotate(baseSinCos.x, baseSinCos.y, double(grid.y) * originEcefAndStep.w);
     dvec2 lon = terrainRotate(baseSinCos.z, baseSinCos.w, double(grid.x) * originEcefAndStep.w);
     double radius = 6378137.0lf / sqrt(1.0lf - 0.0066943799901413165lf * lat.x * lat.x);
     dvec3 ecef = dvec3(radius * lat.y * lon.y, radius * lat.y * lon.x,
         radius * (1.0lf - 0.0066943799901413165lf) * lat.x);
+    if (ellipsoidal) {
+        ecef += height * dvec3(lat.y * lon.y, lat.y * lon.x, lat.x);
+        height = 0.0lf;
+    }
     dvec3 delta = ecef - originEcefAndStep.xyz;
     double slat = anchorSinCos.x, clat = anchorSinCos.y;
     double slon = anchorSinCos.z, clon = anchorSinCos.w;
     return dvec3(-slon * delta.x + clon * delta.y,
         -slat * clon * delta.x - slat * slon * delta.y + clat * delta.z,
-        clat * clon * delta.x + clat * slon * delta.y + slat * delta.z + double(height));
+        clat * clon * delta.x + clat * slon * delta.y + slat * delta.z + height);
+}
+
+dvec3 terrainPosition(ivec2 grid, int height, dvec4 baseSinCos, dvec4 anchorSinCos, dvec4 originEcefAndStep) {
+    return terrainPositionWithHeight(grid, double(height), false,
+        baseSinCos, anchorSinCos, originEcefAndStep);
 }

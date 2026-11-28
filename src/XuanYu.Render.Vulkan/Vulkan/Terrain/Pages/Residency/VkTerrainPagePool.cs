@@ -1,6 +1,5 @@
 using Silk.NET.Vulkan;
 using XuanYu.Render;
-
 namespace XuanYu.Render.Vulkan;
 
 // Render-thread owner: change protection/reuse slots only after the previous draw fence completes.
@@ -24,7 +23,6 @@ public sealed partial class VkTerrainPagePool : IDisposable
     public int UploadBatches { get; private set; }
     public int UploadedPages { get; private set; }
     public ulong HeightBytes => _image.AllocatedBytes;
-
     internal VkTerrainPagePool(Vk vk, PhysicalDevice gpu, Device device, Queue queue, uint family,
         DescriptorSetLayout layout, int capacity, int limit, ulong budget, RenderWaterAtlas? water = null)
     {
@@ -65,8 +63,10 @@ public sealed partial class VkTerrainPagePool : IDisposable
         if (batch.Length == 0) return 0;
         foreach (var page in batch)
             if (page.Heights.Length != TerrainPoolUpload.SampleCount || page.Heights.Span.Contains(short.MinValue) ||
-                (!page.Normals.IsEmpty && page.Normals.Length != 2 * TerrainPoolUpload.SampleCount))
-                throw new ArgumentException("G07 页上传要求完整有效高程及两组编码法线。");
+                (!page.Normals.IsEmpty && page.Normals.Length != 2 * TerrainPoolUpload.SampleCount) ||
+                (!page.GeoidCentimeters.IsEmpty && (page.GeoidCentimeters.Length != TerrainPoolUpload.SampleCount ||
+                    page.GeoidCentimeters.Span.Contains(short.MinValue))))
+                throw new ArgumentException("G07 页上传要求完整有效高程、法线及可选 EGM96 平面。");
         var copies = batch.Select((p, i) => (free[i], _used[free[i]], p)).ToArray();
         _transfer.Submit(_image.Handle, copies);
         for (int i = 0; i < batch.Length; i++)

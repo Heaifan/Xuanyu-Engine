@@ -23,7 +23,8 @@ public sealed class test_E303GameCamera
         Assert.Equal(before, editor.ViewProjection(800, 600));
         var editDraw = Assert.Single(wb.Scene.RenderWithProjection(
             wb.EditorProjection(800, 600)));
-        var gameDraw = Assert.Single(wb.ViewportDraws(800, 600));
+        var gameDraw = Assert.Single(wb.ViewportDraws(800, 600), d =>
+            d.Mesh.AssetId.StartsWith("terrain/local/", StringComparison.Ordinal));
         Assert.NotEqual(editDraw.ModelToClip, gameDraw.ModelToClip);
         wb.StopSimulation();
         Assert.Same(editor, wb.ActiveCamera);

@@ -9,17 +9,20 @@ public sealed partial class Workbench
     private ViewportCamera? _runtimeCamera;
     private GameCameraKey _heldCameraKeys;
 
-    public ViewportCamera? ActiveCamera => IsSimulating
-        ? _runtimeCamera ?? Scene.Camera
-        : _geoPreview is not null
-            ? null
-            : CurrentId == PageId.Terrain ? TerrainScene.Camera : Scene.Camera;
+    public bool CanNavigateRuntimeCamera => CurrentId == PageId.World ||
+        (IsGeoTerrainPreview && CurrentId == PageId.Simulation);
+
+    public ViewportCamera? ActiveCamera => _geoPreview is not null
+        ? null
+        : IsSimulating ? _runtimeCamera ?? Scene.Camera
+        : CurrentId == PageId.Terrain ? TerrainScene.Camera : Scene.Camera;
 
     public void StartSimulation()
     {
         ViewportCamera? editorCamera = ActiveCamera;
         Simulation.Start();
         _runtimeCamera = editorCamera?.Copy();
+        _geoPreview?.BeginRuntimeCamera();
         ResetCameraKeys();
         _runtimeBridge = CreateRuntimeBridge();
         Log.Write("模拟开始：已建立独立 World 副本，目标 30 Hz");
@@ -40,6 +43,7 @@ public sealed partial class Workbench
         Simulation.Stop();
         _runtimeBridge = null;
         _runtimeCamera = null;
+        _geoPreview?.EndRuntimeCamera();
         ResetCameraKeys();
         Log.Write($"模拟停止：累计 {seconds:0.0} 秒，编辑场景未被替换");
         Changed?.Invoke();
@@ -52,7 +56,7 @@ public sealed partial class Workbench
             ResetCameraKeys();
             return;
         }
-        if (!IsSimulating || CurrentId != PageId.World) return;
+        if (!IsSimulating || !CanNavigateRuntimeCamera) return;
         if (down) _heldCameraKeys |= key;
         else _heldCameraKeys &= ~key;
     }
@@ -61,14 +65,23 @@ public sealed partial class Workbench
 
     private void TickRuntimeCamera()
     {
-        if (_runtimeCamera is null || CurrentId != PageId.World) return;
+        if (!CanNavigateRuntimeCamera) return;
         int forward = (Has(GameCameraKey.Forward) ? 1 : 0) -
             (Has(GameCameraKey.Backward) ? 1 : 0);
         int right = (Has(GameCameraKey.Right) ? 1 : 0) -
             (Has(GameCameraKey.Left) ? 1 : 0);
         if (forward == 0 && right == 0) return;
-        float step = 4f / SimulationSession.TicksPerSecond;
-        if (forward != 0 && right != 0) step /= MathF.Sqrt(2f);
+        if (_geoPreview is { } geo)
+        {
+            double meters = Math.Max(4d, geo.Camera.DistanceMeters * 0.25d);
+            double delta = meters / SimulationSession.TicksPerSecond;
+            if (forward != 0 && right != 0) delta /= Math.Sqrt(2d);
+            geo.Camera.MoveGround(forward * delta, right * delta);
+            return;
+        }
+        if (_runtimeCamera is null) return;
+        double step = 4d / SimulationSession.TicksPerSecond;
+        if (forward != 0 && right != 0) step /= Math.Sqrt(2d);
         _runtimeCamera.MoveGround(forward * step, right * step);
     }
 

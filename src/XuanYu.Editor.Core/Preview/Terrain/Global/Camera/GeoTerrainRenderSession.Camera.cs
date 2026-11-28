@@ -9,6 +9,24 @@ public sealed partial class GeoTerrainRenderSession
     private static readonly bool G06ShortNear =
         Environment.GetEnvironmentVariable("XYE_G06_NEAR_TEST") == "1";
 
+    private GlobalCamera? _editorGeoCamera;
+
+    internal void BeginRuntimeCamera()
+    {
+        _editorGeoCamera = Camera;
+        Camera = Camera.Copy();
+        _g07ClearanceKey = null;
+    }
+
+    internal void EndRuntimeCamera()
+    {
+        if (_editorGeoCamera is not { } editor) return;
+        Camera = editor;
+        _editorGeoCamera = null;
+        _g07ClearanceKey = null;
+        _g07NearPlane = null;
+    }
+
     public void ResetCamera()
     {
         Camera = new GlobalCamera(_anchor.Origin, InitialDistanceMeters);
@@ -31,7 +49,7 @@ public sealed partial class GeoTerrainRenderSession
             GeoCoordinate geo = Wgs84.ToGeo(origin.ToEcef(
                 new EnuPosition(east, north, 0d)));
             Camera.FocusForCursorZoom(new GeoCoordinate(geo.LatitudeDegrees,
-                geo.LongitudeDegrees, 0d));
+                geo.LongitudeDegrees, G07EllipsoidHeight(geo, 0d)));
         }
         else
             Camera.Orbit(-dx * 0.006d, dy * 0.006d);
@@ -47,7 +65,7 @@ public sealed partial class GeoTerrainRenderSession
                 ? _source.CoarseFor(9) : _source;
             double ground = sampler.Sample(eye.LatitudeDegrees,
                 eye.LongitudeDegrees) ?? 0d;
-            double clearance = Math.Max(0d, eye.HeightMeters - ground);
+            double clearance = Math.Max(0d, eye.HeightMeters - G07EllipsoidHeight(eye, ground));
             return NearPlaneForClearance(clearance);
         }
     }

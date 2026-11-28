@@ -48,7 +48,7 @@ public static partial class GeoUnifiedError
         {
             var sample = source.Sample(tile.West + col, tile.South + row);
             if (sample.Status == GeoSampleStatus.Valid && sample.Height is { } height)
-            { result = Position(anchor, tile.West + col, tile.South + row, height); return true; }
+            { result = Position(source, anchor, tile.West + col, tile.South + row, height); return true; }
             result = default;
             return false;
         }

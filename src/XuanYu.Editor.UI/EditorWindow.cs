@@ -27,10 +27,13 @@ public sealed partial class EditorWindow : Window
         Width = 1280; Height = 800;
         MinWidth = 1100; MinHeight = 600;
         Background = EditorTheme.WindowBg;
-        _topBar = new TopBar(_wb, this);
-        _leftPanel = new LeftWorkspacePanel(_wb.Scene);
+        _topBar = new TopBar(_wb, this, CreateWorldCube);
+        _leftPanel = new LeftWorkspacePanel(_wb.Scene, CreateWorldCube);
         _leftPanel.BindTerrain(_wb);
-        _inspector = new RightPreviewInspector(_wb.Scene);
+        _inspector = new RightPreviewInspector(_wb.Scene,
+            id => _sharedViewport?.ReadG07EntityHeights(id),
+            (id, target, aboveGround) => _sharedViewport is { } view
+                ? view.MoveG07Entity(id, target, aboveGround) : "当前没有可用的 G07 共享视口。");
         Control viewport = new TerrainWorkspaceToolbar(_wb, CreateViewport(vk));
         var root = new Grid { RowDefinitions = new("74,*,22") };
         var workspace = BuildWorkspace(viewport);

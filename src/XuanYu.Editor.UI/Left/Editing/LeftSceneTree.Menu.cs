@@ -36,7 +36,7 @@ internal sealed partial class LeftSceneTree
         MenuItem create = LeftMenuStyle.Item("创建", "＋",
             new KeyGesture(Key.A, KeyModifiers.Shift));
         MenuItem cube = LeftMenuStyle.Item("立方体", "□");
-        cube.Click += (_, _) => _scene.CreateCube();
+        cube.Click += (_, _) => _createCube();
         create.Items.Add(cube);
         return create;
     }

@@ -21,7 +21,7 @@ public sealed partial class ViewportSharedHost
     {
         if (!enabled || ++_sharedPerfFrames % 60 != 0) return;
         double total = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
-        _wb.Log.Write($"[G06/R08-04A] 帧={_sharedPerfFrames} 间隔={interval:F1}ms " +
+        _wb.Log.Write($"[视口/性能] 帧={_sharedPerfFrames} 间隔={interval:F1}ms " +
             $"总计={total:F1}ms UI帧准备={Stopwatch.GetElapsedTime(prepareStart, prepared).TotalMilliseconds:F1}ms " +
             $"地编工具={Stopwatch.GetElapsedTime(prepared, brushed).TotalMilliseconds:F1}ms " +
             $"Vulkan({gpu}) 共享纹理合成调用={Stopwatch.GetElapsedTime(drawn, presented).TotalMilliseconds:F1}ms " +

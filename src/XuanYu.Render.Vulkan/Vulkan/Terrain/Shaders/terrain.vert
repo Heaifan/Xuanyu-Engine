@@ -20,8 +20,14 @@ vec3 pageNormal(ivec2 grid) {
 void main() {
     ivec2 grid = ivec2(gl_VertexIndex % 33, gl_VertexIndex / 33);
     int height = texelFetch(heightPage, grid, 0).r;
-    dvec3 position = terrainPosition(grid, height, p.baseSinCos, p.anchorSinCos, p.originEcefAndStep);
-    gl_Position = p.mvp * vec4(vec3(position), 1.0);
+    // 单页旧诊断纹理没有第四平面；页池的 -32768 明确表示旧几何合同。
+    int geoid = textureSize(heightPage, 0).y >= 132
+        ? texelFetch(heightPage, grid + ivec2(0, 99), 0).r : -32768;
+    bool corrected = geoid != -32768;
+    double heightMeters = double(height) + (corrected ? double(geoid) * 0.01lf : 0.0lf);
+    dvec3 position = terrainPositionWithHeight(grid, heightMeters, corrected,
+        p.baseSinCos, p.anchorSinCos, p.originEcefAndStep);
+    gl_Position = p.mvp * vec4(vec3(position - p.renderOrigin.xyz), 1.0);
     elevation = float(height);
     gridCoord = vec2(grid);
     mapGrid = vec2(0.0);

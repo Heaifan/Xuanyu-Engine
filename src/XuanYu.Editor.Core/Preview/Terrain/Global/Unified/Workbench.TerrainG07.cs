@@ -1,6 +1,7 @@
 using XuanYu.Editor.Preview.Terrain;
 using XuanYu.Editor.Preview;
 using XuanYu.Render;
+using XuanYu.Runtime;
 using XuanYu.World.Maps;
 
 namespace XuanYu.Editor.Pages;
@@ -20,11 +21,10 @@ public sealed partial class Workbench
         Log.Write($"[G07/导入] HGT={source.SourceCount} 首次合成提交={System.Diagnostics.Stopwatch.GetElapsedTime(import.Started).TotalMilliseconds:F1}ms");
     }
 
-    public GeoTerrainRenderSession? G07PreviewSource =>
-        IsSimulating ? null : _geoPreview;
+    public GeoTerrainRenderSession? G07PreviewSource => _geoPreview;
 
     public IReadOnlyList<RenderDraw> G07EnvironmentDraws(GeoTerrainRenderSession source,
-        GeoUnifiedLodSession cpu, uint width, uint height)
+        GeoUnifiedLodSession cpu, uint width, uint height, GeoRenderFrame? frame = null)
     {
         var draws = new List<RenderDraw>(2);
         if (SkyEnabled) draws.Add(ViewportSky.WithPitch(source.Camera.PitchRadians));
@@ -32,6 +32,9 @@ public sealed partial class Workbench
         if ((terrainPage ? TerrainGridEnabled : WorldGridEnabled) &&
             source.GridDraw(terrainPage, width, height, cpu) is { } grid)
             draws.Add(grid);
+        frame ??= source.G07RenderFrame(width, height);
+        draws.AddRange(_runtimeBridge is null ? Scene.RenderGeographic(frame)
+            : _runtimeBridge.SnapshotGeographic(frame));
         return draws;
     }
 }

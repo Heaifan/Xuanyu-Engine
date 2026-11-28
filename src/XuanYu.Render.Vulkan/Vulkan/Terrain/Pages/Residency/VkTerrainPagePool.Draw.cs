@@ -13,7 +13,7 @@ public sealed partial class VkTerrainPagePool
             if (!IsReady(draw.Key)) throw new InvalidOperationException($"G07 高程页尚未就绪：{draw.Key}");
             int slot = _slots[draw.Key];
             _bindings.SetParameters(slot, VkTerrainDrawParameters.Create(draw.South, draw.West,
-                draw.Step, draw.Origin, draw.Mvp, draw.ClipRects, draw.Style, _waterSource));
+                draw.Step, draw.Origin, draw.Mvp, draw.ClipRects, draw.Style, _waterSource, draw.RenderOrigin));
             result[i] = (slot, draw.Mask);
         }
         if (result.Length != 0) _bindings.FlushParameters();

@@ -15,9 +15,9 @@ internal sealed partial class LeftWorkspacePanel : Border
     private readonly TextBlock _infoDetail = new()
     { FontSize = 12, FontFamily = TreeFont,
       TextWrapping = TextWrapping.Wrap, Foreground = EditorTheme.TextSub };
-    public LeftWorkspacePanel(PreviewScene scene)
+    public LeftWorkspacePanel(PreviewScene scene, Action? createCube = null)
     {
-        _tree = new LeftSceneTree(scene);
+        _tree = new LeftSceneTree(scene, createCube);
         _sceneMenu = _tree.CreateSceneMenu();
         Background = EditorTheme.PanelBg;
         BorderBrush = EditorTheme.Border;

@@ -9,10 +9,17 @@ public sealed partial class GeoTerrainRenderSession
     public void ZoomAtCursor(float wheel, Vector2 pixel, uint width, uint height)
     {
         if (width < 2 || height < 2) return;
-        bool found = TryPickZoomAnchor(pixel, width, height, out Vector3 anchor);
+        // 侧视时射线与水平锚点面近乎平行，不做不稳定的锚点反解。
+        Vector3 anchor = default;
+        bool found = Camera.PitchRadians > 0.02d &&
+            TryPickZoomAnchor(pixel, width, height, out anchor);
         double before = Camera.DistanceMeters;
+        double requested = Math.Clamp(before * Math.Pow(0.85d, wheel),
+            GlobalCamera.MinDistanceMeters, GlobalCamera.MaxDistanceMeters);
         Camera.Zoom(wheel);
         if (!found || Camera.DistanceMeters == before) return;
+        // 原始地形已截停向前缩放时，不再平移眼点绕过这次安全边界。
+        if (wheel > 0f && Camera.DistanceMeters > requested) return;
 
         for (int i = 0; i < 2; i++)
         {
@@ -25,7 +32,7 @@ public sealed partial class GeoTerrainRenderSession
             GeoCoordinate target = CursorTarget(anchor, atHeight);
             if (_source.Sample(target.LatitudeDegrees,
                 target.LongitudeDegrees) is null) return;
-            Camera.FocusForCursorZoom(target);
+            Camera.FocusForCursorZoom(target, recoverClearance: wheel <= 0f);
         }
     }
 
@@ -36,6 +43,6 @@ public sealed partial class GeoTerrainRenderSession
             target.East + anchor.X - rayHit.X,
             target.North + anchor.Y - rayHit.Y, target.Up)));
         return new GeoCoordinate(moved.LatitudeDegrees,
-            moved.LongitudeDegrees, 0d);
+            moved.LongitudeDegrees, G07EllipsoidHeight(moved, 0d));
     }
 }

@@ -11,10 +11,10 @@ public sealed class MetricGridOverlay
 
     public RenderDraw Draw(ViewportCamera camera, Matrix4x4 projection)
     {
-        double distance = Vector3.Distance(camera.Position, camera.Target);
+        double distance = camera.DistanceMeters;
         double step = GridStep.FromDistance(distance);
-        long x = (long)Math.Round(camera.Target.X / (8d * step));
-        long y = (long)Math.Round(camera.Target.Y / (8d * step));
+        long x = (long)Math.Round(camera.TargetMeters.X / (8d * step));
+        long y = (long)Math.Round(camera.TargetMeters.Y / (8d * step));
         var key = (step, x, y);
         if (_mesh is null || _key != key)
         {

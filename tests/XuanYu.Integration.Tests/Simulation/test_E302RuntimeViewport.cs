@@ -21,8 +21,8 @@ public sealed class test_E302RuntimeViewport
         var moved = new Transform(new Vector3(3f, 0f, 0f),
             Quaternion.Identity, Vector3.One);
         runtime.SetTransform(terrain.Id, moved);
-        var runtimeDraw = Assert.Single(wb.ViewportDraws(800, 600));
-        Assert.Equal(moved.ToMatrix() * wb.Scene.ViewProjection(800, 600),
+        var runtimeDraw = LocalTerrain(wb);
+        Assert.Equal(moved.ToMatrix() * wb.ActiveCamera!.ViewProjection(800, 600),
             runtimeDraw.ModelToClip);
         Assert.NotEqual(editorDraw.ModelToClip, runtimeDraw.ModelToClip);
         Assert.False(runtimeDraw.Selected);
@@ -42,10 +42,10 @@ public sealed class test_E302RuntimeViewport
         wb.StartSimulation();
         wb.Simulation.RunningWorld!.SetVisible(second.Id, false);
         var draws = wb.ViewportDraws(800, 600);
-        Assert.Equal(2, draws.Count);
-        Assert.StartsWith("terrain/local/", draws[0].Mesh.AssetId);
-        Assert.Equal("builtin/cube", draws[1].Mesh.AssetId);
-        Assert.False(draws[1].Visible);
+        Assert.Equal(4, draws.Count);
+        Assert.StartsWith("terrain/local/", draws[1].Mesh.AssetId);
+        Assert.Equal("builtin/cube", draws[2].Mesh.AssetId);
+        Assert.False(draws[2].Visible);
         Assert.True(wb.Scene.ViewportDraws(800, 600)[1].Visible);
         wb.StopSimulation();
         Assert.True(Assert.Single(wb.ViewportDraws(800, 600),
@@ -60,7 +60,8 @@ public sealed class test_E302RuntimeViewport
         wb.StopSimulation();
         var added = wb.Scene.CreateCube();
         wb.StartSimulation();
-        Assert.Equal(2, wb.ViewportDraws(800, 600).Count);
+        Assert.Equal(4, wb.ViewportDraws(800, 600).Count);
+        Assert.Single(wb.ViewportDraws(800, 600), d => d.Mesh.AssetId == "builtin/cube");
         Assert.NotNull(wb.Simulation.RunningWorld!.Find(added.Id));
         wb.StopSimulation();
     }

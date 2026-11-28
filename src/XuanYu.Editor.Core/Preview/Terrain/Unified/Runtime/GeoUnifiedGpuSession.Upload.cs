@@ -27,7 +27,7 @@ public sealed partial class GeoUnifiedGpuSession
             var heights = new short[33 * 33];
             for (int y = 0; y < 33; y++)
                 for (int x = 0; x < 33; x++) heights[y * 33 + x] = lease.Page.HeightAt(x, y)!.Value;
-            requests.Add(new(key, heights, lease.Page.EncodedNormals));
+            requests.Add(new(key, heights, lease.Page.EncodedNormals, lease.Page.GeoidCentimeters));
         }
     }
 }

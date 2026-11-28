@@ -7,8 +7,8 @@ namespace XuanYu.Render.Vulkan;
 internal sealed unsafe partial class VkTerrainPageTransfer : IDisposable
 {
     private const int HeightBytes = TerrainPoolUpload.SampleCount * sizeof(short);
-    // 三个连续 R16 平面；每层传输起点对齐4字节。
-    internal const int PageStride = (3 * HeightBytes + 3) & ~3;
+    // 四个连续 R16 平面；每层传输起点对齐4字节。
+    internal const int PageStride = (4 * HeightBytes + 3) & ~3;
     private readonly Vk _vk;
     private readonly Device _device;
     private readonly Queue _queue;
@@ -43,11 +43,15 @@ internal sealed unsafe partial class VkTerrainPageTransfer : IDisposable
         for (int i = 0; i < pages.Length; i++)
         {
             var upload = pages[i].Upload;
-            var target = _scratch.AsSpan(i * PageStride, 3 * HeightBytes);
+            var target = _scratch.AsSpan(i * PageStride, 4 * HeightBytes);
             MemoryMarshal.AsBytes(upload.Heights.Span).CopyTo(target);
-            var normals = target[HeightBytes..];
+            var normals = target.Slice(HeightBytes, 2 * HeightBytes);
             if (upload.Normals.IsEmpty) normals.Clear();
             else MemoryMarshal.AsBytes(upload.Normals.Span).CopyTo(normals);
+            var geoid = target.Slice(3 * HeightBytes, HeightBytes);
+            if (upload.GeoidCentimeters.IsEmpty)
+                MemoryMarshal.Cast<byte, short>(geoid).Fill(short.MinValue);
+            else MemoryMarshal.AsBytes(upload.GeoidCentimeters.Span).CopyTo(geoid);
         }
         _staging.Write(_scratch.AsSpan(0, pages.Length * PageStride));
         Record(image, pages);

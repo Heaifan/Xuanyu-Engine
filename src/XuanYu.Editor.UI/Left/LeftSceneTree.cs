@@ -10,14 +10,17 @@ namespace XuanYu.Editor.UI.Left;
 internal sealed partial class LeftSceneTree : StackPanel
 {
     private readonly PreviewScene _scene;
+    private readonly Action _createCube;
     private readonly StackPanel _rows = new();
     private readonly LeftTreeNode _root = new("当前场景", "Nodes/scene");
     private readonly LeftTreeNode _meshes = new("网格对象", "Nodes/folder");
+    private readonly LeftTreeNode _geoMeshes = new("全球网格对象", "Nodes/folder");
     private readonly Dictionary<Guid, LeftTreeRow> _objectRows = [];
 
-    public LeftSceneTree(PreviewScene scene)
+    public LeftSceneTree(PreviewScene scene, Action? createCube = null)
     {
         _scene = scene;
+        _createCube = createCube ?? (() => scene.CreateCube());
         Spacing = 5;
         _root.Children.Add(_meshes);
         Children.Add(new TextBlock
@@ -46,8 +49,11 @@ internal sealed partial class LeftSceneTree : StackPanel
     private void Rebuild()
     {
         _meshes.Children.Clear();
+        _geoMeshes.Children.Clear();
         foreach (PreviewObject item in _scene.Objects)
-            _meshes.Children.Add(new LeftTreeNode(item.Name, "Nodes/mesh", item));
+            (item.IsGeographic ? _geoMeshes : _meshes).Children.Add(new LeftTreeNode(item.Name, "Nodes/mesh", item));
+        _root.Children.Remove(_geoMeshes);
+        if (_geoMeshes.Children.Count > 0) _root.Children.Add(_geoMeshes);
         _rows.Children.Clear();
         _objectRows.Clear();
         AddNode(_root, 0, [], true);

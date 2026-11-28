@@ -1,6 +1,6 @@
 namespace XuanYu.World.Ecs;
 
-public sealed class EcsWorld
+public sealed partial class EcsWorld
 {
     private readonly EntityRegistry _registry = new();
     private readonly ArchetypeCatalog _catalog = new();
@@ -13,10 +13,12 @@ public sealed class EcsWorld
 
     public EntityId Create() => Create(Guid.NewGuid());
 
-    public EntityId Create(Guid guid)
+    public EntityId Create(Guid guid) => Create(guid, _catalog.Empty);
+
+    private EntityId Create(Guid guid, Archetype table)
     {
         EntityId id = _registry.Create(guid);
-        var location = new EntityLocation(_catalog.Empty, _catalog.Empty.Append(id));
+        var location = new EntityLocation(table, table.Append(id));
         if (id.Index == _locations.Count) _locations.Add(location);
         else _locations[id.Index] = location;
         return id;

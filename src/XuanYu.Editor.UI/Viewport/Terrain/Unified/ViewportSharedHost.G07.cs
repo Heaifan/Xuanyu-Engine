@@ -5,6 +5,7 @@ using System.Numerics;
 using Avalonia.Controls;
 using XuanYu.Editor.Pages;
 using System.Diagnostics;
+using XuanYu.Core.Geodesy;
 using XuanYu.World.Maps;
 
 namespace XuanYu.Editor.UI;
@@ -12,8 +13,6 @@ namespace XuanYu.Editor.UI;
 public sealed partial class ViewportSharedHost
 {
     private const int G07Capacity = 512, G07UploadLimit = 16;
-    private readonly bool _g07Enabled =
-        Environment.GetEnvironmentVariable("XYE_G07_VIEWPORT") != "0";
     private GeoTerrainRenderSession? _g07Source;
     private GeoUnifiedLodSession? _g07Cpu;
     private GeoUnifiedGpuSession? _g07Gpu;
@@ -22,6 +21,7 @@ public sealed partial class ViewportSharedHost
     private int[][]? _g07Topology;
     private long _g07Frames;
     private Matrix4x4 _g07HudProjection;
+    private EnuPosition _g07HudOrigin;
 
     private async Task<string> DrawG07FrameAsync(VkSharedColorProbe probe,
         GeoTerrainRenderSession source, uint width, uint height)
@@ -31,14 +31,18 @@ public sealed partial class ViewportSharedHost
             if (!_vk.ShaderFloat64Enabled)
                 throw new NotSupportedException("G07 需要 Vulkan shaderFloat64。");
             ReleaseG07Session();
+            string gridPath = Environment.GetEnvironmentVariable("XYE_EGM96_GRID") ??
+                Path.Combine(Environment.CurrentDirectory, "artifacts", "terrain", "geoid", "egm96_15.gtx");
+            source.ConfigureG07Geoid(Egm96GeoidGrid.Load(gridPath));
             string? path = _wb.TerrainSourcePath;
             _g07Cpu = await Task.Run(() => source.LoadG07DatasetAsync(path, G07Capacity));
             _g07Source = source;
-            _wb.Log.Write($"[G07/视口] 根覆盖={_g07Cpu.Coverage.Leaves.Count} {_g07Cpu.PreparationProfile}");
+            _wb.Log.Write($"[G07/视口] 根覆盖={_g07Cpu.Coverage.Leaves.Count} 垂直基准=EGM96→WGS84 {_g07Cpu.PreparationProfile}");
         }
         source.EnsureG07CameraClearance(_g07Cpu!);
-        var eye = source.G07Eye;
-        var mvp = source.G07Projection(width, height);
+        var renderFrame = source.G07RenderFrame(width, height);
+        var eye = renderFrame.Eye;
+        var mvp = renderFrame.RelativeProjection;
         var origin = source.G07Origin;
         bool geographic = _wb.CurrentId == PageId.Terrain;
         bool grid = geographic ? _wb.TerrainGridEnabled : _wb.WorldGridEnabled;
@@ -55,7 +59,8 @@ public sealed partial class ViewportSharedHost
                 ? contour.NextIntervalMeters : contour.IntervalMeters) : 0;
         float scale = (float)(TopLevel.GetTopLevel(this)?.RenderScaling ?? 1d);
         long environmentStart = Stopwatch.GetTimestamp();
-        var environment = _wb.G07EnvironmentDraws(source, _g07Cpu!, width, height);
+        CaptureG07Gizmo();
+        var environment = _wb.G07EnvironmentDraws(source, _g07Cpu!, width, height, renderFrame);
         double environmentMs = Stopwatch.GetElapsedTime(environmentStart).TotalMilliseconds;
         var result = await Task.Run(() =>
         {
@@ -72,7 +77,9 @@ public sealed partial class ViewportSharedHost
             }
             return DrawG07Coverage(probe, _g07Gpu!, _g07Pool!, eye, mvp, width, height, environment, style, source, _g07Cpu!, interval, scale);
         });
+        _g07EntityFrame = renderFrame;
         _g07HudProjection = mvp;
+        _g07HudOrigin = eye;
         _screenLabels = result.Labels;
         _worldLabels = [];
         _lastContourLabelsAt = 0;
@@ -85,6 +92,7 @@ public sealed partial class ViewportSharedHost
         _g07Cpu?.Dispose();
         _g07Cpu = null; _g07Gpu = null; _g07Pool = null;
         _g07Source = null; _g07Probe = null;
+        _g07EntityFrame = null; _g07EntityPick = null;
         _g07Frames = 0;
         _g07LabelCache.Clear();
     }

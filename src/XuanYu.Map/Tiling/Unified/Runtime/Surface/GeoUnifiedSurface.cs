@@ -14,17 +14,16 @@ internal static class GeoUnifiedSurface
     }
 
     public static void Pick(GeoUnifiedHeightPage page, EnuFrame anchor, int mask,
-        Vector4[]? clips, Vector3 origin, Vector3 ray, ref float closest,
+        Vector4[]? clips, Vector3 origin, Vector3 ray, EnuPosition renderOrigin, ref float closest,
         ref GeoUnifiedSurfaceHit hit)
     {
         var vertices = new Vector3[33 * 33];
-        int step = 1 << page.Tile.Level;
         for (int y = 0; y < 33; y++)
             for (int x = 0; x < 33; x++)
             {
-                var p = GeoUnifiedPosition.At(anchor, page.Tile.West + x * step,
-                    page.Tile.South + y * step, page.HeightAt(x, y)!.Value);
-                vertices[y * 33 + x] = new((float)p.East, (float)p.North, (float)p.Up);
+                var p = page.PositionAt(anchor, x, y);
+                vertices[y * 33 + x] = new((float)(p.East - renderOrigin.East),
+                    (float)(p.North - renderOrigin.North), (float)(p.Up - renderOrigin.Up));
             }
         int[] indices = GeoUnifiedGridIndices.Create(mask);
         for (int i = 0; i < indices.Length; i += 3)
